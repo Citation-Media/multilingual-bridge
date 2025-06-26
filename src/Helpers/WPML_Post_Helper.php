@@ -25,7 +25,7 @@ class WPML_Post_Helper {
 	 * @param int|WP_Post $post Post ID or WP_Post object..
 	 * @return string Language code (e.g., 'en', 'de') or empty string if not found
 	 */
-	public static function get_language( $post ): string {
+	public static function get_language( int|WP_Post $post ): string {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
 
 		if ( ! $post_id ) {
@@ -46,10 +46,9 @@ class WPML_Post_Helper {
 	 *
 	 * @param int|WP_Post $post Post ID or WP_Post object..
 	 * @param bool        $return_objects Whether to return WP_Post objects instead of IDs.
-	 * @return array Array with language code as key and post ID or WP_Post object as value
-	 * @phpstan-return array<string, int|WP_Post>
+	 * @return array<string, int|WP_Post> Array with language code as key and post ID or WP_Post object as value
 	 */
-	public static function get_language_versions( $post, bool $return_objects = false ): array {
+	public static function get_language_versions( int|WP_Post $post, bool $return_objects = false ): array {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
 
 		if ( ! $post_id ) {
@@ -64,6 +63,14 @@ class WPML_Post_Helper {
 		if ( empty( $translations ) || ! is_array( $translations ) ) {
 			return array();
 		}
+
+		// Sort translations so original language is first
+		usort(
+			$translations,
+			function ( $a, $b ) {
+				return $b->original <=> $a->original;
+			}
+		);
 
 		$language_versions = array();
 		foreach ( $translations as $translation ) {
@@ -95,10 +102,9 @@ class WPML_Post_Helper {
 	 * Get translation status for all active languages
 	 *
 	 * @param int|WP_Post $post Post ID or WP_Post object.
-	 * @return array Array with language code as key and boolean (true if translation exists) as value
-	 * @phpstan-return array<string, bool>
+	 * @return array<string, bool> Array with language code as key and boolean (true if translation exists) as value
 	 */
-	public static function get_translation_status( $post ): array {
+	public static function get_translation_status( int|WP_Post $post ): array {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
 
 		if ( ! $post_id ) {
@@ -129,7 +135,7 @@ class WPML_Post_Helper {
 	 * @param int|WP_Post $post Post ID or WP_Post object.
 	 * @return bool True if translations exist for all active languages
 	 */
-	public static function has_all_translations( $post ): bool {
+	public static function has_all_translations( int|WP_Post $post ): bool {
 		$translation_status = self::get_translation_status( $post );
 
 		if ( empty( $translation_status ) ) {
@@ -144,10 +150,9 @@ class WPML_Post_Helper {
 	 * Get list of languages without translations for a post
 	 *
 	 * @param int|WP_Post $post Post ID or WP_Post object.
-	 * @return array Array of language codes that don't have translations
-	 * @phpstan-return array<int, string>
+	 * @return array<int, string> Array of language codes that don't have translations
 	 */
-	public static function get_missing_translations( $post ): array {
+	public static function get_missing_translations( int|WP_Post $post ): array {
 		$translation_status = self::get_translation_status( $post );
 
 		$missing = array();
@@ -172,7 +177,7 @@ class WPML_Post_Helper {
 	 * @param string      $taxonomy The taxonomy name from which to remove relationships.
 	 * @return void
 	 */
-	public static function safe_delete_term_relationships( $post, string $taxonomy ): void {
+	public static function safe_delete_term_relationships( int|WP_Post $post, string $taxonomy ): void {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
 
 		if ( ! $post_id ) {
@@ -201,7 +206,7 @@ class WPML_Post_Helper {
 	/**
 	 * Get all active language codes configured in WPML
 	 *
-	 * @return array<string> Array of language codes (e.g., ['en', 'de', 'fr'])
+	 * @return array<int, string> Array of language codes (e.g., ['en', 'de', 'fr'])
 	 */
 	public static function get_active_language_codes(): array {
 		$active_languages = apply_filters( 'wpml_active_languages', null );

@@ -1,5 +1,5 @@
 === Multilingual Bridge ===
-Contributors: juvodesign
+Contributors: juvodesign, citationmedia
 Tags: wpml, rest-api, multilingual, translation, json, headless, api
 Requires at least: 5.0
 Tested up to: 6.5

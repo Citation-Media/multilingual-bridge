@@ -13,8 +13,11 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Multilingual Bridge
+ * Plugin URI:        https://citation.media
  * Description:       Bridges the gap between WPML and WordPress REST API, adding comprehensive multilingual support for modern WordPress applications.
  * Version:           1.0.0
+ * Author:            Justin Vogt, Citation Media
+ * Author URI:        https://citation.media
  * Requires PHP:      8.0
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
