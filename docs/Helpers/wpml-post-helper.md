@@ -37,7 +37,7 @@ $language = WPML_Post_Helper::get_language($post);
 
 ### get_language_versions()
 
-Get all translations of a post, including the original.
+Get all translations of a post, including the original. The results are sorted with the original language first.
 
 ```php
 // Get all translations as IDs
@@ -244,7 +244,7 @@ foreach ($products as $product) {
 ## Requirements
 
 - WPML plugin must be installed and activated
-- PHP 7.4 or higher
+- PHP 8.0 or higher (for union type support)
 - WordPress 5.0 or higher
 
 ## Comparison with Native WPML Functions

@@ -145,7 +145,7 @@ This plugin is licensed under GPL v2 or later.
 
 ## Credits
 
-Created by Justin Vogt
+Created by Justin Vogt and [Citation Media](https://citation.media)
 
 ---
 
