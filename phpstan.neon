@@ -1,0 +1,12 @@
+parameters:
+    level: 6
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - multilingual-bridge.php
+        - src/
+    ignoreErrors:
+    scanDirectories:
+        - vendor
+        - vendor-prefixed
+    bootstrapFiles:
+        - constants.php
