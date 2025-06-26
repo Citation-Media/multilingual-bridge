@@ -13,6 +13,8 @@
 
 namespace Multilingual_Bridge;
 
+use Multilingual_Bridge\REST\WPML_REST_Fields;
+
 /**
  * The core plugin class.
  *
@@ -122,6 +124,10 @@ class Multilingual_Bridge {
 			},
 			100
 		);
+
+		// Register REST API fields for WPML language support
+		$wpml_rest_fields = new WPML_REST_Fields();
+		$this->loader->add_action( 'rest_api_init', $wpml_rest_fields, 'register_fields', 10, 1 );
 	}
 
 	/**

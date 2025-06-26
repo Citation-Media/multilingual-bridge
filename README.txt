@@ -1,112 +1,118 @@
 === Multilingual Bridge ===
-Contributors: (this should be a list of wordpress.org userid's)
-Tags: comments, spam
-Tested up to: 6.4.3
+Contributors: juvodesign
+Tags: wpml, rest-api, multilingual, translation, json, headless, api
+Requires at least: 5.0
+Tested up to: 6.5
 Stable tag: 1.0.0
+Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Here is a short description of the plugin.  This should be no more than 150 characters.  No markup here.
+Bridges the gap between WPML and WordPress REST API, adding comprehensive multilingual support for modern WordPress applications.
 
 == Description ==
 
-This is the long description.  No limit, and you can use Markdown (as well as in the following sections).
+Multilingual Bridge enhances WPML's functionality by adding full REST API support for multilingual content. Perfect for headless WordPress, mobile apps, and external integrations that need language-aware content.
 
-For backwards compatibility, if this section is missing, the full length of the short description will be used, and
-Markdown parsed.
+**Key Problems Solved:**
 
-A few notes about the sections above:
+* WPML has no native REST API support
+* No easy way to filter posts by language in REST API
+* Complex WPML API calls simplified
+* Missing translation information in REST responses
+* WPML bugs when deleting term relationships
 
-*   "Contributors" is a comma separated list of wp.org/wp-plugins.org usernames
-*   "Tags" is a comma separated list of tags that apply to the plugin
-*   "Requires at least" is the lowest version that the plugin will work on
-*   "Tested up to" is the highest version that you've *successfully used to test the plugin*. Note that it might work on
-higher versions... this is just the highest one you've verified.
-*   Stable tag should indicate the Subversion "tag" of the latest stable version, or "trunk," if you use `/trunk/` for
-stable.
+**Main Features:**
 
-    Note that the `readme.txt` of the stable tag is the one that is considered the defining one for the plugin, so
-if the `/trunk/readme.txt` file says that the stable tag is `4.3`, then it is `/tags/4.3/readme.txt` that'll be used
-for displaying information about the plugin.  In this situation, the only thing considered from the trunk `readme.txt`
-is the stable tag pointer.  Thus, if you develop in trunk, you can update the trunk `readme.txt` to reflect changes in
-your in-development version, without having that information incorrectly disclosed about the current stable version
-that lacks those changes -- as long as the trunk's `readme.txt` points to the correct stable tag.
+* **Automatic Language Fields** - Adds `language_code` to all REST API responses
+* **Translation Links** - Discover all translations via `_links.translation`
+* **Language Filtering** - Query posts by language with `?lang=` parameter
+* **Developer Helpers** - Simplified functions for common WPML operations
+* **Bug Workarounds** - Safely handle term relationships across languages
 
-    If no stable tag is provided, it is assumed that trunk is stable, but you should specify "trunk" if that's where
-you put the stable version, in order to eliminate any doubt.
+**REST API Examples:**
+
+Get German posts:
+`GET /wp-json/wp/v2/posts?lang=de`
+
+Get all posts (all languages):
+`GET /wp-json/wp/v2/posts?lang=all`
+
+**Perfect for:**
+
+* Headless WordPress with Next.js, Gatsby, or Nuxt
+* Mobile app development
+* External system integrations
+* Custom admin interfaces
+* Multilingual content migrations
 
 == Installation ==
 
-This section describes how to install the plugin and get it working.
-
-e.g.
-
-1. Upload `learndash-lesson-access.php` to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Place `<?php do_action('plugin_name_hook'); ?>` in your templates
+1. Install and activate WPML (required)
+2. Upload the plugin files to `/wp-content/plugins/multilang-bridge`
+3. Activate the plugin through the 'Plugins' menu in WordPress
+4. Start using the enhanced REST API endpoints
 
 == Frequently Asked Questions ==
 
-= A question that someone might have =
+= Does this plugin require WPML? =
 
-An answer to that question.
+Yes, WPML must be installed and activated. This plugin extends WPML's functionality to work with the REST API.
 
-= What about foo bar? =
+= Which post types are supported? =
 
-Answer to foo bar dilemma.
+All post types that have REST API support enabled will automatically get language fields and filtering capabilities.
+
+= Can I filter custom post types by language? =
+
+Yes! Any custom post type with `show_in_rest => true` will support language filtering.
+
+= How do I get all translations of a post? =
+
+The plugin automatically adds translation links to the `_links` property of each REST response. You can also use the helper functions in PHP.
+
+= Does it work with custom taxonomies? =
+
+Yes, the helper functions support all taxonomies, including custom ones.
+
+= Is it compatible with Gutenberg? =
+
+Yes, the plugin is fully compatible with the block editor and enhances its REST API endpoints.
 
 == Screenshots ==
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
-the /assets directory or the directory that contains the stable readme.txt (tags or trunk). Screenshots in the /assets
-directory take precedence. For example, `/assets/screenshot-1.png` would win over `/tags/4.3/screenshot-1.png`
-(or jpg, jpeg, gif).
-2. This is the second screen shot
+1. REST API response showing language_code field
+2. Translation links in _links property
+3. Language filtering in action
 
 == Changelog ==
 
-= 1.0 =
-* A change since the previous version.
-* Another change.
-
-= 0.5 =
-* List versions from most recent at top to oldest at bottom.
+= 1.0.0 =
+* Initial release
+* Language fields in REST API responses
+* Translation links in _links property
+* Language filtering with ?lang= parameter
+* WPML helper functions for developers
+* Safe term relationship handling
 
 == Upgrade Notice ==
 
-= 1.0 =
-Upgrade notices describe the reason a user should upgrade.  No more than 300 characters.
+= 1.0.0 =
+Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support.
 
-= 0.5 =
-This version fixes a security related bug.  Upgrade immediately.
+== Developer Documentation ==
 
-== Arbitrary section ==
+**Helper Functions:**
 
-You may provide arbitrary sections, in the same format as the ones above.  This may be of use for extremely complicated
-plugins where more information needs to be conveyed that doesn't fit into the categories of "description" or
-"installation."  Arbitrary sections will be shown below the built-in sections outlined above.
+`WPML_Post_Helper::get_language($post_id)` - Get post language
+`WPML_Post_Helper::get_language_versions($post_id)` - Get all translations
+`WPML_Post_Helper::has_all_translations($post_id)` - Check translation completeness
+`WPML_Post_Helper::safe_delete_term_relationships($post_id, $taxonomy)` - Safely delete terms
 
-== A brief Markdown Example ==
+**REST API Parameters:**
 
-Ordered list:
+`?lang=en` - Get posts in English
+`?lang=all` - Get posts in all languages
+`?_fields=id,title,language_code` - Optimize response size
 
-1. Some feature
-1. Another feature
-1. Something else about the plugin
-
-Unordered list:
-
-* something
-* something else
-* third thing
-
-Here's a link to [WordPress](http://wordpress.org/ "Your favorite software") and one to [Markdown's Syntax Documentation][markdown syntax].
-Titles are optional, naturally.
-
-[markdown syntax]: http://daringfireball.net/projects/markdown/syntax
-            "Markdown is what the parser uses to process much of the readme file"
-
-Markdown uses email style notation for blockquotes and I've been told:
-> Asterisks for *emphasis*. Double it up  for **strong**.
-
-`<?php code(); // goes in backticks ?>`
+Full documentation available on [GitHub](https://github.com/JUVOJustin/multilang-bridge).

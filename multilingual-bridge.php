@@ -13,7 +13,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Multilingual Bridge
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       Bridges the gap between WPML and WordPress REST API, adding comprehensive multilingual support for modern WordPress applications.
  * Version:           1.0.0
  * Requires PHP:      8.0
  * License:           GPL-2.0+
@@ -79,6 +79,22 @@ add_action( 'activated_plugin', array( Activator::class, 'network_activation' ),
  * @since    1.0.0
  */
 function run_multilingual_bridge(): void {
+	// Check if WPML is active
+	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! class_exists( 'SitePress' ) ) {
+		// WPML is not active, show admin notice
+		add_action(
+			'admin_notices',
+			function () {
+				?>
+			<div class="notice notice-error">
+				<p><?php esc_html_e( 'Multilingual Bridge requires WPML to be installed and activated.', 'multilingual-bridge' ); ?></p>
+			</div>
+				<?php
+			}
+		);
+		return;
+	}
+
 	$plugin = new Multilingual_Bridge();
 	$plugin->run();
 }
