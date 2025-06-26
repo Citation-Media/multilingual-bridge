@@ -99,7 +99,7 @@ class Multilingual_Bridge {
 		add_action(
 			'admin_enqueue_scripts',
 			function () {
-				$this->enqueue_bud_entrypoint( 'multilingual-bridge-admin' );
+				//$this->enqueue_bud_entrypoint( 'multilingual-bridge-admin' );
 			},
 			100
 		);
@@ -120,7 +120,7 @@ class Multilingual_Bridge {
 		add_action(
 			'wp_enqueue_scripts',
 			function () {
-				$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );
+				//$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );
 			},
 			100
 		);
