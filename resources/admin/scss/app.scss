@@ -2,3 +2,56 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
+
+// Language Debug page styles
+.multilingual-bridge-language-debug {
+	.postbox {
+		max-width: 800px;
+		
+		.inside {
+			padding: 20px;
+			
+			form {
+				p {
+					margin: 15px 0;
+					
+					label {
+						display: block;
+						font-weight: 600;
+						margin-bottom: 5px;
+					}
+					
+					select {
+						min-width: 200px;
+					}
+					
+					select[multiple] {
+						height: auto;
+					}
+					
+					small {
+						display: block;
+						margin-top: 5px;
+						color: #666;
+					}
+				}
+				
+				.button-secondary {
+					margin-top: 10px;
+				}
+			}
+			
+			.notice-box {
+				background: #e7f3ff;
+				border: 1px solid #b3d9ff;
+				padding: 15px;
+				margin: 15px 0;
+				border-radius: 4px;
+				
+				strong {
+					color: #0073aa;
+				}
+			}
+		}
+	}
+}

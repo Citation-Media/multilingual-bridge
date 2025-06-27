@@ -223,4 +223,34 @@ class WPML_Post_Helper {
 
 		return $language_codes;
 	}
+
+	/**
+	 * Check if a post is in a language that is not configured/active in WPML
+	 *
+	 * This is useful for finding posts that were created in a language that has since
+	 * been deactivated or removed from WPML configuration.
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return bool True if post is in an unconfigured language, false otherwise.
+	 */
+	public static function is_post_in_unconfigured_language( int|WP_Post $post ): bool {
+		// Get the post's language
+		$post_language = self::get_language( $post );
+
+		// If no language is set, consider it unconfigured
+		if ( empty( $post_language ) ) {
+			return true;
+		}
+
+		// Get all active language codes
+		$active_language_codes = self::get_active_language_codes();
+
+		// If no active languages, something is wrong with WPML
+		if ( empty( $active_language_codes ) ) {
+			return false;
+		}
+
+		// Check if post language is not in active languages
+		return ! in_array( $post_language, $active_language_codes, true );
+	}
 }
