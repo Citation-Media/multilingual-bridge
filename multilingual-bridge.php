@@ -82,6 +82,16 @@ add_action( 'activated_plugin', array( Activator::class, 'network_activation' ),
  * @since    1.0.0
  */
 function run_multilingual_bridge(): void {
+	$plugin = new Multilingual_Bridge();
+	$plugin->run();
+}
+
+/**
+ * Initialize the plugin after WPML is loaded.
+ *
+ * @since    1.1.2
+ */
+function init_multilingual_bridge(): void {
 	// Check if WPML is active
 	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! class_exists( 'SitePress' ) ) {
 		// WPML is not active, show admin notice
@@ -98,7 +108,15 @@ function run_multilingual_bridge(): void {
 		return;
 	}
 
-	$plugin = new Multilingual_Bridge();
-	$plugin->run();
+	// Use wpml_loaded hook if available for better compatibility
+	if ( did_action( 'wpml_loaded' ) ) {
+		// WPML is already loaded, initialize immediately
+		run_multilingual_bridge();
+	} else {
+		// Wait for WPML to fully load
+		add_action( 'wpml_loaded', 'run_multilingual_bridge' );
+	}
 }
-run_multilingual_bridge();
+
+// Hook into plugins_loaded with priority 11 to ensure WPML loads first (at priority 10)
+add_action( 'plugins_loaded', 'init_multilingual_bridge', 11 );
