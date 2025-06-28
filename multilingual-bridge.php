@@ -22,6 +22,7 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       multilingual-bridge
  * Domain Path:       /languages
+ * Requires Plugins: sitepress-multilingual-cms
  */
 
 // If this file is called directly, abort.
@@ -81,9 +82,9 @@ add_action( 'activated_plugin', array( Activator::class, 'network_activation' ),
  * @since    1.0.0
  */
 function run_multilingual_bridge(): void {
-	// Check if WPML is active
+	// Check if WPML is installed
 	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! class_exists( 'SitePress' ) ) {
-		// WPML is not active, show admin notice
+		// Show admin notice
 		add_action(
 			'admin_notices',
 			function () {
@@ -100,4 +101,6 @@ function run_multilingual_bridge(): void {
 	$plugin = new Multilingual_Bridge();
 	$plugin->run();
 }
-run_multilingual_bridge();
+
+// Hook to wpml_loaded to ensure WPML is fully initialized
+add_action( 'wpml_loaded', 'run_multilingual_bridge' );
