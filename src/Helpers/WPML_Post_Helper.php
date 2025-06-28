@@ -325,10 +325,11 @@ class WPML_Post_Helper {
 		// Store current language to restore later
 		$current_language = WPML_Language_Helper::get_current_language();
 
+		// Get all language codes
+		$all_languages = WPML_Language_Helper::get_active_language_codes();
+
 		// Check each taxonomy
 		foreach ( $taxonomies as $tax ) {
-			// Get all language codes
-			$all_languages = WPML_Language_Helper::get_active_language_codes();
 
 			foreach ( $all_languages as $lang_code ) {
 				// Switch to each language context
