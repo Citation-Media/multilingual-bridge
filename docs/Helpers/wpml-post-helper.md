@@ -233,6 +233,115 @@ foreach ($products as $product) {
 }
 ```
 
+### Example 6: Detect and Fix Cross-Language Term Issues
+
+```php
+/**
+ * Scan and fix posts with cross-language term relationships
+ */
+function fix_cross_language_terms_for_post_type($post_type = 'post') {
+    $args = [
+        'post_type' => $post_type,
+        'posts_per_page' => -1,
+        'suppress_filters' => false,
+        'fields' => 'ids'
+    ];
+    
+    $posts = get_posts($args);
+    $fixed_count = 0;
+    
+    foreach ($posts as $post_id) {
+        // Check if has cross-language terms
+        if (WPML_Post_Helper::has_cross_language_term_relationships($post_id)) {
+            // Get details before fixing
+            $mismatches = WPML_Post_Helper::get_cross_language_term_relationships($post_id);
+            
+            // Log what we're about to fix
+            error_log(sprintf(
+                'Post %d (%s) has cross-language terms:',
+                $post_id,
+                WPML_Post_Helper::get_language($post_id)
+            ));
+            
+            foreach ($mismatches as $taxonomy => $terms) {
+                foreach ($terms as $mismatch) {
+                    error_log(sprintf(
+                        '  - %s: "%s" (term lang: %s)',
+                        $taxonomy,
+                        $mismatch['term']->name,
+                        $mismatch['term_language']
+                    ));
+                }
+            }
+            
+            // Fix the relationships
+            $removed = WPML_Post_Helper::remove_cross_language_term_relationships($post_id);
+            
+            if (!empty($removed)) {
+                $fixed_count++;
+            }
+        }
+    }
+    
+    return $fixed_count;
+}
+```
+
+### Example 7: Admin Column for Cross-Language Terms
+
+```php
+// Add column to post list
+add_filter('manage_posts_columns', function($columns) {
+    $columns['term_language_check'] = __('Term Languages', 'my-plugin');
+    return $columns;
+});
+
+// Display column content
+add_action('manage_posts_custom_column', function($column, $post_id) {
+    if ($column === 'term_language_check') {
+        if (WPML_Post_Helper::has_cross_language_term_relationships($post_id)) {
+            $mismatches = WPML_Post_Helper::get_cross_language_term_relationships($post_id);
+            $count = 0;
+            foreach ($mismatches as $tax_terms) {
+                $count += count($tax_terms);
+            }
+            
+            echo sprintf(
+                '<span style="color: red;">⚠️ %d %s</span>',
+                $count,
+                _n('mismatched term', 'mismatched terms', $count, 'my-plugin')
+            );
+        } else {
+            echo '<span style="color: green;">✓</span>';
+        }
+    }
+}, 10, 2);
+```
+
+### Example 8: Prevent Cross-Language Terms on Save
+
+```php
+// Simple cleanup - just remove cross-language terms when saving
+add_action('save_post', function($post_id) {
+    // Skip autosaves and revisions
+    if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) {
+        return;
+    }
+    
+    // Simply remove any cross-language term relationships
+    $removed = WPML_Post_Helper::remove_cross_language_term_relationships($post_id);
+    
+    // Optional: Log what was cleaned up
+    if (!empty($removed)) {
+        error_log(sprintf(
+            'Cleaned cross-language terms from post %d: %s',
+            $post_id,
+            implode(', ', array_keys($removed))
+        ));
+    }
+}, 99);
+```
+
 ## Performance Considerations
 
 1. **Caching**: These methods make WPML API calls which query the database. Consider caching results for repeated calls.
@@ -247,6 +356,58 @@ foreach ($products as $product) {
 - PHP 8.0 or higher (for union type support)
 - WordPress 5.0 or higher
 
+### has_cross_language_term_relationships()
+
+Check if a post has term relationships in languages other than its own.
+
+```php
+// Check all taxonomies
+if (WPML_Post_Helper::has_cross_language_term_relationships(123)) {
+    echo 'This post has terms in wrong languages!';
+}
+
+// Check specific taxonomy
+if (WPML_Post_Helper::has_cross_language_term_relationships($post, 'category')) {
+    echo 'This post has categories in wrong languages!';
+}
+```
+
+### get_cross_language_term_relationships()
+
+Get detailed information about cross-language term relationships.
+
+```php
+$mismatches = WPML_Post_Helper::get_cross_language_term_relationships(123);
+
+foreach ($mismatches as $taxonomy => $terms) {
+    echo "Taxonomy: $taxonomy\n";
+    foreach ($terms as $mismatch) {
+        $term = $mismatch['term'];
+        echo "- Term '{$term->name}' is in {$mismatch['term_language']} but post is in {$mismatch['post_language']}\n";
+    }
+}
+```
+
+### remove_cross_language_term_relationships()
+
+Remove term relationships where term language doesn't match post language.
+
+```php
+// Remove all cross-language terms
+$removed = WPML_Post_Helper::remove_cross_language_term_relationships(123);
+
+// Remove only for specific taxonomy
+$removed = WPML_Post_Helper::remove_cross_language_term_relationships($post, 'post_tag');
+
+// Display what was removed
+foreach ($removed as $taxonomy => $terms) {
+    echo "Removed from $taxonomy:\n";
+    foreach ($terms as $term) {
+        echo "- {$term['term_name']} (was in {$term['term_language']})\n";
+    }
+}
+```
+
 ## Comparison with Native WPML Functions
 
 | Task | Native WPML | WPML_Post_Helper |
@@ -255,6 +416,8 @@ foreach ($products as $product) {
 | Get all translations | 3 filters: wpml_element_type → wpml_element_trid → wpml_get_element_translations | `WPML_Post_Helper::get_language_versions($id)` |
 | Check translation completeness | Manual loop through active languages and translations | `WPML_Post_Helper::has_all_translations($id)` |
 | Delete terms across languages | Manual language switching and deletion loop | `WPML_Post_Helper::safe_delete_term_relationships($id, $taxonomy)` |
+| Check cross-language terms | Complex manual checking with language switching | `WPML_Post_Helper::has_cross_language_term_relationships($id)` |
+| Fix cross-language terms | Complex manual process | `WPML_Post_Helper::remove_cross_language_term_relationships($id)` |
 
 ## Error Handling
 
