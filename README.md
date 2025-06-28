@@ -1,5 +1,9 @@
 # Multilingual Bridge
 
+[![PHPStan](https://img.shields.io/badge/PHPStan-Level%206-blue)](https://phpstan.org/)
+[![PHPCS](https://img.shields.io/badge/PHPCS-WordPress-green)](https://github.com/WordPress/WordPress-Coding-Standards)
+[![Test/Analyse](https://github.com/Citation-Media/multilingual-bridge/actions/workflows/test-analyse.yml/badge.svg)](https://github.com/Citation-Media/multilingual-bridge/actions/workflows/test-analyse.yml)
+
 A WordPress plugin that bridges the gap between WPML and the WordPress REST API, providing comprehensive multilingual support for modern WordPress applications.
 
 ## Overview
