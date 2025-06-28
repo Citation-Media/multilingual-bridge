@@ -125,7 +125,7 @@ class Multilingual_Bridge {
 		// Uncomment the following code to enable frontend assets:
 
 		/*
-		Add_action(
+		add_action(
 			'wp_enqueue_scripts',
 			function () {
 				$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );

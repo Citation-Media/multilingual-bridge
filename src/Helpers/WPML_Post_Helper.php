@@ -253,4 +253,63 @@ class WPML_Post_Helper {
 		// Check if post language is not in active languages
 		return ! in_array( $post_language, $active_language_codes, true );
 	}
+
+	/**
+	 * Set or update a post's language assignment in WPML
+	 *
+	 * This method assigns a post to a specific language in WPML. It can be used to:
+	 * - Fix posts with no language assignment
+	 * - Change a post's language
+	 * - Reassign posts from deactivated languages
+	 *
+	 * @param int|WP_Post $post            Post ID or WP_Post object.
+	 * @param string      $target_language The target language code to assign.
+	 * @return bool True if language was set successfully, false otherwise.
+	 */
+	public static function set_language( int|WP_Post $post, string $target_language ): bool {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		if ( ! $post_id ) {
+			return false;
+		}
+
+		// Get post type for the element type
+		$post_type = get_post_type( $post_id );
+		if ( ! $post_type ) {
+			return false;
+		}
+
+		// Get WPML element type
+		$element_type = apply_filters( 'wpml_element_type', $post_type );
+
+		// Get current language details using WPML filter
+		$language_details = apply_filters(
+			'wpml_element_language_details',
+			null,
+			array(
+				'element_id'   => $post_id,
+				'element_type' => $element_type,
+			)
+		);
+
+		// Create a new translation group or use existing one
+		$trid = ! empty( $language_details->trid ) ? $language_details->trid : apply_filters( 'wpml_element_trid', null, $post_id, $element_type );
+
+		// Set the new language for the post
+		do_action(
+			'wpml_set_element_language_details',
+			array(
+				'element_id'           => $post_id,
+				'element_type'         => $element_type,
+				'trid'                 => $trid,
+				'language_code'        => $target_language,
+				'source_language_code' => null, // Make it an original post
+			)
+		);
+
+		// Clear WPML cache for this post
+		do_action( 'wpml_cache_clear' );
+
+		return true;
+	}
 }
