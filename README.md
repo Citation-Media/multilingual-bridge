@@ -34,6 +34,11 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 - Type-safe with PHPStan level 5
 - WordPress coding standards compliant
 
+### 🔧 Admin Tools
+- Language Debug tool for managing posts in unconfigured languages
+- Bulk operations for cleaning up orphaned content
+- Safe language reassignment for posts
+
 ## Requirements
 
 - WordPress 5.0 or higher
@@ -88,6 +93,11 @@ if (WPML_Post_Helper::has_all_translations($post_id)) {
 
 // Safely delete term relationships
 WPML_Post_Helper::safe_delete_term_relationships($post_id, 'category');
+
+// Check if post is in unconfigured language
+if (WPML_Post_Helper::is_post_in_unconfigured_language($post_id)) {
+    echo "Post is in a deactivated language!";
+}
 ```
 
 ## Documentation
@@ -101,6 +111,9 @@ Comprehensive documentation is available in the `/docs` directory:
 ### Helper Functions
 - [WPML Post Helper](docs/Helpers/wpml-post-helper.md) - Simplified WPML operations for developers
 
+### Admin Tools
+- [Language Debug](docs/Admin/language-debug.md) - Manage posts in unconfigured languages
+
 ## Use Cases
 
 - **Headless WordPress**: Build multilingual JAMstack sites with Next.js, Gatsby, or Nuxt
@@ -113,12 +126,13 @@ Comprehensive documentation is available in the `/docs` directory:
 
 ### Project Structure
 ```
-multilang-bridge/
+multilingual-bridge/
 ├── src/
-│   ├── Helpers/          # WPML helper functions
-│   └── REST/            # REST API functionality
-├── docs/                # Documentation
-└── languages/           # Translation files
+│   ├── Admin/           # Admin interface components
+│   ├── Helpers/         # WPML helper functions
+│   └── REST/           # REST API functionality
+├── docs/               # Documentation
+└── languages/          # Translation files
 ```
 
 ### Code Quality

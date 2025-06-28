@@ -3,7 +3,7 @@ Contributors: juvodesign, citationmedia
 Tags: wpml, rest-api, multilingual, translation, headless
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.0.1
+Stable tag: 1.1.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -29,6 +29,7 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 * **Language Filtering** - Query posts by language with `?lang=` parameter
 * **Developer Helpers** - Simplified functions for common WPML operations
 * **Bug Workarounds** - Safely handle term relationships across languages
+* **Language Debug Tool** - Admin tool to manage posts in unconfigured languages
 
 **REST API Examples:**
 
@@ -79,6 +80,10 @@ Yes, the helper functions support all taxonomies, including custom ones.
 
 Yes, the plugin is fully compatible with the block editor and enhances its REST API endpoints.
 
+= How do I clean up posts in deactivated languages? =
+
+Use the Language Debug tool under Tools → Language Debug in your WordPress admin. It can find and manage posts in languages that are no longer active in WPML.
+
 == Screenshots ==
 
 1. REST API response showing language_code field
@@ -86,6 +91,13 @@ Yes, the plugin is fully compatible with the block editor and enhances its REST 
 3. Language filtering in action
 
 == Changelog ==
+
+= 1.1.0 =
+* Added Language Debug admin tool
+* New helper method: is_post_in_unconfigured_language()
+* Bulk operations for managing orphaned content
+* Language reassignment functionality
+* Admin interface improvements
 
 = 1.0.0 =
 * Initial release
@@ -96,6 +108,9 @@ Yes, the plugin is fully compatible with the block editor and enhances its REST 
 * Safe term relationship handling
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+New Language Debug tool for managing posts in deactivated languages. Includes helper improvements and admin tools.
 
 = 1.0.0 =
 Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support.
@@ -108,6 +123,7 @@ Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support
 `WPML_Post_Helper::get_language_versions($post_id)` - Get all translations
 `WPML_Post_Helper::has_all_translations($post_id)` - Check translation completeness
 `WPML_Post_Helper::safe_delete_term_relationships($post_id, $taxonomy)` - Safely delete terms
+`WPML_Post_Helper::is_post_in_unconfigured_language($post_id)` - Check if post is in deactivated language
 
 **REST API Parameters:**
 

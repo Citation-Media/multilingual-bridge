@@ -13,6 +13,7 @@
 
 namespace Multilingual_Bridge;
 
+use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 
 /**
@@ -32,7 +33,7 @@ class Multilingual_Bridge {
 
 
 	const PLUGIN_NAME    = 'multilingual-bridge';
-	const PLUGIN_VERSION = '1.0.1';
+	const PLUGIN_VERSION = '1.1.0';
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -106,6 +107,10 @@ class Multilingual_Bridge {
 
 		// Add Setup Command
 		$this->loader->add_cli( 'setup', new Cli\Setup() );
+
+		// Register Language Debug functionality
+		$language_debug = new Language_Debug();
+		$language_debug->register_hooks();
 	}
 
 	/**
@@ -116,14 +121,18 @@ class Multilingual_Bridge {
 	 * @access   private
 	 */
 	private function define_public_hooks(): void {
+		// Frontend scripts are currently disabled.
+		// Uncomment the following code to enable frontend assets:
 
-		add_action(
+		/*
+		Add_action(
 			'wp_enqueue_scripts',
 			function () {
 				$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );
 			},
 			100
 		);
+		*/
 
 		// Register REST API fields for WPML language support
 		$wpml_rest_fields = new WPML_REST_Fields();
