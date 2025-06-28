@@ -300,32 +300,49 @@ class Language_Debug {
 			// Initialize count for this post type
 			$type_count = 0;
 
-			// Get all posts for this post type
-			$query_args = array(
-				'post_type'        => $current_post_type,
-				'post_status'      => 'any',
-				'numberposts'      => -1, // Get all posts
-				'suppress_filters' => true, // We want all posts regardless of language
-			);
+			// Process posts in batches to avoid memory issues
+			$batch_size = 100; // Process 100 posts at a time
+			$page       = 1;
 
-			$all_posts = get_posts( $query_args );
+			do {
+				// Query only post IDs in batches for better performance
+				$query = new \WP_Query(
+					array(
+						'post_type'              => $current_post_type,
+						'post_status'            => 'any',
+						'posts_per_page'         => $batch_size, // Batch size instead of -1
+						'paged'                  => $page,
+						'suppress_filters'       => true, // Get posts in all languages with WPML
+						'no_found_rows'          => false, // We need pagination info for batch processing
+						'ignore_sticky_posts'    => true, // Not relevant for this use case
+						'update_post_meta_cache' => false, // Don't preload meta unless needed
+						'update_post_term_cache' => false, // Don't preload terms unless needed
+						'fields'                 => 'ids', // Only get post IDs for better memory usage
+					)
+				);
 
-			// Skip if no posts found
-			if ( empty( $all_posts ) ) {
-				continue;
-			}
+				if ( empty( $query->posts ) ) {
+					break;
+				}
 
-			foreach ( $all_posts as $post ) {
-				if ( WPML_Post_Helper::is_post_in_unconfigured_language( $post ) ) {
-					++$processed_count;
-					++$type_count;
+				// Process each post ID in the current batch
+				foreach ( $query->posts as $post_id ) {
+					// Check if post is in unconfigured language using the helper
+					if ( WPML_Post_Helper::is_post_in_unconfigured_language( $post_id ) ) {
+						++$processed_count;
+						++$type_count;
 
-					// Only execute action if not preflight
-					if ( 'preflight' !== $action ) {
-						$this->execute_debug_action_on_post( $post, $action, $target_language );
+						// Only execute action if not preflight
+						if ( 'preflight' !== $action ) {
+							$this->execute_debug_action_on_post( $post_id, $action, $target_language );
+						}
 					}
 				}
-			}
+
+				// Move to next page
+				++$page;
+
+			} while ( $page <= $query->max_num_pages );
 
 			// Store breakdown for this post type if any posts found
 			if ( $type_count > 0 ) {
@@ -389,63 +406,24 @@ class Language_Debug {
 	/**
 	 * Executes the debug action on a post
 	 *
-	 * @param WP_Post $post             The post object.
-	 * @param string  $action           The action to perform.
-	 * @param string  $target_language  The target language for fixing.
+	 * @param int    $post_id          The post ID.
+	 * @param string $action           The action to perform.
+	 * @param string $target_language  The target language for fixing.
 	 * @return void
 	 */
-	private function execute_debug_action_on_post( WP_Post $post, string $action, string $target_language ): void {
+	private function execute_debug_action_on_post( int $post_id, string $action, string $target_language ): void {
 		switch ( $action ) {
 			case 'delete':
 				// Delete the post permanently
-				wp_delete_post( $post->ID, true );
+				wp_delete_post( $post_id, true );
 				break;
 
 			case 'fix_language':
 				// Fix the language assignment
 				if ( ! empty( $target_language ) ) {
-					$this->fix_post_language( $post, $target_language );
+					WPML_Post_Helper::set_language( $post_id, $target_language );
 				}
 				break;
 		}
-	}
-
-	/**
-	 * Fixes a post's language assignment
-	 *
-	 * @param WP_Post $post             The post object.
-	 * @param string  $target_language  The target language code.
-	 * @return void
-	 */
-	private function fix_post_language( WP_Post $post, string $target_language ): void {
-		$element_type = apply_filters( 'wpml_element_type', $post->post_type );
-
-		// Get current language details using WPML filter
-		$language_details = apply_filters(
-			'wpml_element_language_details',
-			null,
-			array(
-				'element_id'   => $post->ID,
-				'element_type' => $element_type,
-			)
-		);
-
-		// Create a new translation group or use existing one
-		$trid = ! empty( $language_details->trid ) ? $language_details->trid : apply_filters( 'wpml_element_trid', null, $post->ID, $element_type );
-
-		// Set the new language for the post
-		do_action(
-			'wpml_set_element_language_details',
-			array(
-				'element_id'           => $post->ID,
-				'element_type'         => $element_type,
-				'trid'                 => $trid,
-				'language_code'        => $target_language,
-				'source_language_code' => null, // Make it an original post
-			)
-		);
-
-		// Clear WPML cache for this post
-		do_action( 'wpml_cache_clear' );
 	}
 }
