@@ -3,7 +3,7 @@ Contributors: juvodesign, citationmedia
 Tags: wpml, rest-api, multilingual, translation, headless
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -92,6 +92,16 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Changelog ==
 
+= 1.1.1 =
+* Performance: Optimized Language Debug tool queries for large sites
+* Performance: Implemented batch processing to prevent memory exhaustion
+* Performance: Now fetches only post IDs instead of full post objects
+* Refactor: Moved language assignment logic to WPML_Post_Helper::set_language()
+* Refactor: Removed boilerplate setup command from production code
+* Enhancement: Improved code organization and reusability
+* Fix: Resolved coding standards issues
+* Fix: Updated deploy workflow to ignore specific WPCS warnings
+
 = 1.1.0 =
 * Added Language Debug admin tool
 * New helper method: is_post_in_unconfigured_language()
@@ -109,6 +119,9 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Upgrade Notice ==
 
+= 1.1.1 =
+Major performance improvements for Language Debug tool. Recommended update for sites with large content databases.
+
 = 1.1.0 =
 New Language Debug tool for managing posts in deactivated languages. Includes helper improvements and admin tools.
 
@@ -124,6 +137,7 @@ Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support
 `WPML_Post_Helper::has_all_translations($post_id)` - Check translation completeness
 `WPML_Post_Helper::safe_delete_term_relationships($post_id, $taxonomy)` - Safely delete terms
 `WPML_Post_Helper::is_post_in_unconfigured_language($post_id)` - Check if post is in deactivated language
+`WPML_Post_Helper::set_language($post_id, $language_code)` - Set or update post language assignment
 
 **REST API Parameters:**
 
