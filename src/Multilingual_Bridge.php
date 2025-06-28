@@ -105,9 +105,6 @@ class Multilingual_Bridge {
 			100
 		);
 
-		// Add Setup Command
-		$this->loader->add_cli( 'setup', new Cli\Setup() );
-
 		// Register Language Debug functionality
 		$language_debug = new Language_Debug();
 		$language_debug->register_hooks();
