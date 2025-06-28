@@ -83,21 +83,24 @@ add_action( 'activated_plugin', array( Activator::class, 'network_activation' ),
  */
 function run_multilingual_bridge(): void {
 	// Check if WPML is installed
-	if (!defined('ICL_SITEPRESS_VERSION') || !class_exists('SitePress')) {
+	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! class_exists( 'SitePress' ) ) {
 		// Show admin notice
-		add_action('admin_notices', function() {
-			?>
-            <div class="notice notice-error">
-                <p><?php esc_html_e('Multilingual Bridge requires WPML to be installed and activated.', 'multilingual-bridge'); ?></p>
-            </div>
-			<?php
-		});
+		add_action(
+			'admin_notices',
+			function () {
+				?>
+			<div class="notice notice-error">
+				<p><?php esc_html_e( 'Multilingual Bridge requires WPML to be installed and activated.', 'multilingual-bridge' ); ?></p>
+			</div>
+				<?php
+			}
+		);
 		return;
 	}
 
-    $plugin = new Multilingual_Bridge();
+	$plugin = new Multilingual_Bridge();
 	$plugin->run();
 }
 
 // Hook to wpml_loaded to ensure WPML is fully initialized
-add_action('wpml_loaded', 'run_multilingual_bridge');
+add_action( 'wpml_loaded', 'run_multilingual_bridge' );
