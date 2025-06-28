@@ -93,7 +93,6 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 == Changelog ==
 
 = 1.1.2 =
-* Enhancement: Added 'Requires Plugins' header to declare WPML dependency
 * Enhancement: Improved plugin initialization using WPML's wpml_loaded hook
 * Enhancement: Added badges for PHPStan, PHPCS, and tests status to README
 * Fix: Updated initialization timing to ensure WPML is fully loaded before plugin runs
@@ -128,7 +127,7 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 == Upgrade Notice ==
 
 = 1.1.2 =
-Improved WPML compatibility with better initialization timing. Includes code quality improvements and explicit WPML dependency declaration.
+Improved WPML compatibility with better initialization timing. Includes code quality improvements.
 
 = 1.1.1 =
 Major performance improvements for Language Debug tool. Recommended update for sites with large content databases.
