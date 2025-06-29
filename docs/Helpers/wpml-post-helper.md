@@ -103,6 +103,38 @@ wp_set_post_terms($post_id, $new_tags, 'post_tag');
 
 **Important**: This method temporarily switches WPML language context to ensure term relationships are deleted in all language contexts, then restores the original language.
 
+### set_language()
+
+Set or update a post's language assignment in WPML. This method can be used to fix posts with no language assignment, change a post's language, or reassign posts from deactivated languages.
+
+```php
+// Assign language to a post
+$result = WPML_Post_Helper::set_language(123, 'de');
+if (is_wp_error($result)) {
+    echo 'Error: ' . $result->get_error_message();
+} elseif ($result) {
+    echo 'Language successfully set!';
+}
+
+// Change a post's language
+$post = get_post(456);
+$result = WPML_Post_Helper::set_language($post, 'fr');
+
+// Handle validation errors
+$result = WPML_Post_Helper::set_language(789, 'invalid_lang');
+if (is_wp_error($result) && $result->get_error_code() === 'invalid_language') {
+    // Language code is not configured in WPML
+    echo $result->get_error_message(); // "Language "invalid_lang" is not configured in WPML."
+}
+```
+
+**Returns**: 
+- `true` if the language was set successfully
+- `false` if the post ID is invalid or post type cannot be determined
+- `WP_Error` if the target language is not configured in WPML
+
+**Note**: This method validates that the target language is active in WPML before attempting to set it.
+
 ## Practical Examples
 
 ### Example 1: Display Translation Status in Admin
