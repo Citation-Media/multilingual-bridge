@@ -90,9 +90,37 @@ class Language_Debug {
 					}
 
 					if ( 'cross_language_terms' === $preflight_type ) {
+						if ( 'all' === $debug_post_type ) {
+							$message = sprintf(
+								/* translators: %d: Number of posts found */
+								__( 'Preflight check complete: Found %d posts with cross-language term relationships across all post types.', 'multilingual-bridge' ),
+								$count
+							);
+						} elseif ( strpos( $debug_post_type, ',' ) !== false || strpos( $debug_post_type, 'selected types' ) !== false ) {
+							$message = sprintf(
+								/* translators: %1$d: Number of posts found, %2$s: Post types */
+								__( 'Preflight check complete: Found %1$d posts with cross-language term relationships for post types: %2$s.', 'multilingual-bridge' ),
+								$count,
+								$debug_post_type
+							);
+						} else {
+							$message = sprintf(
+								/* translators: %1$d: Number of posts found, %2$s: Post type name */
+								__( 'Preflight check complete: Found %1$d posts with cross-language term relationships for post type "%2$s".', 'multilingual-bridge' ),
+								$count,
+								$debug_post_type
+							);
+						}
+					} elseif ( 'all' === $debug_post_type ) {
+							$message = sprintf(
+								/* translators: %d: Number of posts found */
+								__( 'Preflight check complete: Found %d posts in unconfigured languages across all post types.', 'multilingual-bridge' ),
+								$count
+							);
+					} elseif ( strpos( $debug_post_type, ',' ) !== false || strpos( $debug_post_type, 'selected types' ) !== false ) {
 						$message = sprintf(
-							/* translators: %1$d: Number of posts found, %2$s: Post type name */
-							__( 'Preflight check complete: Found %1$d posts with cross-language term relationships for post type "%2$s".', 'multilingual-bridge' ),
+							/* translators: %1$d: Number of posts found, %2$s: Post types */
+							__( 'Preflight check complete: Found %1$d posts in unconfigured languages for post types: %2$s.', 'multilingual-bridge' ),
 							$count,
 							$debug_post_type
 						);
@@ -232,8 +260,12 @@ class Language_Debug {
 	 * @return void
 	 */
 	public function handle_language_debug(): void {
+		// Start output buffering early to capture any output
+		ob_start();
+
 		// Early exit if WPML is not active or not fully initialized.
 		if ( ! defined( 'WPML_PLUGIN_PATH' ) || ! function_exists( 'icl_get_current_language' ) ) {
+			ob_end_clean();
 			wp_safe_redirect( admin_url( 'tools.php?page=multilingual-bridge-language-debug&msg=wpml_not_active' ) );
 			exit;
 		}
@@ -241,6 +273,7 @@ class Language_Debug {
 		// Check nonce
 		$nonce = isset( $_POST['language_debug_nonce'] ) ? sanitize_key( wp_unslash( $_POST['language_debug_nonce'] ) ) : false;
 		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'language_debug' ) ) {
+			ob_end_clean();
 			wp_die( 'Something went wrong', 'multilingual-bridge' );
 		}
 
@@ -252,6 +285,7 @@ class Language_Debug {
 		$target_language  = isset( $_POST['target_language'] ) ? sanitize_key( wp_unslash( $_POST['target_language'] ) ) : '';
 
 		if ( empty( $debug_action ) ) {
+			ob_end_clean();
 			wp_die( 'Invalid action specified', 'multilingual-bridge' );
 		}
 
@@ -259,12 +293,29 @@ class Language_Debug {
 		try {
 			$result = $this->process_language_debug( $debug_action, $debug_post_types, $target_language );
 		} catch ( Exception $e ) {
+			ob_end_clean();
 			wp_die( 'Error during language debug operation: ' . esc_html( $e->getMessage() ), 'multilingual-bridge' );
 		}
 
 		// Ensure result is valid
 		if ( ! isset( $result['count'] ) ) {
+			ob_end_clean();
 			wp_die( 'Invalid result from language debug operation', 'multilingual-bridge' );
+		}
+
+		// Clean output buffer and remove any headers set during processing
+		ob_end_clean();
+
+		// Remove any cookies that might have been set
+		if ( ! headers_sent() ) {
+			// Get all headers
+			$headers = headers_list();
+			// Remove any Set-Cookie headers
+			foreach ( $headers as $header ) {
+				if ( stripos( $header, 'set-cookie:' ) === 0 ) {
+					header_remove( 'Set-Cookie' );
+				}
+			}
 		}
 
 		// Redirect back with appropriate message
