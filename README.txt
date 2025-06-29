@@ -92,6 +92,20 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Changelog ==
 
+= 1.2.0 =
+* New: Added comprehensive WPML helper classes for developers
+* New: WPML_Language_Helper for language operations with caching support
+* New: WPML_Term_Helper for term and taxonomy operations
+* New: safe_assign_terms() method with automatic language validation and translation lookup
+* New: Cross-language term relationship detection and removal
+* Enhancement: Optimized cross-language term operations with language-indexed data structure
+* Enhancement: Added WordPress native caching to get_available_languages()
+* Enhancement: Expanded Language Debug tool with cross-language term operations
+* Enhancement: Added output buffering to prevent header accumulation errors
+* Fix: Term operations now correctly use term_taxonomy_id for WPML filters
+* Fix: Resolved "upstream sent too big header" errors during bulk operations
+* Documentation: Added comprehensive documentation for all helper classes
+
 = 1.1.2 =
 * Enhancement: Improved plugin initialization using WPML's wpml_loaded hook
 * Enhancement: Added badges for PHPStan, PHPCS, and tests status to README
@@ -126,6 +140,9 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Upgrade Notice ==
 
+= 1.2.0 =
+Major feature release with new helper classes for WPML operations. Adds language validation for term assignments and improved cross-language term handling.
+
 = 1.1.2 =
 Improved WPML compatibility with better initialization timing. Includes code quality improvements.
 
@@ -140,7 +157,7 @@ Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support
 
 == Developer Documentation ==
 
-**Helper Functions:**
+**Post Helper Functions:**
 
 `WPML_Post_Helper::get_language($post_id)` - Get post language
 `WPML_Post_Helper::get_language_versions($post_id)` - Get all translations
@@ -148,6 +165,25 @@ Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support
 `WPML_Post_Helper::safe_delete_term_relationships($post_id, $taxonomy)` - Safely delete terms
 `WPML_Post_Helper::is_post_in_unconfigured_language($post_id)` - Check if post is in deactivated language
 `WPML_Post_Helper::set_language($post_id, $language_code)` - Set or update post language assignment
+`WPML_Post_Helper::has_cross_language_term_relationships($post_id)` - Check for wrong language terms
+`WPML_Post_Helper::remove_cross_language_term_relationships($post_id)` - Remove wrong language terms
+`WPML_Post_Helper::safe_assign_terms($post_id, $terms, $taxonomy)` - Assign terms with language validation
+
+**Language Helper Functions:**
+
+`WPML_Language_Helper::get_available_languages()` - Get all languages (cached)
+`WPML_Language_Helper::get_active_language_codes()` - Get language codes array
+`WPML_Language_Helper::get_current_language()` - Get current language
+`WPML_Language_Helper::switch_language($code)` - Switch language context
+`WPML_Language_Helper::is_language_active($code)` - Check if language is active
+
+**Term Helper Functions:**
+
+`WPML_Term_Helper::get_language($term_id, $taxonomy)` - Get term language
+`WPML_Term_Helper::get_language_versions($term_id)` - Get term translations
+`WPML_Term_Helper::get_translation_id($term_id, $taxonomy, $language)` - Get specific translation
+`WPML_Term_Helper::is_original_term($term_id)` - Check if term is original
+`WPML_Term_Helper::set_language($term_id, $taxonomy, $language)` - Set term language
 
 **REST API Parameters:**
 
