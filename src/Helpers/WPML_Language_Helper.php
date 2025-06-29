@@ -46,9 +46,9 @@ class WPML_Language_Helper {
 	 */
 	public static function get_available_languages(): array {
 		// Check cache first
-		$cache_key = 'multilingual_bridge_available_languages';
+		$cache_key        = 'multilingual_bridge_available_languages';
 		$cached_languages = wp_cache_get( $cache_key, 'multilingual_bridge' );
-		
+
 		if ( false !== $cached_languages ) {
 			return $cached_languages;
 		}
