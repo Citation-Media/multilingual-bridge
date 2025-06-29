@@ -45,6 +45,14 @@ class WPML_Language_Helper {
 	 *               details such as 'language_code'. If WPML is not active, returns a fallback German language.
 	 */
 	public static function get_available_languages(): array {
+		// Check cache first
+		$cache_key = 'multilingual_bridge_available_languages';
+		$cached_languages = wp_cache_get( $cache_key, 'multilingual_bridge' );
+		
+		if ( false !== $cached_languages ) {
+			return $cached_languages;
+		}
+
 		// Get wpml default language
 		$default_lang = apply_filters( 'wpml_default_language', null ) ?: '';
 
@@ -69,6 +77,9 @@ class WPML_Language_Helper {
 				return 0;
 			}
 		);
+
+		// Cache the sorted languages (cache for 1 hour)
+		wp_cache_set( $cache_key, $languages, 'multilingual_bridge', 3600 );
 
 		return $languages;
 	}
