@@ -303,72 +303,22 @@ class WPML_Post_Helper {
 	 * @return bool True if cross-language term relationships exist, false otherwise.
 	 */
 	public static function has_cross_language_term_relationships( int|WP_Post $post, string $taxonomy = '' ): bool {
-		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+		// Reuse get_cross_language_term_relationships to avoid code duplication
+		$mismatched_terms = self::get_cross_language_term_relationships( $post, $taxonomy );
 
-		if ( ! $post_id ) {
-			return false;
-		}
-
-		// Get the post's language
-		$post_language = self::get_language( $post_id );
-		if ( empty( $post_language ) ) {
-			return false;
-		}
-
-		// Get taxonomies to check
-		if ( ! empty( $taxonomy ) ) {
-			$taxonomies = array( $taxonomy );
-		} else {
-			$taxonomies = get_object_taxonomies( get_post_type( $post_id ) );
-		}
-
-		// Store current language to restore later
-		$current_language = WPML_Language_Helper::get_current_language();
-
-		// Get all language codes
-		$all_languages = WPML_Language_Helper::get_active_language_codes();
-
-		// Check each taxonomy
-		foreach ( $taxonomies as $tax ) {
-
-			foreach ( $all_languages as $lang_code ) {
-				// Switch to each language context
-				WPML_Language_Helper::switch_language( $lang_code );
-
-				// Get terms in this language context
-				$terms = wp_get_object_terms( $post_id, $tax, array( 'fields' => 'all' ) );
-
-				if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
-					// Check each term's language
-					foreach ( $terms as $term ) {
-						$term_language = WPML_Term_Helper::get_language( $term );
-
-						// If term language doesn't match post language, we found a mismatch
-						if ( ! empty( $term_language ) && $term_language !== $post_language ) {
-							// Restore original language before returning
-							WPML_Language_Helper::restore_language( $current_language );
-							return true;
-						}
-					}
-				}
-			}
-		}
-
-		// Restore original language
-		WPML_Language_Helper::restore_language( $current_language );
-
-		return false;
+		// If we have any mismatched terms, return true
+		return ! empty( $mismatched_terms );
 	}
 
 	/**
 	 * Get detailed information about cross-language term relationships
 	 *
 	 * Returns an array of terms that are in a different language than the post,
-	 * organized by taxonomy.
+	 * organized by language and then by taxonomy for efficient removal.
 	 *
 	 * @param int|WP_Post $post     Post ID or WP_Post object.
 	 * @param string      $taxonomy Optional. Specific taxonomy to check. If empty, checks all taxonomies.
-	 * @return array<string, array<int, array{term: WP_Term, term_language: string, post_language: string}>> Array keyed by taxonomy with mismatched terms.
+	 * @return array<string, array<string, array<int, int>>> Array indexed by language code, then taxonomy, containing term IDs.
 	 */
 	public static function get_cross_language_term_relationships( int|WP_Post $post, string $taxonomy = '' ): array {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
@@ -395,13 +345,11 @@ class WPML_Post_Helper {
 		// Store current language to restore later
 		$current_language = WPML_Language_Helper::get_current_language();
 
+		// Get all language codes
+		$all_languages = WPML_Language_Helper::get_active_language_codes();
+
 		// Check each taxonomy
 		foreach ( $taxonomies as $tax ) {
-			$tax_mismatches = array();
-
-			// Get all language codes
-			$all_languages = WPML_Language_Helper::get_active_language_codes();
-
 			foreach ( $all_languages as $lang_code ) {
 				// Switch to each language context
 				WPML_Language_Helper::switch_language( $lang_code );
@@ -416,18 +364,23 @@ class WPML_Post_Helper {
 
 						// If term language doesn't match post language, track it
 						if ( ! empty( $term_language ) && $term_language !== $post_language ) {
-							$tax_mismatches[] = array(
-								'term'          => $term,
-								'term_language' => $term_language,
-								'post_language' => $post_language,
-							);
+							// Initialize language array if not exists
+							if ( ! isset( $mismatched_terms[ $lang_code ] ) ) {
+								$mismatched_terms[ $lang_code ] = array();
+							}
+
+							// Initialize taxonomy array if not exists
+							if ( ! isset( $mismatched_terms[ $lang_code ][ $tax ] ) ) {
+								$mismatched_terms[ $lang_code ][ $tax ] = array();
+							}
+
+							// Add term ID (avoid duplicates)
+							if ( ! in_array( $term->term_id, $mismatched_terms[ $lang_code ][ $tax ], true ) ) {
+								$mismatched_terms[ $lang_code ][ $tax ][] = $term->term_id;
+							}
 						}
 					}
 				}
-			}
-
-			if ( ! empty( $tax_mismatches ) ) {
-				$mismatched_terms[ $tax ] = $tax_mismatches;
 			}
 		}
 
@@ -446,7 +399,7 @@ class WPML_Post_Helper {
 	 *
 	 * @param int|WP_Post $post     Post ID or WP_Post object.
 	 * @param string      $taxonomy Optional. Specific taxonomy to clean. If empty, cleans all taxonomies.
-	 * @return array<string, array<int, array{term_id: int, term_name: string, term_language: string}>> Array of removed relationships by taxonomy.
+	 * @return array<string, array<int, int>> Array of removed term IDs organized by taxonomy.
 	 */
 	public static function remove_cross_language_term_relationships( int|WP_Post $post, string $taxonomy = '' ): array {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
@@ -455,13 +408,7 @@ class WPML_Post_Helper {
 			return array();
 		}
 
-		// Get the post's language
-		$post_language = self::get_language( $post_id );
-		if ( empty( $post_language ) ) {
-			return array();
-		}
-
-		// Get mismatched terms first
+		// Get mismatched terms organized by language
 		$mismatched_terms = self::get_cross_language_term_relationships( $post_id, $taxonomy );
 		if ( empty( $mismatched_terms ) ) {
 			return array();
@@ -472,42 +419,25 @@ class WPML_Post_Helper {
 		// Store current language to restore later
 		$current_language = WPML_Language_Helper::get_current_language();
 
-		// Process each taxonomy with mismatches
-		foreach ( $mismatched_terms as $tax => $mismatches ) {
-			$tax_removed = array();
+		// Process each language context
+		foreach ( $mismatched_terms as $lang_code => $taxonomies ) {
+			// Switch to the language context
+			WPML_Language_Helper::switch_language( $lang_code );
 
-			// Get all language codes
-			$all_languages = WPML_Language_Helper::get_active_language_codes();
+			// Remove terms for each taxonomy in this language context
+			foreach ( $taxonomies as $tax => $term_ids ) {
+				// Remove all term IDs at once for this taxonomy
+				$result = wp_remove_object_terms( $post_id, $term_ids, $tax );
 
-			// We need to remove terms in each language context
-			foreach ( $all_languages as $lang_code ) {
-				// Switch to language context
-				WPML_Language_Helper::switch_language( $lang_code );
-
-				// Remove mismatched terms in this context
-				foreach ( $mismatches as $mismatch ) {
-					$term = $mismatch['term'];
-
-					// Only remove if term is visible in this language context
-					$result = wp_remove_object_terms( $post_id, $term->term_id, $tax );
-
-					if ( ! is_wp_error( $result ) && $result ) {
-						// Track removal (avoid duplicates)
-						$removal_key = $term->term_id . '_' . $term->taxonomy;
-						if ( ! isset( $tax_removed[ $removal_key ] ) ) {
-							$tax_removed[ $removal_key ] = array(
-								'term_id'       => $term->term_id,
-								'term_name'     => $term->name,
-								'term_language' => $mismatch['term_language'],
-							);
-						}
+				if ( ! is_wp_error( $result ) && $result ) {
+					// Track removed terms by taxonomy
+					if ( ! isset( $removed_terms[ $tax ] ) ) {
+						$removed_terms[ $tax ] = array();
 					}
-				}
-			}
 
-			if ( ! empty( $tax_removed ) ) {
-				// Convert associative array to indexed array
-				$removed_terms[ $tax ] = array_values( $tax_removed );
+					// Add the removed term IDs (merge to avoid duplicates)
+					$removed_terms[ $tax ] = array_unique( array_merge( $removed_terms[ $tax ], $term_ids ) );
+				}
 			}
 		}
 

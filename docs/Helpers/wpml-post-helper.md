@@ -374,16 +374,27 @@ if (WPML_Post_Helper::has_cross_language_term_relationships($post, 'category')) 
 
 ### get_cross_language_term_relationships()
 
-Get detailed information about cross-language term relationships.
+Get detailed information about cross-language term relationships, organized by language for efficient processing.
 
 ```php
 $mismatches = WPML_Post_Helper::get_cross_language_term_relationships(123);
 
-foreach ($mismatches as $taxonomy => $terms) {
-    echo "Taxonomy: $taxonomy\n";
-    foreach ($terms as $mismatch) {
-        $term = $mismatch['term'];
-        echo "- Term '{$term->name}' is in {$mismatch['term_language']} but post is in {$mismatch['post_language']}\n";
+// Returns array indexed by language code, then taxonomy
+// Example structure:
+// [
+//     'de' => [
+//         'category' => [12, 15],
+//         'post_tag' => [34]
+//     ],
+//     'fr' => [
+//         'category' => [56]
+//     ]
+// ]
+
+foreach ($mismatches as $language => $taxonomies) {
+    echo "Terms in language '$language':\n";
+    foreach ($taxonomies as $taxonomy => $term_ids) {
+        echo "  $taxonomy: " . implode(', ', $term_ids) . "\n";
     }
 }
 ```
@@ -400,11 +411,9 @@ $removed = WPML_Post_Helper::remove_cross_language_term_relationships(123);
 $removed = WPML_Post_Helper::remove_cross_language_term_relationships($post, 'post_tag');
 
 // Display what was removed
-foreach ($removed as $taxonomy => $terms) {
-    echo "Removed from $taxonomy:\n";
-    foreach ($terms as $term) {
-        echo "- {$term['term_name']} (was in {$term['term_language']})\n";
-    }
+// Returns array indexed by taxonomy with term IDs that were removed
+foreach ($removed as $taxonomy => $term_ids) {
+    echo "Removed from $taxonomy: " . implode(', ', $term_ids) . "\n";
 }
 ```
 
