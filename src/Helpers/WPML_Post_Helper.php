@@ -446,4 +446,141 @@ class WPML_Post_Helper {
 
 		return $removed_terms;
 	}
+
+	/**
+	 * Safely assign terms to a post with language validation
+	 *
+	 * This method validates that terms are in the same language as the post.
+	 * If a term is in a different language, it attempts to find the translation
+	 * in the post's language and assign that instead.
+	 *
+	 * @param int|WP_Post        $post     Post ID or WP_Post object.
+	 * @param array<int|WP_Term> $terms    Array of term IDs or WP_Term objects to assign.
+	 * @param string             $taxonomy Taxonomy name.
+	 * @param bool               $append   Whether to append terms or replace existing ones.
+	 * @return array{success: array<int>, errors: array<int, \WP_Error>} Array with successful term IDs and errors.
+	 */
+	public static function safe_assign_terms( int|WP_Post $post, array $terms, string $taxonomy, bool $append = false ): array {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		// Validate post
+		if ( ! $post_id ) {
+			return array(
+				'success' => array(),
+				'errors'  => array( 0 => new \WP_Error( 'invalid_post', __( 'Invalid post ID provided.', 'multilingual-bridge' ) ) ),
+			);
+		}
+
+		// Validate taxonomy
+		if ( ! taxonomy_exists( $taxonomy ) ) {
+			return array(
+				'success' => array(),
+				'errors'  => array(
+					0 => new \WP_Error(
+						'invalid_taxonomy',
+						sprintf(
+							/* translators: %s: Taxonomy name */
+							__( 'Taxonomy "%s" does not exist.', 'multilingual-bridge' ),
+							$taxonomy
+						)
+					),
+				),
+			);
+		}
+
+		// Get post language
+		$post_language = self::get_language( $post_id );
+		if ( empty( $post_language ) ) {
+			return array(
+				'success' => array(),
+				'errors'  => array( 0 => new \WP_Error( 'no_post_language', __( 'Post has no language assigned.', 'multilingual-bridge' ) ) ),
+			);
+		}
+
+		$valid_term_ids = array();
+		$errors         = array();
+
+		// Process each term
+		foreach ( $terms as $term ) {
+			// Get term ID
+			$term_id = is_object( $term ) ? $term->term_id : (int) $term;
+
+			// Validate term exists
+			$term_obj = get_term( $term_id, $taxonomy );
+			if ( ! $term_obj || is_wp_error( $term_obj ) ) {
+				$errors[ $term_id ] = new \WP_Error(
+					'invalid_term',
+					sprintf(
+						/* translators: 1: Term ID, 2: Taxonomy name */
+						__( 'Term ID %1$d does not exist in taxonomy "%2$s".', 'multilingual-bridge' ),
+						$term_id,
+						$taxonomy
+					)
+				);
+				continue;
+			}
+
+			// Get term language
+			$term_language = WPML_Term_Helper::get_language( $term_obj );
+
+			// If term has no language, we can't validate it
+			if ( empty( $term_language ) ) {
+				$errors[ $term_id ] = new \WP_Error(
+					'no_term_language',
+					sprintf(
+						/* translators: 1: Term name, 2: Term ID */
+						__( 'Term "%1$s" (ID: %2$d) has no language assigned.', 'multilingual-bridge' ),
+						$term_obj->name,
+						$term_id
+					)
+				);
+				continue;
+			}
+
+			// If term language matches post language, use it directly
+			if ( $term_language === $post_language ) {
+				$valid_term_ids[] = $term_id;
+				continue;
+			}
+
+			// Term is in different language - try to find translation
+			$translated_term_id = WPML_Term_Helper::get_translation_id( $term_obj, $taxonomy, $post_language );
+
+			if ( $translated_term_id ) {
+				// Use the translated term instead
+				$valid_term_ids[] = $translated_term_id;
+			} else {
+				// No translation available
+				$errors[ $term_id ] = new \WP_Error(
+					'no_translation',
+					sprintf(
+						/* translators: 1: Term name, 2: Term ID, 3: Term language, 4: Post language */
+						__( 'Term "%1$s" (ID: %2$d) is in language "%3$s" and has no translation in post language "%4$s".', 'multilingual-bridge' ),
+						$term_obj->name,
+						$term_id,
+						$term_language,
+						$post_language
+					)
+				);
+			}
+		}
+
+		// Assign valid terms if any
+		if ( ! empty( $valid_term_ids ) ) {
+			$result = wp_set_object_terms( $post_id, $valid_term_ids, $taxonomy, $append );
+
+			if ( is_wp_error( $result ) ) {
+				// WordPress assignment failed
+				return array(
+					'success' => array(),
+					'errors'  => array( 0 => $result ),
+				);
+			}
+		}
+
+		return array(
+			'success' => $valid_term_ids,
+			'errors'  => $errors,
+		);
+	}
 }
