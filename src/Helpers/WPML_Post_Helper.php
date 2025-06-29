@@ -242,7 +242,7 @@ class WPML_Post_Helper {
 	 *
 	 * @param int|WP_Post $post            Post ID or WP_Post object.
 	 * @param string      $target_language The target language code to assign.
-	 * @return bool|\WP_Error True if language was set successfully, false for invalid post, 
+	 * @return bool|\WP_Error True if language was set successfully, false for invalid post,
 	 *                        WP_Error if target language is not configured in WPML.
 	 */
 	public static function set_language( int|WP_Post $post, string $target_language ): bool|\WP_Error {
