@@ -7,9 +7,9 @@
 
 namespace Multilingual_Bridge\Admin;
 
+use Multilingual_Bridge\Helpers\WPML_Language_Helper;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Exception;
-use WP_Post;
 
 /**
  * Language Debug class
@@ -78,6 +78,8 @@ class Language_Debug {
 					$debug_post_type = isset( $_GET['debug_post_type'] ) ? sanitize_text_field( wp_unslash( $_GET['debug_post_type'] ) ) : 'all';
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					$breakdown_raw = isset( $_GET['breakdown'] ) ? sanitize_text_field( wp_unslash( $_GET['breakdown'] ) ) : '';
+					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					$preflight_type = isset( $_GET['preflight_type'] ) ? sanitize_text_field( wp_unslash( $_GET['preflight_type'] ) ) : 'unconfigured_language';
 
 					$breakdown = array();
 					if ( ! empty( $breakdown_raw ) ) {
@@ -87,12 +89,49 @@ class Language_Debug {
 						}
 					}
 
-					$message = sprintf(
-						/* translators: %1$d: Number of posts found, %2$s: Post type name */
-						__( 'Preflight check complete: Found %1$d posts in unconfigured languages for post type "%2$s".', 'multilingual-bridge' ),
-						$count,
-						$debug_post_type
-					);
+					if ( 'cross_language_terms' === $preflight_type ) {
+						if ( 'all' === $debug_post_type ) {
+							$message = sprintf(
+								/* translators: %d: Number of posts found */
+								__( 'Preflight check complete: Found %d posts with cross-language term relationships across all post types.', 'multilingual-bridge' ),
+								$count
+							);
+						} elseif ( strpos( $debug_post_type, ',' ) !== false || strpos( $debug_post_type, 'selected types' ) !== false ) {
+							$message = sprintf(
+								/* translators: %1$d: Number of posts found, %2$s: Post types */
+								__( 'Preflight check complete: Found %1$d posts with cross-language term relationships for post types: %2$s.', 'multilingual-bridge' ),
+								$count,
+								$debug_post_type
+							);
+						} else {
+							$message = sprintf(
+								/* translators: %1$d: Number of posts found, %2$s: Post type name */
+								__( 'Preflight check complete: Found %1$d posts with cross-language term relationships for post type "%2$s".', 'multilingual-bridge' ),
+								$count,
+								$debug_post_type
+							);
+						}
+					} elseif ( 'all' === $debug_post_type ) {
+							$message = sprintf(
+								/* translators: %d: Number of posts found */
+								__( 'Preflight check complete: Found %d posts in unconfigured languages across all post types.', 'multilingual-bridge' ),
+								$count
+							);
+					} elseif ( strpos( $debug_post_type, ',' ) !== false || strpos( $debug_post_type, 'selected types' ) !== false ) {
+						$message = sprintf(
+							/* translators: %1$d: Number of posts found, %2$s: Post types */
+							__( 'Preflight check complete: Found %1$d posts in unconfigured languages for post types: %2$s.', 'multilingual-bridge' ),
+							$count,
+							$debug_post_type
+						);
+					} else {
+						$message = sprintf(
+							/* translators: %1$d: Number of posts found, %2$s: Post type name */
+							__( 'Preflight check complete: Found %1$d posts in unconfigured languages for post type "%2$s".', 'multilingual-bridge' ),
+							$count,
+							$debug_post_type
+						);
+					}
 
 					if ( ! empty( $breakdown ) ) {
 						$message .= '<br><strong>' . __( 'Breakdown by post type:', 'multilingual-bridge' ) . '</strong><ul>';
@@ -105,6 +144,18 @@ class Language_Debug {
 					}
 
 					wp_admin_notice( $message, array( 'type' => 'info' ) );
+					break;
+				case 'cross_language_terms_fixed':
+					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					$count = isset( $_GET['count'] ) ? (int) $_GET['count'] : 0;
+					wp_admin_notice(
+						sprintf(
+							/* translators: %d: Number of posts fixed */
+							__( 'Cross-language term relationships fixed for %d posts.', 'multilingual-bridge' ),
+							$count
+						),
+						array( 'type' => 'success' )
+					);
 					break;
 				default:
 					break;
@@ -140,7 +191,7 @@ class Language_Debug {
 			<div class="postbox">
 				<div class="postbox-header"><h2 class="hndle"><?php esc_html_e( 'Language Debug', 'multilingual-bridge' ); ?></h2></div>
 				<div class="inside">
-					<p><?php esc_html_e( 'Debug functionality to handle posts in languages that are not configured on this site.', 'multilingual-bridge' ); ?></p>
+					<p><?php esc_html_e( 'Debug functionality to handle posts with language issues, including posts in unconfigured languages and posts with cross-language term relationships.', 'multilingual-bridge' ); ?></p>
 
 					<form method="post" action="admin-post.php">
 						<input type="hidden" name="action" value="language_debug" />
@@ -150,9 +201,15 @@ class Language_Debug {
 						<p>
 							<select name="debug_action" id="debug_action" required>
 								<option value=""><?php esc_html_e( 'Choose an action', 'multilingual-bridge' ); ?></option>
-								<option value="preflight"><?php esc_html_e( 'Preflight check (show impact)', 'multilingual-bridge' ); ?></option>
-								<option value="delete"><?php esc_html_e( 'Delete posts in unconfigured languages', 'multilingual-bridge' ); ?></option>
-								<option value="fix_language"><?php esc_html_e( 'Fix language to default language', 'multilingual-bridge' ); ?></option>
+								<optgroup label="<?php esc_attr_e( 'Unconfigured Language Operations', 'multilingual-bridge' ); ?>">
+									<option value="preflight"><?php esc_html_e( 'Preflight: Check posts in unconfigured languages', 'multilingual-bridge' ); ?></option>
+									<option value="delete"><?php esc_html_e( 'Delete posts in unconfigured languages', 'multilingual-bridge' ); ?></option>
+									<option value="fix_language"><?php esc_html_e( 'Fix posts to target language', 'multilingual-bridge' ); ?></option>
+								</optgroup>
+								<optgroup label="<?php esc_attr_e( 'Cross-Language Term Operations', 'multilingual-bridge' ); ?>">
+									<option value="preflight_cross_terms"><?php esc_html_e( 'Preflight: Check cross-language term relationships', 'multilingual-bridge' ); ?></option>
+									<option value="fix_cross_terms"><?php esc_html_e( 'Remove cross-language term relationships', 'multilingual-bridge' ); ?></option>
+								</optgroup>
 							</select>
 						</p>
 
@@ -203,8 +260,12 @@ class Language_Debug {
 	 * @return void
 	 */
 	public function handle_language_debug(): void {
+		// Start output buffering early to capture any output
+		ob_start();
+
 		// Early exit if WPML is not active or not fully initialized.
 		if ( ! defined( 'WPML_PLUGIN_PATH' ) || ! function_exists( 'icl_get_current_language' ) ) {
+			ob_end_clean();
 			wp_safe_redirect( admin_url( 'tools.php?page=multilingual-bridge-language-debug&msg=wpml_not_active' ) );
 			exit;
 		}
@@ -212,6 +273,7 @@ class Language_Debug {
 		// Check nonce
 		$nonce = isset( $_POST['language_debug_nonce'] ) ? sanitize_key( wp_unslash( $_POST['language_debug_nonce'] ) ) : false;
 		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'language_debug' ) ) {
+			ob_end_clean();
 			wp_die( 'Something went wrong', 'multilingual-bridge' );
 		}
 
@@ -223,6 +285,7 @@ class Language_Debug {
 		$target_language  = isset( $_POST['target_language'] ) ? sanitize_key( wp_unslash( $_POST['target_language'] ) ) : '';
 
 		if ( empty( $debug_action ) ) {
+			ob_end_clean();
 			wp_die( 'Invalid action specified', 'multilingual-bridge' );
 		}
 
@@ -230,19 +293,39 @@ class Language_Debug {
 		try {
 			$result = $this->process_language_debug( $debug_action, $debug_post_types, $target_language );
 		} catch ( Exception $e ) {
+			ob_end_clean();
 			wp_die( 'Error during language debug operation: ' . esc_html( $e->getMessage() ), 'multilingual-bridge' );
 		}
 
 		// Ensure result is valid
 		if ( ! isset( $result['count'] ) ) {
+			ob_end_clean();
 			wp_die( 'Invalid result from language debug operation', 'multilingual-bridge' );
 		}
 
+		// Clean output buffer and remove any headers set during processing
+		ob_end_clean();
+
+		// Remove any cookies that might have been set
+		if ( ! headers_sent() ) {
+			// Get all headers
+			$headers = headers_list();
+			// Remove any Set-Cookie headers
+			foreach ( $headers as $header ) {
+				if ( stripos( $header, 'set-cookie:' ) === 0 ) {
+					header_remove( 'Set-Cookie' );
+				}
+			}
+		}
+
 		// Redirect back with appropriate message
-		if ( 'preflight' === $debug_action ) {
+		if ( 'preflight' === $debug_action || 'preflight_cross_terms' === $debug_action ) {
 			$post_types_display = $this->format_post_types_for_display( $debug_post_types );
 			$breakdown_param    = ! empty( $result['breakdown'] ) ? rawurlencode( wp_json_encode( $result['breakdown'] ) ) : '';
-			$redirect_url       = admin_url( 'tools.php?page=multilingual-bridge-language-debug&msg=preflight_complete&count=' . (int) $result['count'] . '&debug_post_type=' . rawurlencode( $post_types_display ) . '&breakdown=' . $breakdown_param );
+			$preflight_type     = 'preflight_cross_terms' === $debug_action ? 'cross_language_terms' : 'unconfigured_language';
+			$redirect_url       = admin_url( 'tools.php?page=multilingual-bridge-language-debug&msg=preflight_complete&count=' . (int) $result['count'] . '&debug_post_type=' . rawurlencode( $post_types_display ) . '&breakdown=' . $breakdown_param . '&preflight_type=' . $preflight_type );
+		} elseif ( 'fix_cross_terms' === $debug_action ) {
+			$redirect_url = admin_url( 'tools.php?page=multilingual-bridge-language-debug&msg=cross_language_terms_fixed&count=' . (int) $result['count'] );
 		} elseif ( 0 === $result['count'] ) {
 			$redirect_url = admin_url( 'tools.php?page=multilingual-bridge-language-debug&msg=no_orphaned_posts' );
 		} else {
@@ -271,7 +354,7 @@ class Language_Debug {
 		}
 
 		// Get active languages on this site
-		$active_language_codes = WPML_Post_Helper::get_active_language_codes();
+		$active_language_codes = WPML_Language_Helper::get_active_language_codes();
 		if ( empty( $active_language_codes ) ) {
 			return array(
 				'count'     => 0,
@@ -327,13 +410,25 @@ class Language_Debug {
 
 				// Process each post ID in the current batch
 				foreach ( $query->posts as $post_id ) {
-					// Check if post is in unconfigured language using the helper
-					if ( WPML_Post_Helper::is_post_in_unconfigured_language( $post_id ) ) {
+					$should_process = false;
+
+					// Check based on action type
+					if ( 'preflight_cross_terms' === $action || 'fix_cross_terms' === $action ) {
+						// Check for cross-language term relationships
+						if ( WPML_Post_Helper::has_cross_language_term_relationships( $post_id ) ) {
+							$should_process = true;
+						}
+					} elseif ( WPML_Post_Helper::is_post_in_unconfigured_language( $post_id ) ) {
+						// Check if post is in unconfigured language using the helper
+						$should_process = true;
+					}
+
+					if ( $should_process ) {
 						++$processed_count;
 						++$type_count;
 
 						// Only execute action if not preflight
-						if ( 'preflight' !== $action ) {
+						if ( 'preflight' !== $action && 'preflight_cross_terms' !== $action ) {
 							$this->execute_debug_action_on_post( $post_id, $action, $target_language );
 						}
 					}
@@ -423,6 +518,11 @@ class Language_Debug {
 				if ( ! empty( $target_language ) ) {
 					WPML_Post_Helper::set_language( $post_id, $target_language );
 				}
+				break;
+
+			case 'fix_cross_terms':
+				// Remove cross-language term relationships
+				WPML_Post_Helper::remove_cross_language_term_relationships( $post_id );
 				break;
 		}
 	}
