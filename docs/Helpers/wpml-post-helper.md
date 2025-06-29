@@ -342,6 +342,76 @@ add_action('save_post', function($post_id) {
 }, 99);
 ```
 
+### Example 9: Safe Term Assignment with Language Validation
+
+```php
+/**
+ * Import handler that safely assigns terms regardless of their language
+ */
+function import_product_with_categories($product_data) {
+    // Create product in English
+    $product_id = wp_insert_post([
+        'post_title' => $product_data['title'],
+        'post_type' => 'product',
+        'post_status' => 'publish'
+    ]);
+    
+    // Set product language
+    WPML_Post_Helper::set_language($product_id, 'en');
+    
+    // Terms might be in any language from the import
+    $category_ids = $product_data['category_ids']; // e.g., [45, 67, 89]
+    
+    // Safe assignment with automatic translation lookup
+    $result = WPML_Post_Helper::safe_assign_terms(
+        $product_id,
+        $category_ids,
+        'product_cat'
+    );
+    
+    // Log any issues
+    if (!empty($result['errors'])) {
+        foreach ($result['errors'] as $term_id => $error) {
+            error_log(sprintf(
+                'Could not assign category %d to product %d: %s',
+                $term_id,
+                $product_id,
+                $error->get_error_message()
+            ));
+        }
+    }
+    
+    return [
+        'product_id' => $product_id,
+        'assigned_categories' => $result['success'],
+        'failed_categories' => array_keys($result['errors'])
+    ];
+}
+
+/**
+ * Bulk update terms with language safety
+ */
+function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
+    $results = [];
+    
+    foreach ($post_ids as $post_id) {
+        $result = WPML_Post_Helper::safe_assign_terms(
+            $post_id,
+            $term_ids,
+            $taxonomy,
+            true // Append mode
+        );
+        
+        $results[$post_id] = [
+            'success' => count($result['success']),
+            'errors' => count($result['errors'])
+        ];
+    }
+    
+    return $results;
+}
+```
+
 ## Performance Considerations
 
 1. **Caching**: These methods make WPML API calls which query the database. Consider caching results for repeated calls.
@@ -417,6 +487,45 @@ foreach ($removed as $taxonomy => $term_ids) {
 }
 ```
 
+### safe_assign_terms()
+
+Safely assign terms to a post with automatic language validation and translation lookup.
+
+```php
+// Basic usage - assign terms with language validation
+$result = WPML_Post_Helper::safe_assign_terms(
+    123,                    // Post ID
+    [45, 67, 89],          // Term IDs to assign
+    'category',            // Taxonomy
+    false                  // Replace existing terms (not append)
+);
+
+// Check results
+if (!empty($result['success'])) {
+    echo 'Successfully assigned terms: ' . implode(', ', $result['success']);
+}
+
+if (!empty($result['errors'])) {
+    foreach ($result['errors'] as $term_id => $error) {
+        echo "Term $term_id: " . $error->get_error_message() . "\n";
+    }
+}
+
+// Example with automatic translation lookup
+$german_term_ids = [12, 34]; // German language terms
+$english_post_id = 456;      // English language post
+
+$result = WPML_Post_Helper::safe_assign_terms(
+    $english_post_id,
+    $german_term_ids,
+    'product_cat',
+    true  // Append to existing terms
+);
+
+// The function will automatically find English translations of German terms
+// and assign those instead, or return errors for terms without translations
+```
+
 ## Comparison with Native WPML Functions
 
 | Task | Native WPML | WPML_Post_Helper |
@@ -427,6 +536,7 @@ foreach ($removed as $taxonomy => $term_ids) {
 | Delete terms across languages | Manual language switching and deletion loop | `WPML_Post_Helper::safe_delete_term_relationships($id, $taxonomy)` |
 | Check cross-language terms | Complex manual checking with language switching | `WPML_Post_Helper::has_cross_language_term_relationships($id)` |
 | Fix cross-language terms | Complex manual process | `WPML_Post_Helper::remove_cross_language_term_relationships($id)` |
+| Safe term assignment | Manual validation and translation lookup | `WPML_Post_Helper::safe_assign_terms($id, $terms, $taxonomy)` |
 
 ## Error Handling
 
