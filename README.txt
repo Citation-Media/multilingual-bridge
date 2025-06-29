@@ -92,6 +92,9 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Changelog ==
 
+= 1.2.1 =
+* Enhancement: Added language validation to WPML_Post_Helper::set_language() method
+
 = 1.2.0 =
 * New: Added comprehensive WPML helper classes for developers
 * New: WPML_Language_Helper for language operations with caching support
