@@ -242,13 +242,26 @@ class WPML_Post_Helper {
 	 *
 	 * @param int|WP_Post $post            Post ID or WP_Post object.
 	 * @param string      $target_language The target language code to assign.
-	 * @return bool True if language was set successfully, false otherwise.
+	 * @return bool|\WP_Error True if language was set successfully, false for invalid post, 
+	 *                        WP_Error if target language is not configured in WPML.
 	 */
-	public static function set_language( int|WP_Post $post, string $target_language ): bool {
+	public static function set_language( int|WP_Post $post, string $target_language ): bool|\WP_Error {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
 
 		if ( ! $post_id ) {
 			return false;
+		}
+
+		// Validate that the target language is configured in WPML
+		if ( ! WPML_Language_Helper::is_language_active( $target_language ) ) {
+			return new \WP_Error(
+				'invalid_language',
+				sprintf(
+					/* translators: %s: Language code */
+					__( 'Language "%s" is not configured in WPML.', 'multilingual-bridge' ),
+					$target_language
+				)
+			);
 		}
 
 		// Get post type for the element type
