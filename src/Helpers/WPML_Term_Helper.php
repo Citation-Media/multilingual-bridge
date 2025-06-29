@@ -24,12 +24,13 @@ class WPML_Term_Helper {
 	 *
 	 * @param int|WP_Term $term     Term ID or WP_Term object.
 	 * @param string      $taxonomy Optional. Taxonomy name. Required if $term is an ID.
-	 * @return array{term_id: int, taxonomy: string}|null Array with term_id and taxonomy or null if invalid
+	 * @return array{term_id: int, term_taxonomy_id: int, taxonomy: string}|null Array with term_id, term_taxonomy_id and taxonomy or null if invalid
 	 */
 	private static function extract_term_data( int|WP_Term $term, string $taxonomy = '' ): ?array {
 		if ( $term instanceof WP_Term ) {
-			$term_id  = $term->term_id;
-			$taxonomy = $term->taxonomy;
+			$term_id          = $term->term_id;
+			$term_taxonomy_id = $term->term_taxonomy_id;
+			$taxonomy         = $term->taxonomy;
 		} else {
 			$term_id = (int) $term;
 			if ( empty( $taxonomy ) ) {
@@ -37,7 +38,15 @@ class WPML_Term_Helper {
 				if ( ! $term_obj || is_wp_error( $term_obj ) ) {
 					return null;
 				}
-				$taxonomy = $term_obj->taxonomy;
+				$term_taxonomy_id = $term_obj->term_taxonomy_id;
+				$taxonomy         = $term_obj->taxonomy;
+			} else {
+				// We need to get the full term object to get term_taxonomy_id
+				$term_obj = get_term( $term_id, $taxonomy );
+				if ( ! $term_obj || is_wp_error( $term_obj ) ) {
+					return null;
+				}
+				$term_taxonomy_id = $term_obj->term_taxonomy_id;
 			}
 		}
 
@@ -46,8 +55,9 @@ class WPML_Term_Helper {
 		}
 
 		return array(
-			'term_id'  => $term_id,
-			'taxonomy' => $taxonomy,
+			'term_id'          => $term_id,
+			'term_taxonomy_id' => $term_taxonomy_id,
+			'taxonomy'         => $taxonomy,
 		);
 	}
 
@@ -68,7 +78,7 @@ class WPML_Term_Helper {
 			'wpml_element_language_details',
 			null,
 			array(
-				'element_id'   => $term_data['term_id'],
+				'element_id'   => $term_data['term_taxonomy_id'],
 				'element_type' => $term_data['taxonomy'],
 			)
 		);
@@ -94,10 +104,10 @@ class WPML_Term_Helper {
 			return array();
 		}
 
-		$term_trid = apply_filters( 'wpml_element_trid', null, $term_data['term_id'], $term_data['taxonomy'] );
+		$term_trid = apply_filters( 'wpml_element_trid', null, $term_data['term_taxonomy_id'], 'tax_' . $term_data['taxonomy'] );
 
 		// Get all translations of the current term
-		$translations = apply_filters( 'wpml_get_element_translations', null, $term_trid, $term_data['taxonomy'] );
+		$translations = apply_filters( 'wpml_get_element_translations', null, $term_trid, 'tax_' . $term_data['taxonomy'] );
 
 		if ( empty( $translations ) || ! is_array( $translations ) ) {
 			return array();
@@ -121,16 +131,34 @@ class WPML_Term_Helper {
 			}
 
 			// Ensure types are correct
-			$language_code  = (string) $translation->language_code;
-			$translation_id = (int) $translation->element_id;
+			$language_code    = (string) $translation->language_code;
+			$term_taxonomy_id = (int) $translation->element_id;
+
+			// Convert term_taxonomy_id to term_id
+			// We need to get the term by term_taxonomy_id
+			$cache_key = 'wpml_term_id_' . $term_taxonomy_id;
+			$term_id   = wp_cache_get( $cache_key, 'multilingual_bridge' );
+
+			if ( false === $term_id ) {
+				global $wpdb;
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$term_id = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $term_taxonomy_id ) );
+				if ( $term_id ) {
+					wp_cache_set( $cache_key, $term_id, 'multilingual_bridge', 3600 );
+				}
+			}
+
+			if ( ! $term_id ) {
+				continue;
+			}
 
 			if ( $return_objects ) {
-				$term_object = get_term( $translation_id, $taxonomy );
+				$term_object = get_term( $term_id, $taxonomy );
 				if ( $term_object instanceof WP_Term ) {
 					$language_versions[ $language_code ] = $term_object;
 				}
 			} else {
-				$language_versions[ $language_code ] = $translation_id;
+				$language_versions[ $language_code ] = (int) $term_id;
 			}
 		}
 
@@ -265,20 +293,20 @@ class WPML_Term_Helper {
 			'wpml_element_language_details',
 			null,
 			array(
-				'element_id'   => $term_data['term_id'],
+				'element_id'   => $term_data['term_taxonomy_id'],
 				'element_type' => $term_data['taxonomy'],
 			)
 		);
 
 		// Create a new translation group or use existing one
-		$trid = ! empty( $language_details->trid ) ? $language_details->trid : apply_filters( 'wpml_element_trid', null, $term_data['term_id'], $term_data['taxonomy'] );
+		$trid = ! empty( $language_details->trid ) ? $language_details->trid : apply_filters( 'wpml_element_trid', null, $term_data['term_taxonomy_id'], 'tax_' . $term_data['taxonomy'] );
 
 		// Set the new language for the term
 		do_action(
 			'wpml_set_element_language_details',
 			array(
-				'element_id'           => $term_data['term_id'],
-				'element_type'         => $term_data['taxonomy'],
+				'element_id'           => $term_data['term_taxonomy_id'],
+				'element_type'         => 'tax_' . $term_data['taxonomy'],
 				'trid'                 => $trid,
 				'language_code'        => $target_language,
 				'source_language_code' => null, // Make it an original term
@@ -326,10 +354,10 @@ class WPML_Term_Helper {
 			return null;
 		}
 
-		$term_trid = apply_filters( 'wpml_element_trid', null, $term_data['term_id'], $term_data['taxonomy'] );
+		$term_trid = apply_filters( 'wpml_element_trid', null, $term_data['term_taxonomy_id'], 'tax_' . $term_data['taxonomy'] );
 
 		// Get all translations
-		$translations = apply_filters( 'wpml_get_element_translations', null, $term_trid, $term_data['taxonomy'] );
+		$translations = apply_filters( 'wpml_get_element_translations', null, $term_trid, 'tax_' . $term_data['taxonomy'] );
 
 		if ( empty( $translations ) || ! is_array( $translations ) ) {
 			return null;
@@ -341,7 +369,21 @@ class WPML_Term_Helper {
 				property_exists( $translation, 'original' ) &&
 				property_exists( $translation, 'element_id' ) &&
 				$translation->original ) {
-				return (int) $translation->element_id;
+				// Convert term_taxonomy_id to term_id
+				$term_taxonomy_id = (int) $translation->element_id;
+				$cache_key        = 'wpml_term_id_' . $term_taxonomy_id;
+				$term_id          = wp_cache_get( $cache_key, 'multilingual_bridge' );
+
+				if ( false === $term_id ) {
+					global $wpdb;
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$term_id = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $term_taxonomy_id ) );
+					if ( $term_id ) {
+						wp_cache_set( $cache_key, $term_id, 'multilingual_bridge', 3600 );
+					}
+				}
+
+				return $term_id ? (int) $term_id : null;
 			}
 		}
 
