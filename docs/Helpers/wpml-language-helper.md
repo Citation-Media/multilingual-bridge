@@ -13,6 +13,21 @@ The `WPML_Language_Helper` class provides convenient methods for:
 
 All methods are static and can be called directly without instantiation.
 
+## Important: Direct Database Query Implementation (v1.3.0+)
+
+As of version 1.3.0, the `get_available_languages()` method queries the WPML languages table directly instead of using WPML filters. This ensures proper functionality in WordPress multisite environments where each site has its own language configuration.
+
+**Key Benefits:**
+- **Multisite Support**: Each site's language configuration is properly isolated
+- **Performance**: Direct queries with caching provide consistent performance
+- **Reliability**: No dependency on WPML filter availability or timing
+
+**Technical Details:**
+- Queries the `wp_icl_languages` table directly (with proper prefix handling)
+- Automatically handles multisite table prefixes (e.g., `wp_2_icl_languages`)
+- Returns a simplified data structure focused on essential fields
+- Maintains full backward compatibility
+
 ## Usage
 
 ```php
@@ -25,16 +40,42 @@ use Multilingual_Bridge\Helpers\WPML_Language_Helper;
 
 Get all available languages configured in WPML with the default language sorted first. This is the primary method for retrieving language data.
 
+**Note:** As of v1.3.0, this method returns a simplified data structure:
+
 ```php
 // Get all available languages with default language first
 $languages = WPML_Language_Helper::get_available_languages();
-// Returns: ['en' => ['language_code' => 'en', 'native_name' => 'English', ...], 'de' => [...], ...]
+// Returns: 
+// [
+//     'en' => [
+//         'id' => 1,
+//         'language_code' => 'en',
+//         'name' => 'English',
+//         'default_locale' => 'en_US',
+//         'tag' => 'en-US'
+//     ],
+//     'de' => [
+//         'id' => 2,
+//         'language_code' => 'de', 
+//         'name' => 'Deutsch',
+//         'default_locale' => 'de_DE',
+//         'tag' => 'de-DE'
+//     ]
+// ]
 
 // Handle WPML not installed or no languages configured
 if (empty($languages)) {
     // WPML is not active or no languages are configured
 }
 ```
+
+**Fields no longer included** (compared to WPML filter response):
+- `native_name` - Use `name` field instead
+- `translated_name` - Use `name` field instead  
+- `country_flag_url` - Generate if needed using language/country codes
+- `url` - Context-dependent, generate as needed
+- `active` - Only active languages are returned
+- `missing` - Not applicable for active languages
 
 ### get_active_language_codes()
 
@@ -101,11 +142,11 @@ Get complete details for a specific language.
 ```php
 $lang_details = WPML_Language_Helper::get_language_details('de');
 // Returns: [
+//     'id' => 2,
 //     'language_code' => 'de',
-//     'native_name' => 'Deutsch',
-//     'translated_name' => 'German',
-//     'country_flag_url' => 'https://...',
-//     'url' => 'https://...'
+//     'name' => 'Deutsch',
+//     'default_locale' => 'de_DE',
+//     'tag' => 'de-DE'
 // ]
 
 if (empty($lang_details)) {
@@ -140,16 +181,7 @@ $name_in_french = WPML_Language_Helper::get_language_translated_name('de', 'fr')
 
 ### get_language_flag_url()
 
-Get the flag URL for a language.
-
-```php
-$flag_url = WPML_Language_Helper::get_language_flag_url('de');
-// Returns: 'https://example.com/wp-content/plugins/sitepress.../de.png'
-
-if ($flag_url) {
-    echo '<img src="' . esc_url($flag_url) . '" alt="' . esc_attr($lang_code) . '">';
-}
-```
+**Note:** This method is deprecated as of v1.3.0 since flag URLs are no longer included in the simplified data structure. Generate flag URLs directly if needed using WPML constants or custom logic.
 
 ### switch_language()
 
@@ -219,24 +251,16 @@ function render_language_switcher($current_post_id = null) {
     echo '<ul class="language-switcher">';
     foreach ($languages as $code => $language) {
         $active_class = ($code === $current_lang) ? 'active' : '';
-        $flag_url = $language['country_flag_url'] ?? '';
+        
+        // Generate language URL using WPML
+        $url = apply_filters('wpml_permalink', get_permalink($current_post_id), $code);
         
         echo sprintf(
-            '<li class="%s"><a href="%s">',
+            '<li class="%s"><a href="%s">%s</a></li>',
             esc_attr($active_class),
-            esc_url($language['url'])
+            esc_url($url),
+            esc_html($language['name'])
         );
-        
-        if ($flag_url) {
-            echo sprintf(
-                '<img src="%s" alt="%s"> ',
-                esc_url($flag_url),
-                esc_attr($language['native_name'])
-            );
-        }
-        
-        echo esc_html($language['native_name']);
-        echo '</a></li>';
     }
     echo '</ul>';
 }
