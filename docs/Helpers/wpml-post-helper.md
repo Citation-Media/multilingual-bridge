@@ -614,8 +614,15 @@ WPML has built-in mechanisms to prevent unnecessary translations:
    - If a translation already exists and the content hasn't changed (same MD5 hash), WPML may not create a new translation job
    - If you need to force retranslation regardless of content changes, you may need to manually set the `needs_update` flag first
    - The method sends posts for translation based on current content, so ensure content is saved before calling
+   - Jobs are automatically configured with the ATE (Advanced Translation Editor) for automatic translation processing
 
-4. **Best Practice**: Before triggering automatic translation, consider checking if the post actually needs translation updates to avoid unnecessary API calls and costs.
+4. **Automatic Translation Processing**: 
+   - The method sets the `automatic` flag for proper automatic translation
+   - WPML's background sync process will pick up these jobs and send them to the ATE service
+   - The sync happens through AJAX calls when admin pages are loaded
+   - No additional manual steps are required after calling this method
+
+5. **Best Practice**: Before triggering automatic translation, consider checking if the post actually needs translation updates to avoid unnecessary API calls and costs.
 
 ## Comparison with Native WPML Functions
 
