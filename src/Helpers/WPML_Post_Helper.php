@@ -521,10 +521,6 @@ class WPML_Post_Helper {
 			$wpml_target_langs
 		);
 
-		// Generate batch name automatically
-		$post_title = get_the_title( $post_id );
-		$batch_name = sprintf( '[BRIDGE]: %s', $post_title );
-
 		// Prepare translator assignment (0 = auto assign)
 		$translators = array();
 		foreach ( $target_languages as $lang_code ) {
@@ -534,9 +530,10 @@ class WPML_Post_Helper {
 		// Create translation batch
 		$batch = new \WPML_TM_Translation_Batch(
 			array( $batch_element ),
-			$batch_name,
+			\TranslationProxy_Batch::get_generic_batch_name( true ),
 			$translators
 		);
+		$batch->setTranslationMode( 'auto' );
 
 		// Send for translation
 		try {
@@ -551,11 +548,6 @@ class WPML_Post_Helper {
 			// Check if any jobs were created
 			if ( empty( $job_ids ) || ! is_array( $job_ids ) ) {
 				return new \WP_Error( 'translation_not_created', __( 'Translation job was not created. This may occur if the content has not changed since the last translation.', 'multilingual-bridge' ) );
-			}
-
-			// Set automatic status for all created jobs
-			foreach ( $job_ids as $job_id ) {
-				\WPML\TM\API\Jobs::setAutomaticStatus( $job_id, true );
 			}
 
 			// Return the array of job IDs
@@ -702,5 +694,4 @@ class WPML_Post_Helper {
 			'errors'  => $errors,
 		);
 	}
-
 }
