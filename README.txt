@@ -92,6 +92,13 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Changelog ==
 
+= 1.3.0 =
+* Enhancement: WPML_Language_Helper::get_available_languages() now queries database directly for improved multisite support
+* Enhancement: Each site in multisite installations now properly loads its own language configuration
+* Enhancement: Simplified language data structure for better performance and maintainability
+* Fix: Resolved issue where multisite installations would only show main site languages
+* Breaking Change: Removed translated_name, native_name, country_flag_url fields from language array (use 'name' field instead)
+
 = 1.2.1 =
 * Enhancement: Added language validation to WPML_Post_Helper::set_language() method
 

@@ -36,47 +36,113 @@ class WPML_Language_Helper {
 	/**
 	 * Retrieves the available languages configured in WPML (WordPress Multilingual Plugin).
 	 *
-	 * In the absence of WPML or if no default language and active languages are set,
-	 * a fallback language is returned.
+	 * IMPORTANT: This method uses direct database queries instead of WPML's API functions
+	 * because WPML does not correctly purge its internal caches when switching blog context
+	 * in multisite environments. When using switch_to_blog(), WPML's cached language data
+	 * from the previous blog persists, returning incorrect language configurations.
+	 * Direct database queries ensure each blog's language configuration is correctly retrieved.
+	 *
 	 * The method ensures that the default language, if configured, is placed at the
 	 * beginning of the returned languages list.
 	 *
-	 * @return array<string, array{language_code: string, native_name?: string, translated_name?: string, country_flag_url?: string, url?: string}> An associative array of available languages, each containing
-	 *               details such as 'language_code'. If WPML is not active, returns a fallback German language.
+	 * @return array<string, array{language_code: string, name?: string, id?: int, default_locale?: string, tag?: string}> An associative array of available languages, each containing
+	 *               details such as 'language_code'. If WPML is not active, returns an empty array.
 	 */
 	public static function get_available_languages(): array {
 		// Check cache first
 		$cache_key        = 'multilingual_bridge_available_languages';
 		$cached_languages = wp_cache_get( $cache_key, 'multilingual_bridge' );
 
-		if ( false !== $cached_languages ) {
+		if ( false !== $cached_languages && is_array( $cached_languages ) ) {
+			/**
+		 * Type cast the cached languages array.
+		 *
+		 * @var array<string, array{language_code: string, name?: string, id?: int, default_locale?: string, tag?: string}> $cached_languages
+		 */
 			return $cached_languages;
 		}
 
-		// Get wpml default language
-		$default_lang = apply_filters( 'wpml_default_language', null ) ?: '';
+		/**
+		 * WordPress database abstraction object.
+		 *
+		 * @var \wpdb $wpdb
+		 */
+		global $wpdb;
 
-		// Get languages set up in wpml
-		$languages = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
+		// Get the table name with proper prefix (handles multisite automatically)
+		$table_name = $wpdb->prefix . 'icl_languages';
 
-		// If wpml not installed or no languages configured, return empty array
-		if ( empty( $default_lang ) || empty( $languages ) ) {
+		// Check if the table exists
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		if ( null === $table_exists ) {
 			return array();
 		}
 
-		// Sort languages to push the element with language_code equal to $default_lang to the start, while preserving keys
-		uasort(
-			$languages,
-			function ( $a, $b ) use ( $default_lang ) {
-				if ( $a['language_code'] === $default_lang ) {
-					return -1;
-				}
-				if ( $b['language_code'] === $default_lang ) {
-					return 1;
-				}
-				return 0;
-			}
+		// Query active languages from the database
+		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->prepare(
+				'SELECT id, code, english_name, active, default_locale, tag, country
+				FROM %i
+				WHERE active = %d
+				ORDER BY english_name',
+				$table_name,
+				1
+			)
 		);
+
+		if ( empty( $results ) ) {
+			return array();
+		}
+
+		// Get wpml default language
+		$default_lang     = self::get_default_language();
+
+		// Transform database results to match WPML's expected structure
+		/**
+		 * Languages array to build.
+		 *
+		 * @var array<string, array{language_code: string, name?: string, id?: int, default_locale?: string, tag?: string}> $languages
+		 */
+		$languages = array();
+		/**
+		 * Database query results.
+		 *
+		 * @var array<int, object{id: string|int, code: string, english_name: string, active: string|int, default_locale: string, tag: string, country: string}> $results
+		 */
+		foreach ( $results as $row ) {
+			$language_code = (string) $row->code;
+
+			// Build the expected array structure
+			$languages[ $language_code ] = array(
+				'id'             => (int) $row->id,
+				'default_locale' => (string) $row->default_locale,
+				'name'           => (string) $row->english_name,
+				'language_code'  => $language_code,
+				'tag'            => (string) $row->tag,
+			);
+		}
+
+		// If no default language set, use the first one
+		if ( empty( $default_lang ) && ! empty( $languages ) ) {
+			$default_lang = array_key_first( $languages );
+		}
+
+		// Sort languages to push the default language to the start
+		if ( ! empty( $default_lang ) ) {
+			uasort(
+				$languages,
+				function ( $a, $b ) use ( $default_lang ) {
+					if ( $a['language_code'] === $default_lang ) {
+						return -1;
+					}
+					if ( $b['language_code'] === $default_lang ) {
+						return 1;
+					}
+					return 0;
+				}
+			);
+		}
 
 		// Cache the sorted languages (cache for 1 hour)
 		wp_cache_set( $cache_key, $languages, 'multilingual_bridge', 3600 );
@@ -84,15 +150,17 @@ class WPML_Language_Helper {
 		return $languages;
 	}
 
-
 	/**
 	 * Get the default language code
+	 *
+	 * This method uses the wpml_default_language filter which correctly reads from
+	 * the blog-specific options table, ensuring accurate results in multisite environments.
 	 *
 	 * @return string Default language code or empty string if WPML not active
 	 */
 	public static function get_default_language(): string {
 		$default_language = apply_filters( 'wpml_default_language', null );
-		return ! empty( $default_language ) ? (string) $default_language : '';
+		return is_string( $default_language ) && ! empty( $default_language ) ? $default_language : '';
 	}
 
 	/**
@@ -102,7 +170,7 @@ class WPML_Language_Helper {
 	 */
 	public static function get_current_language(): string {
 		$current_language = apply_filters( 'wpml_current_language', null );
-		return ! empty( $current_language ) ? (string) $current_language : '';
+		return is_string( $current_language ) && ! empty( $current_language ) ? $current_language : '';
 	}
 
 	/**
@@ -124,7 +192,7 @@ class WPML_Language_Helper {
 	 * Get language details by language code
 	 *
 	 * @param string $language_code The language code.
-	 * @return array{code: string, native_name: string, translated_name: string, country_flag_url: string, url: string}|array{} Language details array or empty array if not found
+	 * @return array{language_code: string, name?: string, id?: int, default_locale?: string, tag?: string}|array{} Language details array or empty array if not found
 	 */
 	public static function get_language_details( string $language_code ): array {
 		if ( empty( $language_code ) ) {
@@ -143,36 +211,7 @@ class WPML_Language_Helper {
 	 */
 	public static function get_language_native_name( string $language_code ): string {
 		$details = self::get_language_details( $language_code );
-		return isset( $details['native_name'] ) ? $details['native_name'] : '';
-	}
-
-	/**
-	 * Get the translated name of a language in the current language
-	 *
-	 * @param string $language_code The language code.
-	 * @param string $display_language Optional. Language to display the name in. Defaults to current language.
-	 * @return string Translated language name or empty string if not found
-	 */
-	public static function get_language_translated_name( string $language_code, string $display_language = '' ): string {
-		if ( empty( $display_language ) ) {
-			$details = self::get_language_details( $language_code );
-			return isset( $details['translated_name'] ) ? $details['translated_name'] : '';
-		}
-
-		// Use WPML filter for specific display language
-		$name = apply_filters( 'wpml_translated_language_name', '', $language_code, $display_language );
-		return ! empty( $name ) ? $name : '';
-	}
-
-	/**
-	 * Get language flag URL
-	 *
-	 * @param string $language_code The language code.
-	 * @return string Flag URL or empty string if not found
-	 */
-	public static function get_language_flag_url( string $language_code ): string {
-		$details = self::get_language_details( $language_code );
-		return isset( $details['country_flag_url'] ) ? $details['country_flag_url'] : '';
+		return isset( $details['name'] ) ? $details['name'] : '';
 	}
 
 	/**
@@ -210,7 +249,7 @@ class WPML_Language_Helper {
 	 * @param callable $callback      The callback to execute.
 	 * @return mixed The return value of the callback
 	 */
-	public static function in_language_context( string $language_code, callable $callback ) {
+	public static function in_language_context( string $language_code, callable $callback ): mixed {
 		$previous_language = self::switch_language( $language_code );
 
 		try {
