@@ -96,7 +96,7 @@ class WPML_Language_Helper {
 		}
 
 		// Get wpml default language
-		$default_lang     = self::get_default_language();
+		$default_lang = self::get_default_language();
 
 		// Transform database results to match WPML's expected structure
 		/**
