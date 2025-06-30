@@ -577,8 +577,8 @@ class WPML_Post_Helper {
 				$error->add(
 					'invalid_term',
 					sprintf(
-					/* translators: 1: Term ID, 2: Taxonomy name */
-						__( 'Term ID %1$d does not exist in taxonomy "%2$s".', 'multilingual-bridge' ),
+					/* translators: 1: Term name, 2: Post language */
+						__( 'Term "%1$s" has no translation in post language "%2$s".', 'multilingual-bridge' ),
 						$term_id,
 						$taxonomy
 					),
