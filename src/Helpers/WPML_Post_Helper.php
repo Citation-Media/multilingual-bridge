@@ -461,6 +461,113 @@ class WPML_Post_Helper {
 	}
 
 	/**
+	 * Trigger automatic translation for a post
+	 *
+	 * This method sends a post for automatic translation to specified target languages
+	 * or all available languages if none are specified.
+	 *
+	 * @param int|WP_Post        $post            Post ID or WP_Post object.
+	 * @param array<string>|null $target_languages Array of target language codes, or null for all available languages.
+	 * @return int|\WP_Error Batch ID on success, WP_Error on failure.
+	 */
+	public static function trigger_automatic_translation( int|WP_Post $post, ?array $target_languages = null ): int|\WP_Error {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		if ( ! $post_id ) {
+			return new \WP_Error( 'invalid_post', __( 'Invalid post ID provided.', 'multilingual-bridge' ) );
+		}
+
+		// Check if WPML Translation Management is active
+		if ( ! class_exists( 'WPML_TM_Translation_Batch_Element' ) || ! class_exists( 'WPML_TM_Translation_Batch' ) ) {
+			return new \WP_Error( 'wpml_tm_not_active', __( 'WPML Translation Management is not active.', 'multilingual-bridge' ) );
+		}
+
+		// Check if automatic translation constant is available
+		if ( ! defined( '\WPML\TM\API\Jobs::SENT_AUTOMATICALLY' ) ) {
+			return new \WP_Error( 'wpml_automatic_translation_not_supported', __( 'WPML automatic translation is not supported in this version.', 'multilingual-bridge' ) );
+		}
+
+		// Get the post's source language
+		$source_language = self::get_language( $post_id );
+		if ( empty( $source_language ) ) {
+			return new \WP_Error( 'no_source_language', __( 'Post has no language assigned.', 'multilingual-bridge' ) );
+		}
+
+		// If no target languages specified, get all available languages except source
+		if ( null === $target_languages ) {
+			$all_languages    = WPML_Language_Helper::get_active_language_codes();
+			$target_languages = array_diff( $all_languages, array( $source_language ) );
+		} else {
+			// Remove source language from target languages if present
+			$target_languages = array_diff( $target_languages, array( $source_language ) );
+		}
+
+		// If no valid target languages, return error
+		if ( empty( $target_languages ) ) {
+			return new \WP_Error( 'no_valid_languages', __( 'No valid target languages specified.', 'multilingual-bridge' ) );
+		}
+
+		// Prepare target languages array for WPML (1 = translate, 2 = duplicate)
+		$wpml_target_langs = array();
+		foreach ( $target_languages as $lang_code ) {
+			$wpml_target_langs[ $lang_code ] = 1; // 1 = translate
+		}
+
+		// Create batch element
+		$batch_element = new \WPML_TM_Translation_Batch_Element(
+			$post_id,
+			'post', // Element type
+			$source_language,
+			$wpml_target_langs
+		);
+
+		// Generate batch name automatically
+		$post_title = get_the_title( $post_id );
+		$batch_name = sprintf( '[BRIDGE]: %s', $post_title );
+
+		// Prepare translator assignment (0 = auto assign)
+		$translators = array();
+		foreach ( $target_languages as $lang_code ) {
+			$translators[ $lang_code ] = 0; // 0 = auto assign translator
+		}
+
+		// Create translation batch
+		$batch = new \WPML_TM_Translation_Batch(
+			array( $batch_element ),
+			$batch_name,
+			$translators
+		);
+
+		// Send for translation
+		try {
+			// Check if wpml_load_core_tm function exists
+			if ( ! function_exists( 'wpml_load_core_tm' ) ) {
+				return new \WP_Error( 'wpml_tm_api_missing', __( 'WPML Translation Management API is not available.', 'multilingual-bridge' ) );
+			}
+
+			$tm = wpml_load_core_tm();
+			if ( ! $tm || ! method_exists( $tm, 'send_jobs' ) ) {
+				return new \WP_Error( 'wpml_tm_send_jobs_missing', __( 'WPML Translation Management send_jobs method is not available.', 'multilingual-bridge' ) );
+			}
+
+			// Send the batch with automatic translation flag
+			$tm->send_jobs( $batch, 'post', \WPML\TM\API\Jobs::SENT_AUTOMATICALLY );
+
+			// Get batch ID if available
+			$batch_id = null;
+			if ( property_exists( $batch, 'id' ) ) {
+				$batch_id = (int) $batch->id;
+			}
+
+			// Return batch ID or 0 if not available
+			return $batch_id ?: 0;
+
+		} catch ( \Exception $e ) {
+			return new \WP_Error( 'translation_failed', $e->getMessage() );
+		}
+	}
+
+	/**
 	 * Safely assign terms to a post with language validation
 	 *
 	 * This method validates that terms are in the same language as the post.

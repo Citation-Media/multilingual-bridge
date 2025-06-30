@@ -5,6 +5,7 @@ parameters:
         - multilingual-bridge.php
         - src/
     ignoreErrors:
+        - '#Access to constant SENT_AUTOMATICALLY on an unknown class WPML\\TM\\API\\Jobs#'
     scanDirectories:
         - vendor
         - vendor-prefixed

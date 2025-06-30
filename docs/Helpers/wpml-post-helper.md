@@ -558,6 +558,52 @@ $result = WPML_Post_Helper::safe_assign_terms(
 // and assign those instead, or return errors for terms without translations
 ```
 
+### trigger_automatic_translation()
+
+Trigger automatic translation for a post to specified target languages or all available languages. The translation batch is automatically named with the format "[BRIDGE]: {post_title}".
+
+```php
+// Basic usage - translate to all available languages
+$batch_id = WPML_Post_Helper::trigger_automatic_translation(123);
+
+if (is_wp_error($batch_id)) {
+    error_log('Translation failed: ' . $batch_id->get_error_message());
+}
+```
+
+Trigger automatic translation for a post to specified languages.
+```php
+// Translate to specific languages only
+$batch_id = WPML_Post_Helper::trigger_automatic_translation(
+    123,                        // Post ID
+    ['de', 'fr', 'es']         // Target language codes
+);
+
+// Using in production code
+if (!is_wp_error($batch_id) && $batch_id > 0) {
+    // Translation was triggered successfully
+    update_post_meta($post_id, '_translation_batch_id', $batch_id);
+}
+```
+
+**Parameters:**
+- `$post` (int|WP_Post): Post ID or WP_Post object to translate
+- `$target_languages` (array|null): Array of target language codes, or null for all available languages
+
+**Returns:** 
+- `int`: Batch ID on success (0 if batch ID not available from WPML)
+- `WP_Error`: Error object on failure
+
+**Common Errors:**
+- `invalid_post`: Invalid post ID provided
+- `wpml_tm_not_active`: WPML Translation Management is not installed or active
+- `wpml_automatic_translation_not_supported`: WPML automatic translation is not supported in this version
+- `no_source_language`: Post has no language assigned
+- `no_valid_languages`: No valid target languages specified
+- `wpml_tm_api_missing`: WPML Translation Management API is not available
+- `wpml_tm_send_jobs_missing`: WPML Translation Management send_jobs method is not available
+- `translation_failed`: Exception occurred during translation
+
 ## Comparison with Native WPML Functions
 
 | Task | Native WPML | WPML_Post_Helper |
@@ -569,6 +615,7 @@ $result = WPML_Post_Helper::safe_assign_terms(
 | Check cross-language terms | Complex manual checking with language switching | `WPML_Post_Helper::has_cross_language_term_relationships($id)` |
 | Fix cross-language terms | Complex manual process | `WPML_Post_Helper::remove_cross_language_term_relationships($id)` |
 | Safe term assignment | Manual validation and translation lookup | `WPML_Post_Helper::safe_assign_terms($id, $terms, $taxonomy)` |
+| Trigger automatic translation | Manual batch creation with WPML_TM_Translation_Batch classes | `WPML_Post_Helper::trigger_automatic_translation($id, $languages)` |
 
 ## Error Handling
 
