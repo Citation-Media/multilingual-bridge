@@ -1,7 +1,6 @@
 === Multilingual Bridge ===
 Contributors: juvodesign, citationmedia
 Tags: wpml, rest-api, multilingual, translation, headless
-Requires at least: 5.0
 Tested up to: 6.8
 Stable tag: 1.2.1
 Requires PHP: 8.0
