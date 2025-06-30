@@ -36,8 +36,12 @@ class WPML_Language_Helper {
 	/**
 	 * Retrieves the available languages configured in WPML (WordPress Multilingual Plugin).
 	 *
-	 * This method queries the WPML languages table directly to ensure proper functionality
-	 * in multisite environments where each site has its own language configuration.
+	 * IMPORTANT: This method uses direct database queries instead of WPML's API functions
+	 * because WPML does not correctly purge its internal caches when switching blog context
+	 * in multisite environments. When using switch_to_blog(), WPML's cached language data
+	 * from the previous blog persists, returning incorrect language configurations.
+	 * Direct database queries ensure each blog's language configuration is correctly retrieved.
+	 *
 	 * The method ensures that the default language, if configured, is placed at the
 	 * beginning of the returned languages list.
 	 *
@@ -92,8 +96,7 @@ class WPML_Language_Helper {
 		}
 
 		// Get wpml default language
-		$default_language = apply_filters( 'wpml_default_language', null );
-		$default_lang     = is_string( $default_language ) ? $default_language : '';
+		$default_lang     = self::get_default_language();
 
 		// Transform database results to match WPML's expected structure
 		/**
@@ -149,6 +152,9 @@ class WPML_Language_Helper {
 
 	/**
 	 * Get the default language code
+	 *
+	 * This method uses the wpml_default_language filter which correctly reads from
+	 * the blog-specific options table, ensuring accurate results in multisite environments.
 	 *
 	 * @return string Default language code or empty string if WPML not active
 	 */
