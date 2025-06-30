@@ -468,23 +468,23 @@ class WPML_Post_Helper {
 	 *
 	 * @param int|WP_Post        $post            Post ID or WP_Post object.
 	 * @param array<string>|null $target_languages Array of target language codes, or null for all available languages.
-	 * @return int|\WP_Error Batch ID on success, WP_Error on failure.
+	 * @return array<int>|\WP_Error Array of job IDs on success, WP_Error on failure.
 	 */
-	public static function trigger_automatic_translation( int|WP_Post $post, ?array $target_languages = null ): int|\WP_Error {
+	public static function trigger_automatic_translation( int|WP_Post $post, ?array $target_languages = null ): array|\WP_Error {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
 
 		if ( ! $post_id ) {
 			return new \WP_Error( 'invalid_post', __( 'Invalid post ID provided.', 'multilingual-bridge' ) );
 		}
 
-		// Check if WPML Translation Management is active
-		if ( ! class_exists( 'WPML_TM_Translation_Batch_Element' ) || ! class_exists( 'WPML_TM_Translation_Batch' ) ) {
-			return new \WP_Error( 'wpml_tm_not_active', __( 'WPML Translation Management is not active.', 'multilingual-bridge' ) );
-		}
-
-		// Check if automatic translation constant is available
-		if ( ! defined( '\WPML\TM\API\Jobs::SENT_AUTOMATICALLY' ) ) {
-			return new \WP_Error( 'wpml_automatic_translation_not_supported', __( 'WPML automatic translation is not supported in this version.', 'multilingual-bridge' ) );
+		// Check all WPML dependencies at once
+		if ( ! class_exists( 'WPML_TM_Translation_Batch_Element' ) ||
+			! class_exists( 'WPML_TM_Translation_Batch' ) ||
+			! function_exists( 'wpml_load_core_tm' ) ||
+			! defined( '\WPML\TM\API\Jobs::SENT_AUTOMATICALLY' ) ||
+			! class_exists( '\WPML\TM\API\Jobs' ) ||
+			! method_exists( '\WPML\TM\API\Jobs', 'setAutomaticStatus' ) ) {
+			return new \WP_Error( 'wpml_dependencies_missing', __( 'WPML dependencies are not available.', 'multilingual-bridge' ) );
 		}
 
 		// Get the post's source language
@@ -540,27 +540,26 @@ class WPML_Post_Helper {
 
 		// Send for translation
 		try {
-			// Check if wpml_load_core_tm function exists
-			if ( ! function_exists( 'wpml_load_core_tm' ) ) {
-				return new \WP_Error( 'wpml_tm_api_missing', __( 'WPML Translation Management API is not available.', 'multilingual-bridge' ) );
-			}
-
 			$tm = wpml_load_core_tm();
 			if ( ! $tm || ! method_exists( $tm, 'send_jobs' ) ) {
-				return new \WP_Error( 'wpml_tm_send_jobs_missing', __( 'WPML Translation Management send_jobs method is not available.', 'multilingual-bridge' ) );
+				return new \WP_Error( 'wpml_dependencies_missing', __( 'WPML dependencies are not available.', 'multilingual-bridge' ) );
 			}
 
 			// Send the batch with automatic translation flag
-			$tm->send_jobs( $batch, 'post', \WPML\TM\API\Jobs::SENT_AUTOMATICALLY );
+			$job_ids = $tm->send_jobs( $batch, 'post', \WPML\TM\API\Jobs::SENT_AUTOMATICALLY );
 
-			// Get batch ID if available
-			$batch_id = null;
-			if ( property_exists( $batch, 'id' ) ) {
-				$batch_id = (int) $batch->id;
+			// Check if any jobs were created
+			if ( empty( $job_ids ) || ! is_array( $job_ids ) ) {
+				return new \WP_Error( 'translation_not_created', __( 'Translation job was not created. This may occur if the content has not changed since the last translation.', 'multilingual-bridge' ) );
 			}
 
-			// Return batch ID or 0 if not available
-			return $batch_id ?: 0;
+			// Set automatic status for all created jobs
+			foreach ( $job_ids as $job_id ) {
+				\WPML\TM\API\Jobs::setAutomaticStatus( $job_id, true );
+			}
+
+			// Return the array of job IDs
+			return $job_ids;
 
 		} catch ( \Exception $e ) {
 			return new \WP_Error( 'translation_failed', $e->getMessage() );

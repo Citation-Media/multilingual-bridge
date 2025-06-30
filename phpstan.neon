@@ -6,6 +6,7 @@ parameters:
         - src/
     ignoreErrors:
         - '#Access to constant SENT_AUTOMATICALLY on an unknown class WPML\\TM\\API\\Jobs#'
+        - '#Call to function method_exists\(\) with ''\\\\WPML\\\\TM\\\\API\\\\Jobs'' and ''setAutomaticStatus'' will always evaluate to false#'
     scanDirectories:
         - vendor
         - vendor-prefixed

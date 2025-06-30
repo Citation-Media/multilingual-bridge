@@ -591,18 +591,31 @@ if (!is_wp_error($batch_id) && $batch_id > 0) {
 - `$target_languages` (array|null): Array of target language codes, or null for all available languages
 
 **Returns:** 
-- `int`: Batch ID on success (0 if batch ID not available from WPML)
+- `array<int>`: Array of job IDs on success
 - `WP_Error`: Error object on failure
 
 **Common Errors:**
 - `invalid_post`: Invalid post ID provided
-- `wpml_tm_not_active`: WPML Translation Management is not installed or active
-- `wpml_automatic_translation_not_supported`: WPML automatic translation is not supported in this version
+- `wpml_dependencies_missing`: WPML dependencies are not available
 - `no_source_language`: Post has no language assigned
 - `no_valid_languages`: No valid target languages specified
-- `wpml_tm_api_missing`: WPML Translation Management API is not available
-- `wpml_tm_send_jobs_missing`: WPML Translation Management send_jobs method is not available
+- `translation_not_created`: Translation job was not created (usually because content hasn't changed)
 - `translation_failed`: Exception occurred during translation
+
+**Important Notes about WPML's Translation Update Detection:**
+
+WPML has built-in mechanisms to prevent unnecessary translations:
+
+1. **Content Hash Comparison**: WPML uses MD5 hashes to detect if post content has changed. When a post is updated, WPML compares the new content hash with the stored hash to determine if translations need updating.
+
+2. **The `needs_update` Flag**: When content changes are detected, WPML sets the `needs_update` flag in the database. Posts with this flag will show the `ICL_TM_NEEDS_UPDATE` status (value 3).
+
+3. **Manual Trigger Behavior**: When using `trigger_automatic_translation()`, be aware that:
+   - If a translation already exists and the content hasn't changed (same MD5 hash), WPML may not create a new translation job
+   - If you need to force retranslation regardless of content changes, you may need to manually set the `needs_update` flag first
+   - The method sends posts for translation based on current content, so ensure content is saved before calling
+
+4. **Best Practice**: Before triggering automatic translation, consider checking if the post actually needs translation updates to avoid unnecessary API calls and costs.
 
 ## Comparison with Native WPML Functions
 
