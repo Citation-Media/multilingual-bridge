@@ -461,57 +461,110 @@ class WPML_Post_Helper {
 	}
 
 	/**
+	 * Trigger automatic translation for a post
+	 *
+	 * Attention: By default the automatic translation is triggered on save_post hook.
+	 * Before using always check if your code calls the hook correctly or has good reason to not do so!
+	 *
+	 * This method sends a post for automatic translation to specified target languages
+	 * or all available languages if none are specified.
+	 *
+	 * @param int|WP_Post        $post            Post ID or WP_Post object.
+	 * @param array<string>|null $target_languages Array of target language codes, or null for all available languages.
+	 * @return array<int>|\WP_Error Array of job IDs on success, WP_Error on failure.
+	 */
+	public static function trigger_automatic_translation( int|WP_Post $post, ?array $target_languages = null ): array|\WP_Error {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		if ( ! $post_id ) {
+			return new \WP_Error( 'invalid_post', __( 'Invalid post ID provided.', 'multilingual-bridge' ) );
+		}
+
+		// Check WPML dependencies
+		if ( ! function_exists( 'wpml_tm_load_job_factory' ) ||
+			! defined( '\WPML\TM\API\Jobs::SENT_AUTOMATICALLY' ) ||
+			! class_exists( '\WPML\TM\API\Jobs' ) ) {
+			return new \WP_Error( 'wpml_dependencies_missing', __( 'WPML dependencies are not available.', 'multilingual-bridge' ) );
+		}
+
+		// Get the post's source language
+		$source_language = self::get_language( $post_id );
+		if ( empty( $source_language ) ) {
+			return new \WP_Error( 'no_source_language', __( 'Post has no language assigned.', 'multilingual-bridge' ) );
+		}
+
+		// If no target languages specified, get all available languages except source
+		if ( null === $target_languages ) {
+			$all_languages    = WPML_Language_Helper::get_active_language_codes();
+			$target_languages = array_diff( $all_languages, array( $source_language ) );
+		} else {
+			// Remove source language from target languages if present
+			$target_languages = array_diff( $target_languages, array( $source_language ) );
+		}
+
+		// If no valid target languages, return error
+		if ( empty( $target_languages ) ) {
+			return new \WP_Error( 'no_valid_languages', __( 'No valid target languages specified.', 'multilingual-bridge' ) );
+		}
+
+		// Get job factory
+		$job_factory = wpml_tm_load_job_factory();
+		$job_ids     = array();
+
+		// Create jobs for each target language using the factory
+		foreach ( $target_languages as $target_language ) {
+			$job_id = $job_factory->create_local_post_job(
+				$post_id,
+				$target_language,
+				null,
+				\WPML\TM\API\Jobs::SENT_AUTOMATICALLY
+			);
+
+			if ( $job_id ) {
+				$job_ids[] = $job_id;
+			}
+		}
+
+		// Return the array of job IDs
+		return $job_ids;
+	}
+
+	/**
 	 * Safely assign terms to a post with language validation
 	 *
 	 * This method validates that terms are in the same language as the post.
 	 * If a term is in a different language, it attempts to find the translation
 	 * in the post's language and assign that instead.
 	 *
-	 * @param int|WP_Post        $post     Post ID or WP_Post object.
-	 * @param array<int|WP_Term> $terms    Array of term IDs or WP_Term objects to assign.
+	 * @param int|WP_Post        $post Post ID or WP_Post object.
+	 * @param array<int|WP_Term> $terms Array of term IDs or WP_Term objects to assign.
 	 * @param string             $taxonomy Taxonomy name.
-	 * @param bool               $append   Whether to append terms or replace existing ones.
-	 * @return array{success: array<int>, errors: array<int, \WP_Error>} Array with successful term IDs and errors.
+	 * @param bool               $append Whether to append terms or replace existing ones.
+	 * @return \WP_Error Contains all error of terms that could not have been assigned.
 	 */
-	public static function safe_assign_terms( int|WP_Post $post, array $terms, string $taxonomy, bool $append = false ): array {
+	public static function safe_assign_terms( int|WP_Post $post, array $terms, string $taxonomy, bool $append = false ): \WP_Error {
 		$post_id = is_object( $post ) ? $post->ID : (int) $post;
-
-		// Validate post
-		if ( ! $post_id ) {
-			return array(
-				'success' => array(),
-				'errors'  => array( 0 => new \WP_Error( 'invalid_post', __( 'Invalid post ID provided.', 'multilingual-bridge' ) ) ),
-			);
-		}
 
 		// Validate taxonomy
 		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return array(
-				'success' => array(),
-				'errors'  => array(
-					0 => new \WP_Error(
-						'invalid_taxonomy',
-						sprintf(
+			return new \WP_Error(
+				'invalid_taxonomy',
+				sprintf(
 							/* translators: %s: Taxonomy name */
-							__( 'Taxonomy "%s" does not exist.', 'multilingual-bridge' ),
-							$taxonomy
-						)
-					),
-				),
+					__( 'Taxonomy "%s" does not exist.', 'multilingual-bridge' ),
+					$taxonomy
+				)
 			);
 		}
 
 		// Get post language
 		$post_language = self::get_language( $post_id );
 		if ( empty( $post_language ) ) {
-			return array(
-				'success' => array(),
-				'errors'  => array( 0 => new \WP_Error( 'no_post_language', __( 'Post has no language assigned.', 'multilingual-bridge' ) ) ),
-			);
+			return new \WP_Error( 'no_post_language', __( 'Post has no language assigned.', 'multilingual-bridge' ) );
 		}
 
 		$valid_term_ids = array();
-		$errors         = array();
+		$error          = new \WP_Error();
 
 		// Process each term
 		foreach ( $terms as $term ) {
@@ -521,13 +574,17 @@ class WPML_Post_Helper {
 			// Validate term exists
 			$term_obj = get_term( $term_id, $taxonomy );
 			if ( ! $term_obj || is_wp_error( $term_obj ) ) {
-				$errors[ $term_id ] = new \WP_Error(
+				$error->add(
 					'invalid_term',
 					sprintf(
-						/* translators: 1: Term ID, 2: Taxonomy name */
-						__( 'Term ID %1$d does not exist in taxonomy "%2$s".', 'multilingual-bridge' ),
+					/* translators: 1: Term name, 2: Post language */
+						__( 'Term "%1$s" has no translation in post language "%2$s".', 'multilingual-bridge' ),
 						$term_id,
 						$taxonomy
+					),
+					array(
+						'term_id'  => $term_id,
+						'taxonomy' => $taxonomy,
 					)
 				);
 				continue;
@@ -538,13 +595,16 @@ class WPML_Post_Helper {
 
 			// If term has no language, we can't validate it
 			if ( empty( $term_language ) ) {
-				$errors[ $term_id ] = new \WP_Error(
+				$error->add(
 					'no_term_language',
 					sprintf(
 						/* translators: 1: Term name, 2: Term ID */
 						__( 'Term "%1$s" (ID: %2$d) has no language assigned.', 'multilingual-bridge' ),
 						$term_obj->name,
 						$term_id
+					),
+					array(
+						'term_id' => $term_id,
 					)
 				);
 				continue;
@@ -564,36 +624,31 @@ class WPML_Post_Helper {
 				$valid_term_ids[] = $translated_term_id;
 			} else {
 				// No translation available
-				$errors[ $term_id ] = new \WP_Error(
+				$error->add(
 					'no_translation',
 					sprintf(
 						/* translators: 1: Term name, 2: Term ID, 3: Term language, 4: Post language */
-						__( 'Term "%1$s" (ID: %2$d) is in language "%3$s" and has no translation in post language "%4$s".', 'multilingual-bridge' ),
+						__( 'Term "%1$s" has no translation in post language "%2$s".', 'multilingual-bridge' ),
 						$term_obj->name,
-						$term_id,
-						$term_language,
 						$post_language
+					),
+					array(
+						'term_id'       => $term_id,
+						'term_language' => $term_language,
+						'post_language' => $post_language,
 					)
 				);
 			}
 		}
 
-		// Assign valid terms if any
 		if ( ! empty( $valid_term_ids ) ) {
 			$result = wp_set_object_terms( $post_id, $valid_term_ids, $taxonomy, $append );
-
 			if ( is_wp_error( $result ) ) {
-				// WordPress assignment failed
-				return array(
-					'success' => array(),
-					'errors'  => array( 0 => $result ),
-				);
+				$error->merge_from( $result );
+				return $error;
 			}
 		}
 
-		return array(
-			'success' => $valid_term_ids,
-			'errors'  => $errors,
-		);
+		return $error;
 	}
 }
