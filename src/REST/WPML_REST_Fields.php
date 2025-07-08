@@ -65,7 +65,7 @@ class WPML_REST_Fields {
 		// Check if _fields parameter is set and if language_code is not included
 		if ( $request && $request->get_param( '_fields' ) ) {
 			$fields = wp_parse_list( $request->get_param( '_fields' ) );
-			if ( ! empty( $fields ) && ! rest_is_field_included( 'wpml_language', $fields ) ) {
+			if ( ! empty( $fields ) && ! rest_is_field_included( 'language_code', $fields ) ) {
 				return '';
 			}
 		}
@@ -110,7 +110,14 @@ class WPML_REST_Fields {
 			$language_name = apply_filters( 'wpml_translated_language_name', null, $language_code, 'en' );
 
 			// Get the REST API URL for this post
-			$rest_url = rest_url( sprintf( '%s/%d', $request->get_route(), $translated_post_id ) );
+			$route = $request->get_route();
+			$id    = $request->get_param( 'id' );
+
+			if ( ! empty( $id ) ) {
+				$route = str_replace( '/' . $id, '', $route );
+			}
+
+			$rest_url = rest_url( sprintf( '%s/%d', $route, $translated_post_id ) );
 
 			// Add link to the response
 			$response->add_link(
