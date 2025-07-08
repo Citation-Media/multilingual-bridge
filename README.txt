@@ -91,6 +91,15 @@ Use the Language Debug tool under Tools → Language Debug in your WordPress adm
 
 == Changelog ==
 
+= 1.3.1 =
+* New: Added trigger_automatic_translation() method to WPML_Post_Helper for programmatically triggering WPML automatic translations
+* Enhancement: Added language validation to WPML_Post_Helper::set_language() method to prevent invalid language assignments
+* Enhancement: Updated minimum WordPress version requirement to 6.4 for improved compatibility
+* Enhancement: Improved safe_assign_terms() method with better error handling using WP_Error
+* Fix: Language validation now returns WP_Error with descriptive messages for better error handling
+* Developer: Streamlined automatic translation job creation with WPML's job factory
+* Developer: Improved PHPDoc annotations for set_language() method return types
+
 = 1.3.0 =
 * Enhancement: WPML_Language_Helper::get_available_languages() now queries database directly for improved multisite support
 * Enhancement: Each site in multisite installations now properly loads its own language configuration
@@ -177,6 +186,7 @@ Initial release of Multilingual Bridge. Adds comprehensive WPML REST API support
 `WPML_Post_Helper::has_cross_language_term_relationships($post_id)` - Check for wrong language terms
 `WPML_Post_Helper::remove_cross_language_term_relationships($post_id)` - Remove wrong language terms
 `WPML_Post_Helper::safe_assign_terms($post_id, $terms, $taxonomy)` - Assign terms with language validation
+`WPML_Post_Helper::trigger_automatic_translation($post_id, $languages)` - Trigger automatic translation jobs
 
 **Language Helper Functions:**
 
