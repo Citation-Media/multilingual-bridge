@@ -10,6 +10,10 @@ The `WPML_Post_Helper` class provides convenient methods for:
 - Checking translation status across languages
 - Finding missing translations
 - Safely deleting term relationships across language contexts
+- Setting or updating post language assignments
+- Detecting and fixing cross-language term issues
+- Safely assigning terms with language validation
+- Triggering automatic translations
 
 All methods are static and can be called directly without instantiation.
 
@@ -134,6 +138,191 @@ if (is_wp_error($result) && $result->get_error_code() === 'invalid_language') {
 - `WP_Error` if the target language is not configured in WPML
 
 **Note**: This method validates that the target language is active in WPML before attempting to set it.
+
+### is_post_in_unconfigured_language()
+
+Check if a post is in a language that is not configured/active in WPML.
+
+```php
+if (WPML_Post_Helper::is_post_in_unconfigured_language(123)) {
+    echo 'This post is in a deactivated language!';
+    // You might want to reassign it to an active language
+}
+```
+
+### has_cross_language_term_relationships()
+
+Check if a post has term relationships in languages other than its own.
+
+```php
+// Check all taxonomies
+if (WPML_Post_Helper::has_cross_language_term_relationships(123)) {
+    echo 'This post has terms in wrong languages!';
+}
+
+// Check specific taxonomy
+if (WPML_Post_Helper::has_cross_language_term_relationships($post, 'category')) {
+    echo 'This post has categories in wrong languages!';
+}
+```
+
+### get_cross_language_term_relationships()
+
+Get detailed information about cross-language term relationships, organized by language for efficient processing.
+
+```php
+$mismatches = WPML_Post_Helper::get_cross_language_term_relationships(123);
+
+// Returns array indexed by language code, then taxonomy
+// Example structure:
+// [
+//     'de' => [
+//         'category' => [12, 15],
+//         'post_tag' => [34]
+//     ],
+//     'fr' => [
+//         'category' => [56]
+//     ]
+// ]
+
+foreach ($mismatches as $language => $taxonomies) {
+    echo "Terms in language '$language':\n";
+    foreach ($taxonomies as $taxonomy => $term_ids) {
+        echo "  $taxonomy: " . implode(', ', $term_ids) . "\n";
+    }
+}
+```
+
+### remove_cross_language_term_relationships()
+
+Remove term relationships where term language doesn't match post language.
+
+```php
+// Remove all cross-language terms
+$removed = WPML_Post_Helper::remove_cross_language_term_relationships(123);
+
+// Remove only for specific taxonomy
+$removed = WPML_Post_Helper::remove_cross_language_term_relationships($post, 'post_tag');
+
+// Display what was removed
+// Returns array indexed by taxonomy with term IDs that were removed
+foreach ($removed as $taxonomy => $term_ids) {
+    echo "Removed from $taxonomy: " . implode(', ', $term_ids) . "\n";
+}
+```
+
+### safe_assign_terms()
+
+Safely assign terms to a post with automatic language validation and translation lookup.
+
+```php
+// Basic usage - assign terms with language validation
+$error = WPML_Post_Helper::safe_assign_terms(
+    123,                    // Post ID
+    [45, 67, 89],          // Term IDs to assign
+    'category',            // Taxonomy
+    false                  // Replace existing terms (not append)
+);
+
+// Check for errors
+if ($error->has_errors()) {
+    foreach ($error->get_error_codes() as $code) {
+        foreach ($error->get_error_messages($code) as $message) {
+            echo "Error ($code): $message\n";
+        }
+    }
+} else {
+    echo 'All terms assigned successfully';
+}
+
+// Example with automatic translation lookup
+$german_term_ids = [12, 34]; // German language terms
+$english_post_id = 456;      // English language post
+
+$error = WPML_Post_Helper::safe_assign_terms(
+    $english_post_id,
+    $german_term_ids,
+    'product_cat',
+    true  // Append to existing terms
+);
+
+// The function will automatically find English translations of German terms
+// and assign those instead, or return errors for terms without translations
+```
+
+**Returns:**
+- `WP_Error`: An error object that may contain multiple error messages. Check with `has_errors()` to see if any errors occurred.
+
+### trigger_automatic_translation()
+
+Trigger automatic translation for a post to specified target languages or all available languages.
+
+**Attention**: By default the automatic translation is triggered on save_post hook. Before using always check if your code calls the hook correctly or has good reason to not do so!
+
+```php
+// Basic usage - translate to all available languages
+$job_ids = WPML_Post_Helper::trigger_automatic_translation(123);
+
+if (is_wp_error($job_ids)) {
+    error_log('Translation failed: ' . $job_ids->get_error_message());
+} else {
+    // Translation jobs created successfully
+    error_log('Created ' . count($job_ids) . ' translation jobs');
+}
+```
+
+Trigger automatic translation for a post to specified languages.
+```php
+// Translate to specific languages only
+$job_ids = WPML_Post_Helper::trigger_automatic_translation(
+    123,                        // Post ID
+    ['de', 'fr', 'es']         // Target language codes
+);
+
+// Using in production code
+if (!is_wp_error($job_ids)) {
+    // Store job IDs for later reference
+    update_post_meta($post_id, '_translation_job_ids', $job_ids);
+    
+    echo 'Created ' . count($job_ids) . ' translation jobs';
+}
+```
+
+**Parameters:**
+- `$post` (int|WP_Post): Post ID or WP_Post object to translate
+- `$target_languages` (array|null): Array of target language codes, or null for all available languages
+
+**Returns:** 
+- `array<int>`: Array of job IDs on success
+- `WP_Error`: Error object on failure
+
+**Common Errors:**
+- `invalid_post`: Invalid post ID provided
+- `wpml_dependencies_missing`: WPML dependencies are not available
+- `no_source_language`: Post has no language assigned
+- `no_valid_languages`: No valid target languages specified
+
+**Important Notes about WPML's Translation Update Detection:**
+
+WPML has built-in mechanisms to prevent unnecessary translations:
+
+1. **Content Hash Comparison**: WPML uses MD5 hashes to detect if post content has changed. When a post is updated, WPML compares the new content hash with the stored hash to determine if translations need updating.
+
+2. **The `needs_update` Flag**: When content changes are detected, WPML sets the `needs_update` flag in the database. Posts with this flag will show the `ICL_TM_NEEDS_UPDATE` status (value 3).
+
+3. **Manual Trigger Behavior**: When using `trigger_automatic_translation()`, be aware that:
+   - If a translation already exists and the content hasn't changed (same MD5 hash), WPML may not create a new translation job
+   - If you need to force retranslation regardless of content changes, you may need to manually set the `needs_update` flag first
+   - The method sends posts for translation based on current content, so ensure content is saved before calling
+   - Jobs are automatically configured with the ATE (Advanced Translation Editor) for automatic translation processing
+
+4. **Automatic Translation Processing**: 
+   - The method sets the `automatic` flag for proper automatic translation
+   - WPML's background sync process will pick up these jobs and send them to the ATE service
+   - The sync happens through AJAX calls when admin pages are loaded
+   - No additional manual steps are required after calling this method
+
+5. **Best Practice**: Before triggering automatic translation, consider checking if the post actually needs translation updates to avoid unnecessary API calls and costs.
 
 ## Practical Examples
 
@@ -295,13 +484,13 @@ function fix_cross_language_terms_for_post_type($post_type = 'post') {
                 WPML_Post_Helper::get_language($post_id)
             ));
             
-            foreach ($mismatches as $taxonomy => $terms) {
-                foreach ($terms as $mismatch) {
+            foreach ($mismatches as $language => $taxonomies) {
+                foreach ($taxonomies as $taxonomy => $term_ids) {
                     error_log(sprintf(
-                        '  - %s: "%s" (term lang: %s)',
+                        '  - %s in %s: %s',
                         $taxonomy,
-                        $mismatch['term']->name,
-                        $mismatch['term_language']
+                        $language,
+                        implode(', ', $term_ids)
                     ));
                 }
             }
@@ -334,8 +523,10 @@ add_action('manage_posts_custom_column', function($column, $post_id) {
         if (WPML_Post_Helper::has_cross_language_term_relationships($post_id)) {
             $mismatches = WPML_Post_Helper::get_cross_language_term_relationships($post_id);
             $count = 0;
-            foreach ($mismatches as $tax_terms) {
-                $count += count($tax_terms);
+            foreach ($mismatches as $lang_data) {
+                foreach ($lang_data as $tax_terms) {
+                    $count += count($tax_terms);
+                }
             }
             
             echo sprintf(
@@ -395,28 +586,29 @@ function import_product_with_categories($product_data) {
     $category_ids = $product_data['category_ids']; // e.g., [45, 67, 89]
     
     // Safe assignment with automatic translation lookup
-    $result = WPML_Post_Helper::safe_assign_terms(
+    $error = WPML_Post_Helper::safe_assign_terms(
         $product_id,
         $category_ids,
         'product_cat'
     );
     
     // Log any issues
-    if (!empty($result['errors'])) {
-        foreach ($result['errors'] as $term_id => $error) {
-            error_log(sprintf(
-                'Could not assign category %d to product %d: %s',
-                $term_id,
-                $product_id,
-                $error->get_error_message()
-            ));
+    if ($error->has_errors()) {
+        foreach ($error->get_error_codes() as $code) {
+            foreach ($error->get_error_messages($code) as $message) {
+                error_log(sprintf(
+                    'Product %d assignment error: %s',
+                    $product_id,
+                    $message
+                ));
+            }
         }
     }
     
     return [
         'product_id' => $product_id,
-        'assigned_categories' => $result['success'],
-        'failed_categories' => array_keys($result['errors'])
+        'has_errors' => $error->has_errors(),
+        'error_count' => count($error->get_error_codes())
     ];
 }
 
@@ -427,7 +619,7 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
     $results = [];
     
     foreach ($post_ids as $post_id) {
-        $result = WPML_Post_Helper::safe_assign_terms(
+        $error = WPML_Post_Helper::safe_assign_terms(
             $post_id,
             $term_ids,
             $taxonomy,
@@ -435,8 +627,8 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
         );
         
         $results[$post_id] = [
-            'success' => count($result['success']),
-            'errors' => count($result['errors'])
+            'has_errors' => $error->has_errors(),
+            'error_count' => count($error->get_error_codes())
         ];
     }
     
@@ -458,106 +650,6 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
 - PHP 8.0 or higher (for union type support)
 - WordPress 5.0 or higher
 
-### has_cross_language_term_relationships()
-
-Check if a post has term relationships in languages other than its own.
-
-```php
-// Check all taxonomies
-if (WPML_Post_Helper::has_cross_language_term_relationships(123)) {
-    echo 'This post has terms in wrong languages!';
-}
-
-// Check specific taxonomy
-if (WPML_Post_Helper::has_cross_language_term_relationships($post, 'category')) {
-    echo 'This post has categories in wrong languages!';
-}
-```
-
-### get_cross_language_term_relationships()
-
-Get detailed information about cross-language term relationships, organized by language for efficient processing.
-
-```php
-$mismatches = WPML_Post_Helper::get_cross_language_term_relationships(123);
-
-// Returns array indexed by language code, then taxonomy
-// Example structure:
-// [
-//     'de' => [
-//         'category' => [12, 15],
-//         'post_tag' => [34]
-//     ],
-//     'fr' => [
-//         'category' => [56]
-//     ]
-// ]
-
-foreach ($mismatches as $language => $taxonomies) {
-    echo "Terms in language '$language':\n";
-    foreach ($taxonomies as $taxonomy => $term_ids) {
-        echo "  $taxonomy: " . implode(', ', $term_ids) . "\n";
-    }
-}
-```
-
-### remove_cross_language_term_relationships()
-
-Remove term relationships where term language doesn't match post language.
-
-```php
-// Remove all cross-language terms
-$removed = WPML_Post_Helper::remove_cross_language_term_relationships(123);
-
-// Remove only for specific taxonomy
-$removed = WPML_Post_Helper::remove_cross_language_term_relationships($post, 'post_tag');
-
-// Display what was removed
-// Returns array indexed by taxonomy with term IDs that were removed
-foreach ($removed as $taxonomy => $term_ids) {
-    echo "Removed from $taxonomy: " . implode(', ', $term_ids) . "\n";
-}
-```
-
-### safe_assign_terms()
-
-Safely assign terms to a post with automatic language validation and translation lookup.
-
-```php
-// Basic usage - assign terms with language validation
-$result = WPML_Post_Helper::safe_assign_terms(
-    123,                    // Post ID
-    [45, 67, 89],          // Term IDs to assign
-    'category',            // Taxonomy
-    false                  // Replace existing terms (not append)
-);
-
-// Check results
-if (!empty($result['success'])) {
-    echo 'Successfully assigned terms: ' . implode(', ', $result['success']);
-}
-
-if (!empty($result['errors'])) {
-    foreach ($result['errors'] as $term_id => $error) {
-        echo "Term $term_id: " . $error->get_error_message() . "\n";
-    }
-}
-
-// Example with automatic translation lookup
-$german_term_ids = [12, 34]; // German language terms
-$english_post_id = 456;      // English language post
-
-$result = WPML_Post_Helper::safe_assign_terms(
-    $english_post_id,
-    $german_term_ids,
-    'product_cat',
-    true  // Append to existing terms
-);
-
-// The function will automatically find English translations of German terms
-// and assign those instead, or return errors for terms without translations
-```
-
 ## Comparison with Native WPML Functions
 
 | Task | Native WPML | WPML_Post_Helper |
@@ -569,6 +661,7 @@ $result = WPML_Post_Helper::safe_assign_terms(
 | Check cross-language terms | Complex manual checking with language switching | `WPML_Post_Helper::has_cross_language_term_relationships($id)` |
 | Fix cross-language terms | Complex manual process | `WPML_Post_Helper::remove_cross_language_term_relationships($id)` |
 | Safe term assignment | Manual validation and translation lookup | `WPML_Post_Helper::safe_assign_terms($id, $terms, $taxonomy)` |
+| Trigger automatic translation | Manual batch creation with WPML_TM_Translation_Batch classes | `WPML_Post_Helper::trigger_automatic_translation($id, $languages)` |
 
 ## Error Handling
 
