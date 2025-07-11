@@ -49,27 +49,27 @@ require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 /**
  * The code that runs during plugin activation.
  */
-function activate_multilingual_bridge(): void {
+function multilingual_bridge_activate(): void {
 	Activator::activate();
 }
 
 /**
  * The code that runs during plugin deactivation.
  */
-function deactivate_multilingual_bridge(): void {
+function multilingual_bridge_deactivate(): void {
 	Deactivator::deactivate();
 }
 
 /**
  * The code that runs during plugin uninstallation.
  */
-function uninstall_multilingual_bridge(): void {
+function multilingual_bridge_uninstall(): void {
 	Uninstallor::uninstall();
 }
 
-register_activation_hook( __FILE__, 'activate_multilingual_bridge' );
-register_deactivation_hook( __FILE__, 'deactivate_multilingual_bridge' );
-register_uninstall_hook( __FILE__, 'uninstall_multilingual_bridge' );
+register_activation_hook( __FILE__, 'multilingual_bridge_activate' );
+register_deactivation_hook( __FILE__, 'multilingual_bridge_deactivate' );
+register_uninstall_hook( __FILE__, 'multilingual_bridge_uninstall' );
 add_action( 'activated_plugin', array( Activator::class, 'network_activation' ), 10, 2 );
 
 /**
@@ -81,7 +81,7 @@ add_action( 'activated_plugin', array( Activator::class, 'network_activation' ),
  *
  * @since    1.0.0
  */
-function run_multilingual_bridge(): void {
+function multilingual_bridge_run(): void {
 	// Check if WPML is installed
 	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! class_exists( 'SitePress' ) ) {
 		// Show admin notice
@@ -103,4 +103,4 @@ function run_multilingual_bridge(): void {
 }
 
 // Hook to wpml_loaded to ensure WPML is fully initialized
-add_action( 'wpml_loaded', 'run_multilingual_bridge' );
+add_action( 'wpml_loaded', 'multilingual_bridge_run' );

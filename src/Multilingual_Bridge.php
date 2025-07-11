@@ -75,23 +75,6 @@ class Multilingual_Bridge {
 	}
 
 	/**
-	 * Define the locale for this plugin for internationalization.
-	 *
-	 * Uses the i18n class in order to set the domain and to register the hook
-	 * with WordPress.
-	 *
-	 * @since    1.0.0
-	 * @access   private
-	 */
-	private function set_locale(): void {
-		load_plugin_textdomain(
-			'multilingual-bridge',
-			false,
-			dirname( plugin_basename( __FILE__ ), 2 ) . '/languages/'
-		);
-	}
-
-	/**
 	 * Register all of the hooks related to the admin area functionality
 	 * of the plugin.
 	 */
