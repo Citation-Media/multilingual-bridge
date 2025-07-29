@@ -5,6 +5,7 @@ The Multilingual Bridge plugin provides a set of static helper functions to simp
 ## Overview
 
 The `WPML_Post_Helper` class provides convenient methods for:
+
 - Getting post language information
 - Retrieving all translations of a post
 - Checking translation status across languages
@@ -51,6 +52,30 @@ $translations = WPML_Post_Helper::get_language_versions(123);
 // Get all translations as WP_Post objects
 $translations = WPML_Post_Helper::get_language_versions(123, true);
 // Returns: ['en' => WP_Post, 'de' => WP_Post, 'fr' => WP_Post]
+```
+
+### get_translation_for_lang()
+
+Get translation of a post for a specific language. Returns the same post ID if already in target language.
+
+```php
+// Get German translation of an English post
+$german_post_id = WPML_Post_Helper::get_translation_for_lang(123, 'de');
+// Returns: 456 (German post ID)
+
+// Check if post is already in target language
+$same_post_id = WPML_Post_Helper::get_translation_for_lang(456, 'de');
+// Returns: 456 (same ID since post is already in German)
+
+// Check if translation exists
+$french_post_id = WPML_Post_Helper::get_translation_for_lang(123, 'fr');
+if ($french_post_id === null) {
+    echo 'No French translation exists for this post';
+}
+
+// Use with WP_Post object
+$post = get_post(123);
+$spanish_post_id = WPML_Post_Helper::get_translation_for_lang($post, 'es');
 ```
 
 ### get_translation_status()
@@ -132,7 +157,8 @@ if (is_wp_error($result) && $result->get_error_code() === 'invalid_language') {
 }
 ```
 
-**Returns**: 
+**Returns**:
+
 - `true` if the language was set successfully
 - `false` if the post ID is invalid or post type cannot be determined
 - `WP_Error` if the target language is not configured in WPML
@@ -251,6 +277,7 @@ $error = WPML_Post_Helper::safe_assign_terms(
 ```
 
 **Returns:**
+
 - `WP_Error`: An error object that may contain multiple error messages. Check with `has_errors()` to see if any errors occurred.
 
 ### trigger_automatic_translation()
@@ -272,6 +299,7 @@ if (is_wp_error($job_ids)) {
 ```
 
 Trigger automatic translation for a post to specified languages.
+
 ```php
 // Translate to specific languages only
 $job_ids = WPML_Post_Helper::trigger_automatic_translation(
@@ -283,20 +311,23 @@ $job_ids = WPML_Post_Helper::trigger_automatic_translation(
 if (!is_wp_error($job_ids)) {
     // Store job IDs for later reference
     update_post_meta($post_id, '_translation_job_ids', $job_ids);
-    
+
     echo 'Created ' . count($job_ids) . ' translation jobs';
 }
 ```
 
 **Parameters:**
+
 - `$post` (int|WP_Post): Post ID or WP_Post object to translate
 - `$target_languages` (array|null): Array of target language codes, or null for all available languages
 
-**Returns:** 
+**Returns:**
+
 - `array<int>`: Array of job IDs on success
 - `WP_Error`: Error object on failure
 
 **Common Errors:**
+
 - `invalid_post`: Invalid post ID provided
 - `wpml_dependencies_missing`: WPML dependencies are not available
 - `no_source_language`: Post has no language assigned
@@ -311,16 +342,18 @@ WPML has built-in mechanisms to prevent unnecessary translations:
 2. **The `needs_update` Flag**: When content changes are detected, WPML sets the `needs_update` flag in the database. Posts with this flag will show the `ICL_TM_NEEDS_UPDATE` status (value 3).
 
 3. **Manual Trigger Behavior**: When using `trigger_automatic_translation()`, be aware that:
-   - If a translation already exists and the content hasn't changed (same MD5 hash), WPML may not create a new translation job
-   - If you need to force retranslation regardless of content changes, you may need to manually set the `needs_update` flag first
-   - The method sends posts for translation based on current content, so ensure content is saved before calling
-   - Jobs are automatically configured with the ATE (Advanced Translation Editor) for automatic translation processing
 
-4. **Automatic Translation Processing**: 
-   - The method sets the `automatic` flag for proper automatic translation
-   - WPML's background sync process will pick up these jobs and send them to the ATE service
-   - The sync happens through AJAX calls when admin pages are loaded
-   - No additional manual steps are required after calling this method
+    - If a translation already exists and the content hasn't changed (same MD5 hash), WPML may not create a new translation job
+    - If you need to force retranslation regardless of content changes, you may need to manually set the `needs_update` flag first
+    - The method sends posts for translation based on current content, so ensure content is saved before calling
+    - Jobs are automatically configured with the ATE (Advanced Translation Editor) for automatic translation processing
+
+4. **Automatic Translation Processing**:
+
+    - The method sets the `automatic` flag for proper automatic translation
+    - WPML's background sync process will pick up these jobs and send them to the ATE service
+    - The sync happens through AJAX calls when admin pages are loaded
+    - No additional manual steps are required after calling this method
 
 5. **Best Practice**: Before triggering automatic translation, consider checking if the post actually needs translation updates to avoid unnecessary API calls and costs.
 
@@ -340,9 +373,9 @@ add_action('manage_posts_custom_column', function($column, $post_id) {
         $translated = array_filter($status);
         $total = count($status);
         $completed = count($translated);
-        
+
         echo sprintf('%d/%d', $completed, $total);
-        
+
         if ($completed < $total) {
             $missing = WPML_Post_Helper::get_missing_translations($post_id);
             echo ' <span class="missing">(' . implode(', ', $missing) . ')</span>';
@@ -357,13 +390,13 @@ add_action('manage_posts_custom_column', function($column, $post_id) {
 function my_custom_language_switcher($post_id) {
     $current_lang = WPML_Post_Helper::get_language($post_id);
     $translations = WPML_Post_Helper::get_language_versions($post_id);
-    
+
     echo '<ul class="language-switcher">';
     foreach ($translations as $lang => $translated_id) {
         $language_name = apply_filters('wpml_translated_language_name', null, $lang);
         $class = ($lang === $current_lang) ? 'current' : '';
         $url = get_permalink($translated_id);
-        
+
         echo sprintf(
             '<li class="%s"><a href="%s">%s</a></li>',
             esc_attr($class),
@@ -384,10 +417,10 @@ function check_untranslated_posts($post_type = 'post') {
         'posts_per_page' => -1,
         'suppress_filters' => false,
     ];
-    
+
     $posts = get_posts($args);
     $incomplete = [];
-    
+
     foreach ($posts as $post) {
         if (!WPML_Post_Helper::has_all_translations($post->ID)) {
             $missing = WPML_Post_Helper::get_missing_translations($post->ID);
@@ -398,7 +431,7 @@ function check_untranslated_posts($post_type = 'post') {
             ];
         }
     }
-    
+
     return $incomplete;
 }
 ```
@@ -435,10 +468,10 @@ function update_post_categories_safely($post_id, $category_ids) {
     // First, safely remove all existing category relationships
     // This ensures terms in wrong language contexts are properly removed
     WPML_Post_Helper::safe_delete_term_relationships($post_id, 'category');
-    
+
     // Now assign the new categories
     wp_set_post_categories($post_id, $category_ids);
-    
+
     // Log the update
     error_log(sprintf(
         'Updated categories for post %d (language: %s)',
@@ -467,23 +500,23 @@ function fix_cross_language_terms_for_post_type($post_type = 'post') {
         'suppress_filters' => false,
         'fields' => 'ids'
     ];
-    
+
     $posts = get_posts($args);
     $fixed_count = 0;
-    
+
     foreach ($posts as $post_id) {
         // Check if has cross-language terms
         if (WPML_Post_Helper::has_cross_language_term_relationships($post_id)) {
             // Get details before fixing
             $mismatches = WPML_Post_Helper::get_cross_language_term_relationships($post_id);
-            
+
             // Log what we're about to fix
             error_log(sprintf(
                 'Post %d (%s) has cross-language terms:',
                 $post_id,
                 WPML_Post_Helper::get_language($post_id)
             ));
-            
+
             foreach ($mismatches as $language => $taxonomies) {
                 foreach ($taxonomies as $taxonomy => $term_ids) {
                     error_log(sprintf(
@@ -494,16 +527,16 @@ function fix_cross_language_terms_for_post_type($post_type = 'post') {
                     ));
                 }
             }
-            
+
             // Fix the relationships
             $removed = WPML_Post_Helper::remove_cross_language_term_relationships($post_id);
-            
+
             if (!empty($removed)) {
                 $fixed_count++;
             }
         }
     }
-    
+
     return $fixed_count;
 }
 ```
@@ -528,7 +561,7 @@ add_action('manage_posts_custom_column', function($column, $post_id) {
                     $count += count($tax_terms);
                 }
             }
-            
+
             echo sprintf(
                 '<span style="color: red;">⚠️ %d %s</span>',
                 $count,
@@ -550,10 +583,10 @@ add_action('save_post', function($post_id) {
     if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) {
         return;
     }
-    
+
     // Simply remove any cross-language term relationships
     $removed = WPML_Post_Helper::remove_cross_language_term_relationships($post_id);
-    
+
     // Optional: Log what was cleaned up
     if (!empty($removed)) {
         error_log(sprintf(
@@ -578,20 +611,20 @@ function import_product_with_categories($product_data) {
         'post_type' => 'product',
         'post_status' => 'publish'
     ]);
-    
+
     // Set product language
     WPML_Post_Helper::set_language($product_id, 'en');
-    
+
     // Terms might be in any language from the import
     $category_ids = $product_data['category_ids']; // e.g., [45, 67, 89]
-    
+
     // Safe assignment with automatic translation lookup
     $error = WPML_Post_Helper::safe_assign_terms(
         $product_id,
         $category_ids,
         'product_cat'
     );
-    
+
     // Log any issues
     if ($error->has_errors()) {
         foreach ($error->get_error_codes() as $code) {
@@ -604,7 +637,7 @@ function import_product_with_categories($product_data) {
             }
         }
     }
-    
+
     return [
         'product_id' => $product_id,
         'has_errors' => $error->has_errors(),
@@ -617,7 +650,7 @@ function import_product_with_categories($product_data) {
  */
 function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
     $results = [];
-    
+
     foreach ($post_ids as $post_id) {
         $error = WPML_Post_Helper::safe_assign_terms(
             $post_id,
@@ -625,13 +658,13 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
             $taxonomy,
             true // Append mode
         );
-        
+
         $results[$post_id] = [
             'has_errors' => $error->has_errors(),
             'error_count' => count($error->get_error_codes())
         ];
     }
-    
+
     return $results;
 }
 ```
@@ -652,20 +685,22 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
 
 ## Comparison with Native WPML Functions
 
-| Task | Native WPML | WPML_Post_Helper |
-|------|-------------|------------------|
-| Get post language | `apply_filters('wpml_post_language_details', null, $id)['language_code']` | `WPML_Post_Helper::get_language($id)` |
-| Get all translations | 3 filters: wpml_element_type → wpml_element_trid → wpml_get_element_translations | `WPML_Post_Helper::get_language_versions($id)` |
-| Check translation completeness | Manual loop through active languages and translations | `WPML_Post_Helper::has_all_translations($id)` |
-| Delete terms across languages | Manual language switching and deletion loop | `WPML_Post_Helper::safe_delete_term_relationships($id, $taxonomy)` |
-| Check cross-language terms | Complex manual checking with language switching | `WPML_Post_Helper::has_cross_language_term_relationships($id)` |
-| Fix cross-language terms | Complex manual process | `WPML_Post_Helper::remove_cross_language_term_relationships($id)` |
-| Safe term assignment | Manual validation and translation lookup | `WPML_Post_Helper::safe_assign_terms($id, $terms, $taxonomy)` |
-| Trigger automatic translation | Manual batch creation with WPML_TM_Translation_Batch classes | `WPML_Post_Helper::trigger_automatic_translation($id, $languages)` |
+| Task                           | Native WPML                                                                      | WPML_Post_Helper                                                   |
+| ------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Get post language              | `apply_filters('wpml_post_language_details', null, $id)['language_code']`        | `WPML_Post_Helper::get_language($id)`                              |
+| Get all translations           | 3 filters: wpml_element_type → wpml_element_trid → wpml_get_element_translations | `WPML_Post_Helper::get_language_versions($id)`                     |
+| Get specific translation       | Multiple filters and array lookups                                               | `WPML_Post_Helper::get_translation_for_lang($id, 'de')`            |
+| Check translation completeness | Manual loop through active languages and translations                            | `WPML_Post_Helper::has_all_translations($id)`                      |
+| Delete terms across languages  | Manual language switching and deletion loop                                      | `WPML_Post_Helper::safe_delete_term_relationships($id, $taxonomy)` |
+| Check cross-language terms     | Complex manual checking with language switching                                  | `WPML_Post_Helper::has_cross_language_term_relationships($id)`     |
+| Fix cross-language terms       | Complex manual process                                                           | `WPML_Post_Helper::remove_cross_language_term_relationships($id)`  |
+| Safe term assignment           | Manual validation and translation lookup                                         | `WPML_Post_Helper::safe_assign_terms($id, $terms, $taxonomy)`      |
+| Trigger automatic translation  | Manual batch creation with WPML_TM_Translation_Batch classes                     | `WPML_Post_Helper::trigger_automatic_translation($id, $languages)` |
 
 ## Error Handling
 
 All methods handle invalid input gracefully:
+
 - Invalid post IDs return empty arrays or strings
 - Non-existent posts return empty results
 - Methods work with both post IDs and WP_Post objects

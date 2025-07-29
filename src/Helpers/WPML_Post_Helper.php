@@ -530,6 +530,55 @@ class WPML_Post_Helper {
 	}
 
 	/**
+	 * Get translation of a post for a specific language
+	 *
+	 * This method checks if the provided post is already in the target language.
+	 * If not, it looks up the translation of the post for the requested language.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int|WP_Post $post            Post ID or WP_Post object to get translation for.
+	 * @param string      $target_language Target language code (e.g., 'en', 'de', 'fr').
+	 * @return int|null Post ID of the translation if found, original post ID if already in target language, null if no translation exists.
+	 */
+	public static function get_translation_for_lang( int|WP_Post $post, string $target_language ): ?int {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		if ( ! $post_id ) {
+			return null;
+		}
+
+		// Validate that the target language is active in WPML
+		if ( ! WPML_Language_Helper::is_language_active( $target_language ) ) {
+			return null;
+		}
+
+		// Get the current language of the post
+		$post_language = self::get_language( $post_id );
+
+		// If post has no language assigned, return null
+		if ( empty( $post_language ) ) {
+			return null;
+		}
+
+		// If the post is already in the target language, return the same post ID
+		if ( $post_language === $target_language ) {
+			return $post_id;
+		}
+
+		// Get all language versions of the post
+		$language_versions = self::get_language_versions( $post_id );
+
+		// Check if a translation exists for the target language
+		if ( isset( $language_versions[ $target_language ] ) ) {
+			return $language_versions[ $target_language ];
+		}
+
+		// No translation found for the target language
+		return null;
+	}
+
+	/**
 	 * Safely assign terms to a post with language validation
 	 *
 	 * This method validates that terms are in the same language as the post.
