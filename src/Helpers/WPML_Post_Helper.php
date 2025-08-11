@@ -700,4 +700,108 @@ class WPML_Post_Helper {
 
 		return $error;
 	}
+
+	/**
+	 * Workaround for WPML/ACF hidden meta field loss after ATE translation.
+	 *
+	 * This method ensures that all ACF hidden meta keys (underscore-prefixed, value starts with 'field_')
+	 * from the source/original post are present on the translated post, if the translated post has the corresponding public meta key.
+	 *
+	 * @link https://wpml.org/forums/topic/acf-fields-showing-up-in-wpml-translation-editor-whilst-others-hidden-with-the-same-attribute-w/#:~:text=This%20issue%20is%20identified%20as,for%20PHP%20Registered%20System%20Fields
+	 *
+	 * @param int $translated_post_id The post ID of the completed translation.
+	 */
+	public static function sync_acf_hidden_meta_after_translation( int $translated_post_id ): void {
+		// Bail on invalid post, revision, or autosave
+		if ( ! $translated_post_id || wp_is_post_revision( $translated_post_id ) || wp_is_post_autosave( $translated_post_id ) ) {
+			return;
+		}
+
+		$post = get_post( $translated_post_id );
+		if ( ! $post ) {
+			return;
+		}
+
+		$element_type = 'post_' . $post->post_type;
+		$trid         = apply_filters( 'wpml_element_trid', null, $translated_post_id, $element_type );
+		if ( ! $trid ) {
+			return;
+		}
+
+		$translations = apply_filters( 'wpml_get_element_translations', null, $trid, $element_type );
+		if ( empty( $translations ) || ! is_array( $translations ) ) {
+			return;
+		}
+
+		// Find source/original post (source_language_code is empty/null)
+		$source_id = null;
+		foreach ( $translations as $t ) {
+			if ( empty( $t->source_language_code ) ) {
+				$source_id = (int) $t->element_id;
+				break;
+			}
+		}
+		if ( ! $source_id || $source_id === (int) $translated_post_id ) {
+			return; // Already original or source unknown
+		}
+
+		$all_meta = get_post_meta( $source_id );
+		if ( empty( $all_meta ) ) {
+			return;
+		}
+
+		// Fetch all meta for the translated post once
+		$translated_post_meta = get_post_meta( $translated_post_id );
+
+		// Pre-filter meta: we only care about hidden ACF field reference keys whose stored value starts with 'field_'.
+		foreach ( $all_meta as $meta_key => $values ) {
+			
+			// Skip empty key
+			if ( '' === $meta_key ) {
+				continue;
+			}
+
+			// Only hidden (underscore) prefixed keys
+			if ( '_' !== $meta_key[0] ) {
+				continue;
+			}
+
+			// Get last value and maybe unserialize
+			$value = is_array( $values ) ? array_slice( $values, -1 )[0] : $values;
+			$value = maybe_unserialize( $value );
+			// Must be a string beginning with field_
+			if ( ! is_string( $value ) ) {
+				continue;
+			}
+			if ( 0 !== strpos( $value, 'field_' ) ) { // Yoda condition: compare literal first
+				continue;
+			}
+			// Derive related public key (ACF stores real value under same key without underscore)
+			$public_key = ltrim( $meta_key, '_' );
+
+			// Only proceed if the translated post actually has the public meta key (even if empty string)
+			if ( ! array_key_exists( $public_key, $translated_post_meta ) ) {
+				continue;
+			}
+
+			// Allow 3rd parties to skip syncing a specific hidden key.
+			$skip = apply_filters( 'multilingual_bridge_sync_acf_hidden_meta_skip', false, $meta_key, $public_key, $translated_post_id );
+			if ( $skip ) {
+				continue;
+			}
+
+			// Check current hidden reference value on translated post (we already loaded full meta cache once)
+			$existing_hidden = '';
+			if ( array_key_exists( $meta_key, $translated_post_meta ) ) {
+				$existing_hidden_values = $translated_post_meta[ $meta_key ];
+				$existing_hidden        = is_array( $existing_hidden_values ) ? array_slice( $existing_hidden_values, -1 )[0] : $existing_hidden_values;
+				$existing_hidden        = maybe_unserialize( $existing_hidden );
+			}
+
+			// Update when missing or different.
+			if ( $existing_hidden !== $value ) {
+				update_post_meta( $translated_post_id, $meta_key, $value );
+			}
+		}
+	}
 }

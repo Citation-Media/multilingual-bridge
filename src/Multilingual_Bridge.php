@@ -90,6 +90,13 @@ class Multilingual_Bridge {
 		// Register Language Debug functionality
 		$language_debug = new Language_Debug();
 		$language_debug->register_hooks();
+
+		// Central plugin init: WPML/ACF hidden meta sync workaround
+		add_action(
+			'wpml_pro_translation_completed',
+			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_acf_hidden_meta_after_translation' ),
+			999
+		);
 	}
 
 	/**
