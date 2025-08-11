@@ -4,6 +4,7 @@
 /node_modules/
 setup.sh
 .idea
+.vscode
 dist/
 .budfiles/
 /tests/cypress/screenshots/
