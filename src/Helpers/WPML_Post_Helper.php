@@ -755,7 +755,7 @@ class WPML_Post_Helper {
 
 		// Pre-filter meta: we only care about hidden ACF field reference keys whose stored value starts with 'field_'.
 		foreach ( $all_meta as $meta_key => $values ) {
-			
+
 			// Skip empty key
 			if ( '' === $meta_key ) {
 				continue;
