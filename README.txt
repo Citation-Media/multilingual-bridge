@@ -2,7 +2,7 @@
 Contributors: juvodesign, citationmedia
 Tags: wpml, rest-api, multilingual, translation, headless
 Tested up to: 6.8
-Stable tag: 1.3.3
+Stable tag: 1.3.4
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
