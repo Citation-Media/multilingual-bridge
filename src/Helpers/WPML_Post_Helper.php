@@ -702,6 +702,208 @@ class WPML_Post_Helper {
 	}
 
 	/**
+	 * Relate two posts as translations of each other with language validation
+	 *
+	 * This method creates a translation relationship between two posts. It validates that
+	 * the target post is in the default language and sets the source post's language
+	 * either to the provided language or determines it automatically.
+	 *
+	 * @param int|WP_Post $post             Post ID or WP_Post object that should be related as a translation.
+	 * @param int|WP_Post $target_post      Post ID or WP_Post object of the target post (should be in default language).
+	 * @param string|null $language         Optional language code to set for the source post.
+	 *                                      If null, will attempt to detect from existing language or use first non-default language.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	public static function relate_posts_as_translations( int|WP_Post $post, int|WP_Post $target_post, ?string $language = null ): bool|\WP_Error {
+		// Convert to post IDs using existing helper pattern
+		$post_id        = is_object( $post ) ? $post->ID : (int) $post;
+		$target_post_id = is_object( $target_post ) ? $target_post->ID : (int) $target_post;
+
+		// Validate both posts exist
+		if ( ! $post_id ) {
+			return new \WP_Error(
+				'invalid_post',
+				__( 'Invalid source post provided.', 'multilingual-bridge' )
+			);
+		}
+
+		if ( ! $target_post_id ) {
+			return new \WP_Error(
+				'invalid_target_post',
+				__( 'Invalid target post provided.', 'multilingual-bridge' )
+			);
+		}
+
+		// Get post objects if needed
+		$post_obj        = is_object( $post ) ? $post : get_post( $post_id );
+		$target_post_obj = is_object( $target_post ) ? $target_post : get_post( $target_post_id );
+
+		if ( ! $post_obj ) {
+			return new \WP_Error(
+				'invalid_post',
+				sprintf(
+					/* translators: %d: Post ID */
+					__( 'Post with ID %d does not exist.', 'multilingual-bridge' ),
+					$post_id
+				)
+			);
+		}
+
+		if ( ! $target_post_obj ) {
+			return new \WP_Error(
+				'invalid_target_post',
+				sprintf(
+					/* translators: %d: Post ID */
+					__( 'Target post with ID %d does not exist.', 'multilingual-bridge' ),
+					$target_post_id
+				)
+			);
+		}
+
+		// Posts must be of the same type
+		if ( $post_obj->post_type !== $target_post_obj->post_type ) {
+			return new \WP_Error(
+				'post_type_mismatch',
+				sprintf(
+					/* translators: 1: First post type, 2: Second post type */
+					__( 'Posts must be of the same type. Got "%1$s" and "%2$s".', 'multilingual-bridge' ),
+					$post_obj->post_type,
+					$target_post_obj->post_type
+				)
+			);
+		}
+
+		// Get default language using existing helper
+		$default_language = WPML_Language_Helper::get_default_language();
+		if ( empty( $default_language ) ) {
+			return new \WP_Error(
+				'no_default_language',
+				__( 'No default language configured in WPML.', 'multilingual-bridge' )
+			);
+		}
+
+		// Check if target post is in default language using existing helper
+		$target_language = self::get_language( $target_post_obj );
+		if ( $target_language !== $default_language ) {
+			return new \WP_Error(
+				'target_not_default_language',
+				sprintf(
+					/* translators: 1: Target post language, 2: Default language */
+					__( 'Target post must be in the default language. Post is in "%1$s", default is "%2$s".', 'multilingual-bridge' ),
+					$target_language ?: __( 'no language', 'multilingual-bridge' ),
+					$default_language
+				)
+			);
+		}
+
+		// Determine language for source post
+		if ( null === $language ) {
+			// Try to get existing language of the source post using existing helper
+			$language = self::get_language( $post_obj );
+			
+			// If no language set, use helper to get missing translations
+			if ( empty( $language ) ) {
+				// Get first missing translation language
+				$missing_languages = self::get_missing_translations( $target_post_obj );
+				if ( ! empty( $missing_languages ) ) {
+					$language = $missing_languages[0];
+				}
+			}
+			
+			// Still no language? Error
+			if ( empty( $language ) ) {
+				return new \WP_Error(
+					'no_language_available',
+					__( 'No non-default language available to assign to the post.', 'multilingual-bridge' )
+				);
+			}
+		} else {
+			// Validate provided language using existing helper
+			if ( ! WPML_Language_Helper::is_language_active( $language ) ) {
+				return new \WP_Error(
+					'invalid_language',
+					sprintf(
+						/* translators: %s: Language code */
+						__( 'Language "%s" is not configured in WPML.', 'multilingual-bridge' ),
+						$language
+					)
+				);
+			}
+			
+			// Language cannot be the same as default
+			if ( $language === $default_language ) {
+				return new \WP_Error(
+					'language_same_as_default',
+					sprintf(
+						/* translators: %s: Language code */
+						__( 'Source post language cannot be the same as default language "%s".', 'multilingual-bridge' ),
+						$default_language
+					)
+				);
+			}
+		}
+
+		// Get WPML element type
+		$element_type = apply_filters( 'wpml_element_type', $post_obj->post_type );
+
+		// Get or create translation group ID (trid) from target post
+		$target_trid = apply_filters( 'wpml_element_trid', null, $target_post_id, $element_type );
+		
+		// If target doesn't have a trid, it needs to be set as original first
+		if ( ! $target_trid ) {
+			// Set target as original in default language
+			do_action(
+				'wpml_set_element_language_details',
+				array(
+					'element_id'           => $target_post_id,
+					'element_type'         => $element_type,
+					'trid'                 => null, // Will create new trid
+					'language_code'        => $default_language,
+					'source_language_code' => null, // Original post has no source
+				)
+			);
+			
+			// Get the newly created trid
+			$target_trid = apply_filters( 'wpml_element_trid', null, $target_post_id, $element_type );
+			
+			if ( ! $target_trid ) {
+				return new \WP_Error(
+					'trid_creation_failed',
+					__( 'Failed to create translation group for target post.', 'multilingual-bridge' )
+				);
+			}
+		}
+
+		// Set source post as translation of target
+		do_action(
+			'wpml_set_element_language_details',
+			array(
+				'element_id'           => $post_id,
+				'element_type'         => $element_type,
+				'trid'                 => $target_trid, // Use target's trid
+				'language_code'        => $language,
+				'source_language_code' => $default_language, // Source language is the default language
+			)
+		);
+
+		// Clear WPML cache
+		do_action( 'wpml_cache_clear' );
+
+		// Verify the relationship was created using existing helpers
+		$post_language = self::get_language( $post_obj );
+		$translations  = self::get_language_versions( $post_obj );
+		
+		if ( $post_language !== $language || ! isset( $translations[ $default_language ] ) || $translations[ $default_language ] !== $target_post_id ) {
+			return new \WP_Error(
+				'relationship_creation_failed',
+				__( 'Failed to create translation relationship between posts.', 'multilingual-bridge' )
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Workaround for WPML/ACF hidden meta field loss after ATE translation.
 	 *
 	 * This method ensures that all ACF hidden meta keys (underscore-prefixed, value starts with 'field_')
