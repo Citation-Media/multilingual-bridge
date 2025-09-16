@@ -43,7 +43,7 @@ class WPML_REST_Fields {
 					'schema'       => array(
 						'description' => __( 'Language code.', 'multilingual-bridge' ),
 						'type'        => 'string',
-						'context'     => array( 'view' ),
+						'context'     => array( 'view', 'edit', 'embed' ),
 						'readonly'    => true,
 					),
 				)
