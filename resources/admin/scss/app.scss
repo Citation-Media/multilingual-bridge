@@ -55,3 +55,26 @@
 		}
 	}
 }
+
+
+// WPML Copied fields
+.acfml-field-copied {
+
+	.acf-switch {
+		pointer-events: none;
+		opacity: 0.6;
+	}
+
+	.select2 {
+		pointer-events: none;
+
+		.select2-selection--multiple {
+			background: #f6f7f7 !important;
+		}
+
+		.select2-selection__choice__remove {
+			display: none;
+		}
+	}
+
+}
