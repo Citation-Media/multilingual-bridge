@@ -121,3 +121,5 @@ Read when creating or modifying WordPress database queries: @.github/instruction
 Read when working with PHPStan static analysis: @.github/instructions/quality-assurance/phpstan.instructions.md
 
 Read when writing WordPress code, following coding standards, and best practices: @.github/instructions/base.instructions.md
+
+Read when writing React code, apps or dynamic frontends in wordpress: @.github/instructions/react.instructions.md
