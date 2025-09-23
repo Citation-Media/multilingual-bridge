@@ -14,7 +14,9 @@
 namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
+use Multilingual_Bridge\Admin\ACF_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
+use Multilingual_Bridge\REST\WPML_REST_Translation;
 
 /**
  * The core plugin class.
@@ -82,7 +84,23 @@ class Multilingual_Bridge {
 		add_action(
 			'admin_enqueue_scripts',
 			function () {
+				// Enqueue Alpine.js for ACF translation modal
+				wp_enqueue_script(
+					'alpinejs',
+					'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
+					array(),
+					'3.x.x',
+					true
+				);
+
 				$this->enqueue_bud_entrypoint( 'multilingual-bridge-admin' );
+				$this->enqueue_bud_entrypoint(
+					'multilingual-bridge-translation',
+					array(
+						'nonce' => wp_create_nonce( 'wp_rest' ),
+						'rest_url' => rest_url(),
+					)
+				);
 			},
 			100
 		);
@@ -90,6 +108,10 @@ class Multilingual_Bridge {
 		// Register Language Debug functionality
 		$language_debug = new Language_Debug();
 		$language_debug->register_hooks();
+
+		// Register ACF Translation functionality
+		$acf_translation = new ACF_Translation();
+		$acf_translation->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
@@ -123,6 +145,10 @@ class Multilingual_Bridge {
 		// Register REST API fields for WPML language support
 		$wpml_rest_fields = new WPML_REST_Fields();
 		$this->loader->add_action( 'rest_api_init', $wpml_rest_fields, 'register_fields', 10, 1 );
+
+		// Register REST API endpoints for translation
+		$wpml_rest_translation = new WPML_REST_Translation();
+		$this->loader->add_action( 'rest_api_init', $wpml_rest_translation, 'register_routes', 10, 1 );
 	}
 
 	/**

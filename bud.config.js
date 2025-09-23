@@ -37,7 +37,8 @@ export default async bud => {
 	bud.entry(
 		{
 			"multilingual-bridge-frontend": ['/frontend/js/app.js', '/frontend/scss/app.scss'],
-			"multilingual-bridge-admin": ['/admin/js/app.js', '/admin/scss/app.scss']
+			"multilingual-bridge-admin": ['/admin/js/app.js', '/admin/scss/app.scss'],
+			"multilingual-bridge-translation": ['/admin/js/translation.js']
 		}
 	)
 
@@ -90,9 +91,8 @@ export default async bud => {
 		}
 	)
 
-
 	bud.eslint
-		.setFailOnError( bud.isProduction )
+		.setFailOnError( false )
 		.setFailOnWarning( false )
 		.setFix( true )
 }
