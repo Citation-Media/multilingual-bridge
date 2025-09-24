@@ -78,3 +78,124 @@
 	}
 
 }
+
+// ACF Translation Modal
+.multilingual-bridge-modal-backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+.multilingual-bridge-modal {
+	background-color: white;
+	border-radius: 8px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	max-width: 90vw;
+	max-height: 90vh;
+	overflow: auto;
+	position: relative;
+}
+
+.multilingual-bridge-modal-header {
+	padding: 16px 20px;
+	border-bottom: 1px solid #e1e5e9;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+
+	h2 {
+		margin: 0;
+		font-size: 18px;
+		font-weight: 600;
+	}
+
+	button {
+		background: none;
+		border: none;
+		font-size: 24px;
+		cursor: pointer;
+		color: #6b7280;
+		padding: 4px;
+	}
+}
+
+.multilingual-bridge-modal-body {
+	padding: 20px;
+
+	.multilingual-bridge-modal-columns {
+		display: flex;
+		gap: 20px;
+		min-height: 400px;
+
+		.multilingual-bridge-modal-column {
+			flex: 1;
+
+			h3 {
+				margin-top: 0;
+				color: #374151;
+			}
+
+			textarea {
+				width: 100%;
+				min-height: 300px;
+				padding: 8px;
+				border: 1px solid #d1d5db;
+				border-radius: 4px;
+				font-family: inherit;
+				resize: vertical;
+			}
+		}
+	}
+
+	.multilingual-bridge-modal-error {
+		margin-top: 16px;
+		padding: 8px;
+		background-color: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 4px;
+		color: #dc2626;
+	}
+
+	.multilingual-bridge-modal-actions {
+		margin-top: 20px;
+		display: flex;
+		gap: 12px;
+		justify-content: flex-end;
+
+		button {
+			padding: 8px 16px;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+
+			&.multilingual-bridge-btn-copy {
+				background-color: #f59e0b;
+			}
+
+			&.multilingual-bridge-btn-translate {
+				background-color: #3b82f6;
+			}
+
+			&.multilingual-bridge-btn-save {
+				background-color: #10b981;
+			}
+
+			&.multilingual-bridge-btn-cancel {
+				background-color: #6b7280;
+			}
+
+			&:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+		}
+	}
+}

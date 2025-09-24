@@ -84,77 +84,74 @@ class ACF_Translation {
 			x-show="isOpen"
 			x-transition
 			class="multilingual-bridge-modal-backdrop"
-			style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;"
 			@click="closeModal"
 			x-cloak
 		>
 			<div
 				class="multilingual-bridge-modal"
-				style="background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 90vw; max-height: 90vh; overflow: auto; position: relative;"
 				@click.stop
 			>
-				<div
-					class="multilingual-bridge-modal-header"
-					style="padding: 16px 20px; border-bottom: 1px solid #e1e5e9; display: flex; justify-content: space-between; align-items: center;"
-				>
-					<h2 style="margin: 0; font-size: 18px; font-weight: 600;" x-text="modalTitle"></h2>
+				<div class="multilingual-bridge-modal-header">
+					<h2 x-text="modalTitle"><?php esc_html_e( 'Translate Field', 'multilingual-bridge' ); ?></h2>
 					<button
 						@click="closeModal"
-						style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280; padding: 4px;"
-						aria-label="Close modal"
+						aria-label="<?php esc_attr_e( 'Close modal', 'multilingual-bridge' ); ?>"
 					>
 						×
 					</button>
 				</div>
-				<div
-					class="multilingual-bridge-modal-body"
-					style="padding: 20px;"
-				>
-					<div style="display: flex; gap: 20px; min-height: 400px;">
+				<div class="multilingual-bridge-modal-body">
+					<div class="multilingual-bridge-modal-columns">
 						<!-- Original Column -->
-						<div style="flex: 1;">
-							<h3 style="margin-top: 0; color: #374151;" x-text="sourceLangLabel"></h3>
+						<div class="multilingual-bridge-modal-column">
+							<h3 x-text="sourceLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Original (%s)', 'multilingual-bridge' ), 'en' ); ?></h3>
 							<textarea
 								x-model="originalValue"
-								style="width: 100%; min-height: 300px; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit; resize: vertical;"
 								:disabled="isLoading"
 							></textarea>
 						</div>
 
 						<!-- Translation Column -->
-						<div style="flex: 1;">
-							<h3 style="margin-top: 0; color: #374151;" x-text="targetLangLabel"></h3>
+						<div class="multilingual-bridge-modal-column">
+							<h3 x-text="targetLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Translation (%s)', 'multilingual-bridge' ), 'en' ); ?></h3>
 							<textarea
 								x-model="translatedValue"
-								style="width: 100%; min-height: 300px; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit; resize: vertical;"
 								:disabled="isLoading"
 							></textarea>
 						</div>
 					</div>
 
-					<div x-show="errorMessage" style="margin-top: 16px; padding: 8px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 4px; color: #dc2626;" x-text="errorMessage"></div>
+					<div class="multilingual-bridge-modal-error" x-show="errorMessage" x-text="errorMessage"><?php esc_html_e( 'An error occurred', 'multilingual-bridge' ); ?></div>
 
-					<div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+					<div class="multilingual-bridge-modal-actions">
 						<button
+							class="multilingual-bridge-btn-copy"
+							@click="copyOriginalToTranslation"
+							:disabled="!originalValue.trim()"
+							title="<?php esc_attr_e( 'Copy original text to translation field', 'multilingual-bridge' ); ?>"
+						>
+							<?php esc_html_e( 'Copy Original', 'multilingual-bridge' ); ?>
+						</button>
+						<button
+							class="multilingual-bridge-btn-translate"
 							@click="translateText"
 							:disabled="isLoading || !originalValue.trim()"
-							style="padding: 8px 16px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;"
 							:style="{ opacity: isLoading || !originalValue.trim() ? 0.6 : 1, cursor: isLoading || !originalValue.trim() ? 'not-allowed' : 'pointer' }"
 						>
-							<span x-text="isLoading ? 'Translating...' : 'Translate'"></span>
+							<?php esc_html_e( 'Translate', 'multilingual-bridge' ); ?>
 						</button>
 						<button
+							class="multilingual-bridge-btn-save"
 							@click="saveTranslation"
 							:disabled="!translatedValue.trim()"
-							style="padding: 8px 16px; background-color: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;"
 						>
-							Save Translation
+							<?php esc_html_e( 'Save Translation', 'multilingual-bridge' ); ?>
 						</button>
 						<button
+							class="multilingual-bridge-btn-cancel"
 							@click="closeModal"
-							style="padding: 8px 16px; background-color: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;"
 						>
-							Cancel
+							<?php esc_html_e( 'Cancel', 'multilingual-bridge' ); ?>
 						</button>
 					</div>
 				</div>

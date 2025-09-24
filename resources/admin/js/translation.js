@@ -103,6 +103,20 @@ document.addEventListener('DOMContentLoaded', function () {
 	);
 });
 
+// Translation strings
+const multilingualBridgeTranslations = {
+	translate: 'Translate',
+	translating: 'Translating...',
+	saveTranslation: 'Save Translation',
+	cancel: 'Cancel',
+	copyOriginal: 'Copy Original',
+	copyOriginalTitle: 'Copy original text to translation field',
+	original: 'Original',
+	translation: 'Translation',
+	errorLoading: 'Error loading original value',
+	translationFailed: 'Translation failed',
+};
+
 // Alpine.js modal functionality
 function multilingualBridgeModal() {
 	return {
@@ -122,9 +136,9 @@ function multilingualBridgeModal() {
 			this.fieldKey = data.fieldKey;
 			this.sourceLang = data.sourceLang;
 			this.targetLang = data.targetLang;
-			this.modalTitle = `Translate ${data.fieldLabel || data.fieldKey}`;
-			this.sourceLangLabel = `Original (${data.sourceLang})`;
-			this.targetLangLabel = `Translation (${data.targetLang})`;
+			this.modalTitle = `${multilingualBridgeTranslations.translate} ${data.fieldLabel || data.fieldKey}`;
+			this.sourceLangLabel = `${multilingualBridgeTranslations.original} (${data.sourceLang})`;
+			this.targetLangLabel = `${multilingualBridgeTranslations.translation} (${data.targetLang})`;
 			this.originalValue = '';
 			this.translatedValue = '';
 			this.isLoading = false;
@@ -137,6 +151,12 @@ function multilingualBridgeModal() {
 
 		closeModal() {
 			this.isOpen = false;
+		},
+
+		copyOriginalToTranslation() {
+			if (this.originalValue.trim()) {
+				this.translatedValue = this.originalValue;
+			}
 		},
 
 		async loadOriginalValue(data) {
@@ -172,7 +192,10 @@ function multilingualBridgeModal() {
 					'Multilingual Bridge Modal: Error loading original value',
 					err
 				);
-				this.errorMessage = err.message;
+				this.errorMessage =
+					err.message ||
+					multilingualBridgeTranslations.errorLoading ||
+					'Error loading original value';
 			} finally {
 				this.isLoading = false;
 			}
@@ -203,7 +226,9 @@ function multilingualBridgeModal() {
 				});
 
 				if (!response.ok) {
-					throw new Error('Translation failed');
+					throw new Error(
+						multilingualBridgeTranslations.translationFailed
+					);
 				}
 
 				const result = await response.json();
