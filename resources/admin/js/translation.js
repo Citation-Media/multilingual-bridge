@@ -42,14 +42,9 @@ document.addEventListener('DOMContentLoaded', function () {
 			const fieldType = fieldWrapper.getAttribute('data-field-type');
 
 			// Create translate button
-			const button = document.createElement('button');
-			button.type = 'button';
+			const button = document.createElement('span');
 			button.className =
-				'multilingual-bridge-translate-btn button button-secondary';
-			button.style.marginLeft = '10px';
-			button.style.fontSize = '11px';
-			button.style.padding = '2px 8px';
-			button.textContent = 'Translate';
+				'multilingual-bridge-translate-btn dashicons dashicons-translation';
 
 			// Add click handler
 			button.addEventListener('click', function (e) {
@@ -91,22 +86,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		'multilingual-bridge:save-translation',
 		function (event) {
 			const detail = event.detail;
-			const fieldWrapper = document
-				.querySelector('[name="' + detail.fieldKey + '"]')
-				.closest('.acf-field');
+			const input = document.querySelector(
+				'[name="' + detail.fieldKey + '"]'
+			);
 
-			if (fieldWrapper) {
-				const input = fieldWrapper.querySelector(
-					'[name="' + detail.fieldKey + '"]'
-				);
-				if (input) {
-					input.value = detail.value;
-					// Trigger change event for ACF
-					input.dispatchEvent(new Event('change', { bubbles: true }));
-					// Also trigger ACF's change event if available
-					if (typeof acf !== 'undefined' && acf.trigger) {
-						acf.trigger('change', input);
-					}
+			if (input) {
+				input.value = detail.value;
+				// Trigger change event for ACF
+				input.dispatchEvent(new Event('change', { bubbles: true }));
+				// Also trigger ACF's change event if available
+				if (typeof acf !== 'undefined' && acf.trigger) {
+					acf.trigger('change', input);
 				}
 			}
 		}
@@ -154,19 +144,26 @@ function multilingualBridgeModal() {
 				this.isLoading = true;
 				this.errorMessage = '';
 
-				// Get the current value from the ACF input field
-				const fieldWrapper = document.querySelector(
-					`[data-field-key="${data.fieldKey}"]`
-				);
-				if (fieldWrapper) {
-					const input = fieldWrapper.querySelector(
-						'input, textarea, select'
-					);
-					if (input) {
-						this.originalValue = input.value || '';
-					} else {
-						this.originalValue = '';
-					}
+				// Extract field key from ACF field name (remove acf[] wrapper if present)
+				let fieldKey = data.fieldKey;
+				const acfMatch = data.fieldKey.match(/^acf\[([^\]]+)\]$/);
+				if (acfMatch) {
+					fieldKey = acfMatch[1];
+				}
+
+				// Fetch the original value from the default language post
+				const metaUrl = `${window.multilingual_bridge?.rest_url || '/wp-json/'}multilingual-bridge/v1/meta/${data.postId}/${fieldKey}`;
+
+				const response = await fetch(metaUrl, {
+					method: 'GET',
+					headers: {
+						'X-WP-Nonce': window.multilingual_bridge?.nonce || '',
+					},
+				});
+
+				if (response.ok) {
+					const result = await response.json();
+					this.originalValue = result.value || '';
 				} else {
 					this.originalValue = '';
 				}
