@@ -129,7 +129,7 @@ class ACF_Translation {
 
 					<div class="multilingual-bridge-modal-actions">
 						<button
-							class="multilingual-bridge-btn-translate"
+							class="button button-secondary"
 							@click="translateText"
 							:disabled="isLoading || !originalValue.trim()"
 							:style="{ opacity: isLoading || !originalValue.trim() ? 0.6 : 1, cursor: isLoading || !originalValue.trim() ? 'not-allowed' : 'pointer' }"
@@ -137,7 +137,7 @@ class ACF_Translation {
 							<?php esc_html_e( 'Translate', 'multilingual-bridge' ); ?>
 						</button>
 						<button
-							class="multilingual-bridge-btn-save"
+							class="button button-primary"
 							@click="saveTranslation"
 							:disabled="!translatedValue.trim()"
 						>

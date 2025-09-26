@@ -56,10 +56,8 @@
 	}
 }
 
-
 // WPML Copied fields
 .acfml-field-copied {
-
 	.acf-switch {
 		pointer-events: none;
 		opacity: 0.6;
@@ -76,7 +74,6 @@
 			display: none;
 		}
 	}
-
 }
 
 // ACF Translation Modal
@@ -168,34 +165,5 @@
 		display: flex;
 		gap: 12px;
 		justify-content: flex-end;
-
-		button {
-			padding: 8px 16px;
-			color: white;
-			border: none;
-			border-radius: 4px;
-			cursor: pointer;
-
-			&.multilingual-bridge-btn-copy {
-				background-color: #f59e0b;
-			}
-
-			&.multilingual-bridge-btn-translate {
-				background-color: #3b82f6;
-			}
-
-			&.multilingual-bridge-btn-save {
-				background-color: #10b981;
-			}
-
-			&.multilingual-bridge-btn-cancel {
-				background-color: #6b7280;
-			}
-
-			&:disabled {
-				opacity: 0.6;
-				cursor: not-allowed;
-			}
-		}
 	}
 }
