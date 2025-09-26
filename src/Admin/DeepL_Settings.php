@@ -248,7 +248,7 @@ class DeepL_Settings {
 	 *
 	 * @return array<string, mixed> Settings array.
 	 */
-	public function get_settings(): array {
+	public static function get_settings(): array {
 		$settings = get_option( self::OPTION_NAME, array() );
 
 		// Ensure we return an array with proper defaults
@@ -300,23 +300,5 @@ class DeepL_Settings {
 		}
 
 		return $settings['use_premium'] ?? false;
-	}
-
-	/**
-	 * Debug method to check current settings
-	 *
-	 * @return array<string, mixed> Current settings for debugging.
-	 */
-	public static function debug_settings(): array {
-		$raw_option = get_option( self::OPTION_NAME );
-		$processed  = self::get_settings();
-
-		return array(
-			'raw_option'      => $raw_option,
-			'processed'       => $processed,
-			'api_key'         => self::get_api_key(),
-			'use_premium_api' => self::use_premium_api(),
-			'option_exists'   => false !== $raw_option,
-		);
 	}
 }
