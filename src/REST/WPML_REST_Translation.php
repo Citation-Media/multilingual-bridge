@@ -97,7 +97,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Get meta value from default language post
 	 *
-	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_meta_value( WP_REST_Request $request ) {
@@ -134,7 +134,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Translate text using DeepL
 	 *
-	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function translate_text( WP_REST_Request $request ) {
