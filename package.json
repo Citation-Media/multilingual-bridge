@@ -17,5 +17,8 @@
     "prettier": "npx prettier resources --check",
     "prettier:fix": "npm run prettier -- --write"
   },
-  "prettier": "@wordpress/prettier-config"
+  "prettier": "@wordpress/prettier-config",
+  "dependencies": {
+    "alpinejs": "^3.15.0"
+  }
 }
