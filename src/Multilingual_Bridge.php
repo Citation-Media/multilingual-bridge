@@ -15,6 +15,7 @@ namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Admin\ACF_Translation;
+use Multilingual_Bridge\Admin\DeepL_Settings;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 
@@ -112,6 +113,13 @@ class Multilingual_Bridge {
 		// Register ACF Translation functionality
 		$acf_translation = new ACF_Translation();
 		$acf_translation->register_hooks();
+
+		// Register DeepL Settings functionality
+		$deepl_settings = new DeepL_Settings();
+		$deepl_settings->register_hooks();
+
+		// Handle DeepL API test
+		add_action( 'admin_post_test_deepl_api', array( $this, 'handle_deepl_api_test' ) );
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
@@ -231,5 +239,34 @@ class Multilingual_Bridge {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Handle DeepL API test request
+	 *
+	 * @return void
+	 */
+	public function handle_deepl_api_test(): void {
+		// Check nonce
+		$nonce = isset( $_POST['test_deepl_api_nonce'] ) ? sanitize_key( wp_unslash( $_POST['test_deepl_api_nonce'] ) ) : false;
+		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'test_deepl_api' ) ) {
+			wp_die( 'Something went wrong', 'multilingual-bridge' );
+		}
+
+		// Check user capabilities
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Insufficient permissions', 'multilingual-bridge' );
+		}
+
+		// Test the API key
+		$validation_result = \Multilingual_Bridge\DeepL\DeepL_Translator::validate_api_key();
+
+		// Redirect back with appropriate message
+		if ( true === $validation_result ) {
+			wp_safe_redirect( admin_url( 'options-general.php?page=multilingual-bridge-deepl-settings&msg=api_key_valid' ) );
+		} else {
+			wp_safe_redirect( admin_url( 'options-general.php?page=multilingual-bridge-deepl-settings&msg=api_key_invalid' ) );
+		}
+		exit;
 	}
 }

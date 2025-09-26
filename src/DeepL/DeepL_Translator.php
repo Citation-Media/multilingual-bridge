@@ -7,6 +7,7 @@
 
 namespace Multilingual_Bridge\DeepL;
 
+use Multilingual_Bridge\Admin\DeepL_Settings;
 use WP_Error;
 
 /**
@@ -17,19 +18,24 @@ class DeepL_Translator {
 	/**
 	 * API base URL for DeepL Free API
 	 */
-	const API_BASE_URL = 'https://api-free.deepl.com/v2/translate';
+	const FREE_API_BASE_URL = 'https://api-free.deepl.com/v2/translate';
 
 	/**
-	 * Get DeepL Free API key from wp-config
+	 * API base URL for DeepL Premium API
+	 */
+	const PREMIUM_API_BASE_URL = 'https://api.deepl.com/v2/translate';
+
+	/**
+	 * Get DeepL API key from settings
 	 *
 	 * @return string|null
 	 */
 	public static function get_api_key(): ?string {
-		return defined( 'DEEPL_API_KEY' ) ? DEEPL_API_KEY : null;
+		return DeepL_Settings::get_api_key();
 	}
 
 	/**
-	 * Translate text using DeepL Free API
+	 * Translate text using DeepL API
 	 *
 	 * @param string $text       Text to translate.
 	 * @param string $target_lang Target language code.
@@ -40,12 +46,15 @@ class DeepL_Translator {
 		$api_key = self::get_api_key();
 
 		if ( ! $api_key ) {
-			return new WP_Error( 'deepl_api_key_missing', 'DeepL API key not configured' );
+			return new WP_Error( 'deepl_api_key_missing', 'DeepL API key not configured in settings' );
 		}
 
 		if ( empty( $text ) ) {
 			return '';
 		}
+
+		// Determine API URL based on settings
+		$api_url = DeepL_Settings::use_premium_api() ? self::PREMIUM_API_BASE_URL : self::FREE_API_BASE_URL;
 
 		// Prepare request data
 		$data = array(
@@ -59,7 +68,7 @@ class DeepL_Translator {
 
 		// Make API request
 		$response = wp_remote_post(
-			self::API_BASE_URL,
+			$api_url,
 			array(
 				'headers' => array(
 					'Authorization' => 'DeepL-Auth-Key ' . $api_key,
@@ -96,7 +105,7 @@ class DeepL_Translator {
 	}
 
 	/**
-	 * Check if DeepL Free API key is configured and valid
+	 * Check if DeepL API key is configured and valid
 	 *
 	 * @return bool|WP_Error True if valid, WP_Error if not.
 	 */
@@ -104,7 +113,7 @@ class DeepL_Translator {
 		$api_key = self::get_api_key();
 
 		if ( ! $api_key ) {
-			return new WP_Error( 'deepl_api_key_missing', 'DeepL API key not configured in wp-config.php' );
+			return new WP_Error( 'deepl_api_key_missing', 'DeepL API key not configured in settings' );
 		}
 
 		// Test with a simple translation
