@@ -92,7 +92,7 @@ export default async bud => {
 	)
 
 	bud.eslint
-		.setFailOnError( false )
+		.setFailOnError( bud.isProduction )
 		.setFailOnWarning( false )
 		.setFix( true )
 }
