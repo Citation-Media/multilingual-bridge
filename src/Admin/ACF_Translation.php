@@ -70,14 +70,18 @@ class ACF_Translation {
 	}
 
 
-
-
-
-
 	/**
 	 * Add Alpine.js modal container to ACF admin footer
 	 */
 	public function add_alpine_container(): void {
+		// Only show on translated posts (not default language)
+		global $post;
+		if ( ! $post || ! WPML_Post_Helper::is_translated_post( $post->ID ) ) {
+			return;
+		}
+
+		$current_lang = WPML_Post_Helper::get_language( $post->ID );
+		$default_lang = \Multilingual_Bridge\Helpers\WPML_Language_Helper::get_default_language();
 		?>
 		<div
 			x-data="multilingualBridgeModal()"
@@ -104,7 +108,7 @@ class ACF_Translation {
 					<div class="multilingual-bridge-modal-columns">
 						<!-- Original Column -->
 						<div class="multilingual-bridge-modal-column">
-							<h3 x-text="sourceLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Original (%s)', 'multilingual-bridge' ), 'en' ); ?></h3>
+							<h3 x-text="sourceLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Original (%s)', 'multilingual-bridge' ), esc_html( $default_lang ) ); ?></h3>
 							<textarea
 								x-model="originalValue"
 								:disabled="isLoading"
@@ -113,7 +117,7 @@ class ACF_Translation {
 
 						<!-- Translation Column -->
 						<div class="multilingual-bridge-modal-column">
-							<h3 x-text="targetLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Translation (%s)', 'multilingual-bridge' ), 'en' ); ?></h3>
+							<h3 x-text="targetLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Translation (%s)', 'multilingual-bridge' ), esc_html( $current_lang ) ); ?></h3>
 							<textarea
 								x-model="translatedValue"
 								:disabled="isLoading"
@@ -124,14 +128,6 @@ class ACF_Translation {
 					<div class="multilingual-bridge-modal-error" x-show="errorMessage" x-text="errorMessage"><?php esc_html_e( 'An error occurred', 'multilingual-bridge' ); ?></div>
 
 					<div class="multilingual-bridge-modal-actions">
-						<button
-							class="multilingual-bridge-btn-copy"
-							@click="copyOriginalToTranslation"
-							:disabled="!originalValue.trim()"
-							title="<?php esc_attr_e( 'Copy original text to translation field', 'multilingual-bridge' ); ?>"
-						>
-							<?php esc_html_e( 'Copy Original', 'multilingual-bridge' ); ?>
-						</button>
 						<button
 							class="multilingual-bridge-btn-translate"
 							@click="translateText"
@@ -145,13 +141,7 @@ class ACF_Translation {
 							@click="saveTranslation"
 							:disabled="!translatedValue.trim()"
 						>
-							<?php esc_html_e( 'Save Translation', 'multilingual-bridge' ); ?>
-						</button>
-						<button
-							class="multilingual-bridge-btn-cancel"
-							@click="closeModal"
-						>
-							<?php esc_html_e( 'Cancel', 'multilingual-bridge' ); ?>
+							<?php esc_html_e( 'Use Translation', 'multilingual-bridge' ); ?>
 						</button>
 					</div>
 				</div>

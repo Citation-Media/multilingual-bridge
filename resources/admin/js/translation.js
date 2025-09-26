@@ -41,13 +41,35 @@ document.addEventListener('DOMContentLoaded', function () {
 			const targetLang = fieldWrapper.getAttribute('data-target-lang');
 			const fieldType = fieldWrapper.getAttribute('data-field-type');
 
-			// Create translate button
+			// Create translate button container
 			const button = document.createElement('span');
-			button.className =
-				'multilingual-bridge-translate-btn dashicons dashicons-translation';
+			button.className = 'multilingual-bridge-translate-btn';
 
-			// Add click handler
-			button.addEventListener('click', function (e) {
+			// Add translation icon
+			const translationIcon = document.createElement('span');
+			translationIcon.className = 'dashicons dashicons-translation';
+			button.appendChild(translationIcon);
+
+			// Add paste text icon
+			const pasteIcon = document.createElement('span');
+			pasteIcon.className = 'dashicons dashicons-editor-paste-text';
+			pasteIcon.title = multilingualBridgeTranslations.copyOriginalTitle;
+			pasteIcon.style.cursor = 'pointer';
+			pasteIcon.style.marginLeft = '5px';
+
+			// Add click handler for paste icon
+			pasteIcon.addEventListener('click', function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+
+				// Copy original value to current field
+				copyOriginalToField(fieldKey, postId, sourceLang);
+			});
+
+			button.appendChild(pasteIcon);
+
+			// Add click handler for translation icon
+			translationIcon.addEventListener('click', function (e) {
 				e.preventDefault();
 
 				// Dispatch custom event to open modal
@@ -103,6 +125,50 @@ document.addEventListener('DOMContentLoaded', function () {
 	);
 });
 
+// Function to copy original value to ACF field
+async function copyOriginalToField(fieldKey, postId, sourceLang) {
+	try {
+		// Extract field key from ACF field name (remove acf[] wrapper if present)
+		let cleanFieldKey = fieldKey;
+		const acfMatch = fieldKey.match(/^acf\[([^\]]+)\]$/);
+		if (acfMatch) {
+			cleanFieldKey = acfMatch[1];
+		}
+
+		// Fetch the original value from the default language post
+		const metaUrl = `${window.multilingual_bridge?.rest_url || '/wp-json/'}multilingual-bridge/v1/meta/${postId}/${cleanFieldKey}`;
+
+		const response = await fetch(metaUrl, {
+			method: 'GET',
+			headers: {
+				'X-WP-Nonce': window.multilingual_bridge?.nonce || '',
+			},
+		});
+
+		if (response.ok) {
+			const result = await response.json();
+			const originalValue = result.value || '';
+
+			if (originalValue.trim()) {
+				// Find the ACF input field and set the value
+				const input = document.querySelector(`[name="${fieldKey}"]`);
+
+				if (input) {
+					input.value = originalValue;
+					// Trigger change event for ACF
+					input.dispatchEvent(new Event('change', { bubbles: true }));
+					// Also trigger ACF's change event if available
+					if (typeof acf !== 'undefined' && acf.trigger) {
+						acf.trigger('change', input);
+					}
+				}
+			}
+		}
+	} catch (err) {
+		console.error('Multilingual Bridge: Error copying original value', err);
+	}
+}
+
 // Translation strings
 const multilingualBridgeTranslations = {
 	translate: 'Translate',
@@ -151,12 +217,6 @@ function multilingualBridgeModal() {
 
 		closeModal() {
 			this.isOpen = false;
-		},
-
-		copyOriginalToTranslation() {
-			if (this.originalValue.trim()) {
-				this.translatedValue = this.originalValue;
-			}
 		},
 
 		async loadOriginalValue(data) {
