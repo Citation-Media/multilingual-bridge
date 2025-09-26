@@ -97,7 +97,7 @@ class Multilingual_Bridge {
 				$this->enqueue_bud_entrypoint(
 					'multilingual-bridge-translation',
 					array(
-						'nonce' => wp_create_nonce( 'wp_rest' ),
+						'nonce'    => wp_create_nonce( 'wp_rest' ),
 						'rest_url' => rest_url(),
 					)
 				);
