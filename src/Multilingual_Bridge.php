@@ -14,7 +14,10 @@
 namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
+use Multilingual_Bridge\Admin\ACF_Translation;
+use Multilingual_Bridge\Admin\DeepL_Settings;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
+use Multilingual_Bridge\REST\WPML_REST_Translation;
 
 /**
  * The core plugin class.
@@ -82,7 +85,23 @@ class Multilingual_Bridge {
 		add_action(
 			'admin_enqueue_scripts',
 			function () {
+				// Enqueue Alpine.js for ACF translation modal
+				wp_enqueue_script(
+					'alpinejs',
+					'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
+					array(),
+					'3.x.x',
+					true
+				);
+
 				$this->enqueue_bud_entrypoint( 'multilingual-bridge-admin' );
+				$this->enqueue_bud_entrypoint(
+					'multilingual-bridge-translation',
+					array(
+						'nonce'    => wp_create_nonce( 'wp_rest' ),
+						'rest_url' => rest_url(),
+					)
+				);
 			},
 			100
 		);
@@ -90,6 +109,17 @@ class Multilingual_Bridge {
 		// Register Language Debug functionality
 		$language_debug = new Language_Debug();
 		$language_debug->register_hooks();
+
+		// Register ACF Translation functionality
+		$acf_translation = new ACF_Translation();
+		$acf_translation->register_hooks();
+
+		// Register DeepL Settings functionality
+		$deepl_settings = new DeepL_Settings();
+		$deepl_settings->register_hooks();
+
+		// Handle DeepL API test
+		add_action( 'admin_post_test_deepl_api', array( $this, 'handle_deepl_api_test' ) );
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
@@ -107,22 +137,14 @@ class Multilingual_Bridge {
 	 * @access   private
 	 */
 	private function define_public_hooks(): void {
-		// Frontend scripts are currently disabled.
-		// Uncomment the following code to enable frontend assets:
-
-		/*
-		Add_action(
-			'wp_enqueue_scripts',
-			function () {
-				$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );
-			},
-			100
-		);
-		*/
 
 		// Register REST API fields for WPML language support
 		$wpml_rest_fields = new WPML_REST_Fields();
 		$this->loader->add_action( 'rest_api_init', $wpml_rest_fields, 'register_fields', 10, 1 );
+
+		// Register REST API endpoints for translation
+		$wpml_rest_translation = new WPML_REST_Translation();
+		$this->loader->add_action( 'rest_api_init', $wpml_rest_translation, 'register_routes', 10, 1 );
 	}
 
 	/**
@@ -205,5 +227,34 @@ class Multilingual_Bridge {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Handle DeepL API test request
+	 *
+	 * @return void
+	 */
+	public function handle_deepl_api_test(): void {
+		// Check nonce
+		$nonce = isset( $_POST['test_deepl_api_nonce'] ) ? sanitize_key( wp_unslash( $_POST['test_deepl_api_nonce'] ) ) : false;
+		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'test_deepl_api' ) ) {
+			wp_die( 'Something went wrong', 'multilingual-bridge' );
+		}
+
+		// Check user capabilities
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Insufficient permissions', 'multilingual-bridge' );
+		}
+
+		// Test the API key
+		$validation_result = \Multilingual_Bridge\DeepL\DeepL_Translator::validate_api_key();
+
+		// Redirect back with appropriate message
+		if ( true === $validation_result ) {
+			wp_safe_redirect( admin_url( 'options-general.php?page=multilingual-bridge-deepl-settings&msg=api_key_valid' ) );
+		} else {
+			wp_safe_redirect( admin_url( 'options-general.php?page=multilingual-bridge-deepl-settings&msg=api_key_invalid' ) );
+		}
+		exit;
 	}
 }
