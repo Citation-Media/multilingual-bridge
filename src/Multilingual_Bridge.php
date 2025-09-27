@@ -137,18 +137,6 @@ class Multilingual_Bridge {
 	 * @access   private
 	 */
 	private function define_public_hooks(): void {
-		// Frontend scripts are currently disabled.
-		// Uncomment the following code to enable frontend assets:
-
-		/*
-		Add_action(
-			'wp_enqueue_scripts',
-			function () {
-				$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );
-			},
-			100
-		);
-		*/
 
 		// Register REST API fields for WPML language support
 		$wpml_rest_fields = new WPML_REST_Fields();
