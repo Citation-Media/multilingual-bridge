@@ -8,6 +8,11 @@
 export default async bud => {
 
 	/**
+	 * Enable React support for WordPress
+	 */
+	bud.use('@roots/bud-react')
+
+	/**
 	 * Configuring the output settings of the webpack compilation.
 	 * The 'chunkLoadingGlobal' option customizes the global variable used for managing webpack's chunk loading.
 	 * Setting this to a unique value ('multilingual-bridge') ensures that multiple plugins can operate without
@@ -38,7 +43,7 @@ export default async bud => {
 		{
 			"multilingual-bridge-frontend": ['/frontend/js/app.js', '/frontend/scss/app.scss'],
 			"multilingual-bridge-admin": ['/admin/js/app.js', '/admin/scss/app.scss'],
-			"multilingual-bridge-translation": ['/admin/js/translation.js']
+			"multilingual-bridge-translation": ['/admin/js/translation-react.js']
 		}
 	)
 

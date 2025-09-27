@@ -26,8 +26,8 @@ class ACF_Translation {
 		// Hook into ACF field wrapper to add data attributes
 		add_filter( 'acf/field_wrapper_attributes', array( $this, 'add_field_wrapper_attributes' ), 10, 2 );
 
-		// Add Alpine.js modal container
-		add_action( 'acf/input/admin_footer', array( $this, 'add_alpine_container' ) );
+		// Add React modal container
+		add_action( 'acf/input/admin_footer', array( $this, 'add_react_container' ) );
 	}
 
 	/**
@@ -71,9 +71,9 @@ class ACF_Translation {
 
 
 	/**
-	 * Add Alpine.js modal container to ACF admin footer
+	 * Add React modal container to ACF admin footer
 	 */
-	public function add_alpine_container(): void {
+	public function add_react_container(): void {
 		// Only show on translated posts (not default language)
 		global $post;
 		if ( ! $post || ! WPML_Post_Helper::is_translated_post( $post->ID ) ) {
@@ -82,71 +82,12 @@ class ACF_Translation {
 
 		$current_lang = WPML_Post_Helper::get_language( $post->ID );
 		$default_lang = \Multilingual_Bridge\Helpers\WPML_Language_Helper::get_default_language();
-		?>
-		<div
-			x-data="multilingualBridgeModal()"
-			x-show="isOpen"
-			x-transition
-			class="multilingual-bridge-modal-backdrop"
-			@click="closeModal"
-			x-cloak
-		>
-			<div
-				class="multilingual-bridge-modal"
-				@click.stop
-			>
-				<div class="multilingual-bridge-modal-header">
-					<h2 x-text="modalTitle"><?php esc_html_e( 'Translate Field', 'multilingual-bridge' ); ?></h2>
-					<button
-						@click="closeModal"
-						aria-label="<?php esc_attr_e( 'Close modal', 'multilingual-bridge' ); ?>"
-					>
-						×
-					</button>
-				</div>
-				<div class="multilingual-bridge-modal-body">
-					<div class="multilingual-bridge-modal-columns">
-						<!-- Original Column -->
-						<div class="multilingual-bridge-modal-column">
-							<h3 x-text="sourceLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Original (%s)', 'multilingual-bridge' ), esc_html( $default_lang ) ); ?></h3>
-							<textarea
-								x-model="originalValue"
-								:disabled="isLoading"
-							></textarea>
-						</div>
 
-						<!-- Translation Column -->
-						<div class="multilingual-bridge-modal-column">
-							<h3 x-text="targetLangLabel"><?php /* translators: %s: Language code */ printf( esc_html__( 'Translation (%s)', 'multilingual-bridge' ), esc_html( $current_lang ) ); ?></h3>
-							<textarea
-								x-model="translatedValue"
-								:disabled="isLoading"
-							></textarea>
-						</div>
-					</div>
+		if ( $current_lang === $default_lang ) {
+			return;
+		}
 
-					<div class="multilingual-bridge-modal-error" x-show="errorMessage" x-text="errorMessage"><?php esc_html_e( 'An error occurred', 'multilingual-bridge' ); ?></div>
-
-					<div class="multilingual-bridge-modal-actions">
-						<button
-							class="button button-secondary"
-							@click="translateText"
-							:disabled="isLoading || !originalValue.trim()"
-							:style="{ opacity: isLoading || !originalValue.trim() ? 0.6 : 1, cursor: isLoading || !originalValue.trim() ? 'not-allowed' : 'pointer' }"
-						>
-							<?php esc_html_e( 'Translate', 'multilingual-bridge' ); ?>
-						</button>
-						<button
-							class="button button-primary"
-							@click="saveTranslation"
-							:disabled="!translatedValue.trim()"
-						>
-							<?php esc_html_e( 'Use Translation', 'multilingual-bridge' ); ?>
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-		<?php
+		// React will render the modal here
+		echo '<div id="multilingual-bridge-react-modal"></div>';
 	}
 }
