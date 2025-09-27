@@ -4,8 +4,13 @@
  * Handles the translation modal and button creation for ACF fields using WordPress React standards
  */
 
-import { createElement, useState, useEffect, useCallback } from '@wordpress/element';
-import { createRoot } from '@wordpress/element';
+import {
+	createElement,
+	createRoot,
+	useState,
+	useEffect,
+	useCallback,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -17,8 +22,10 @@ const TranslationModal = ({ isOpen, onClose, modalData }) => {
 	const [errorMessage, setErrorMessage] = useState('');
 
 	const loadOriginalValue = useCallback(async () => {
-		if (!modalData) return;
-		
+		if (!modalData) {
+			return;
+		}
+
 		try {
 			setIsLoading(true);
 			setErrorMessage('');
@@ -39,7 +46,10 @@ const TranslationModal = ({ isOpen, onClose, modalData }) => {
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Error loading original value:', error);
-			setErrorMessage(error.message || __('Error loading original value', 'multilingual-bridge'));
+			setErrorMessage(
+				error.message ||
+					__('Error loading original value', 'multilingual-bridge')
+			);
 		} finally {
 			setIsLoading(false);
 		}

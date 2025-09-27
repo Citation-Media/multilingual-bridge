@@ -43,7 +43,7 @@ export default async bud => {
 		{
 			"multilingual-bridge-frontend": ['/frontend/js/app.js', '/frontend/scss/app.scss'],
 			"multilingual-bridge-admin": ['/admin/js/app.js', '/admin/scss/app.scss'],
-			"multilingual-bridge-translation": ['/admin/js/translation-react.js']
+			"multilingual-bridge-translation": ['/admin/js/translation.js']
 		}
 	)
 
