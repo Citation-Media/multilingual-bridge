@@ -103,26 +103,4 @@ class DeepL_Translator {
 
 		return $data['translations'][0]['text'];
 	}
-
-	/**
-	 * Check if DeepL API key is configured and valid
-	 *
-	 * @return bool|WP_Error True if valid, WP_Error if not.
-	 */
-	public static function validate_api_key() {
-		$api_key = self::get_api_key();
-
-		if ( ! $api_key ) {
-			return new WP_Error( 'deepl_api_key_missing', 'DeepL API key not configured in settings' );
-		}
-
-		// Test with a simple translation
-		$result = self::translate( 'Hello', 'ES', 'EN' );
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		return true;
-	}
 }
