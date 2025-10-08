@@ -25,9 +25,9 @@ resources/admin/js/
 - Handles translation saving events
 
 ### 2. TranslationModal Component (`components/TranslationModal.js`)
-- Clean React component using WordPress UI components
+- React component using WordPress components (Modal, Button, TextareaControl, Notice)
 - Uses `useTranslation` hook for state management
-- Handles modal display and user interactions
+- Handles modal lifecycle, user interactions, and translation saving
 
 ### 3. useTranslation Hook (`hooks/useTranslation.js`)
 - Encapsulates all translation state logic
@@ -35,14 +35,14 @@ resources/admin/js/
 - Manages loading states and error handling
 
 ### 4. API Utilities (`utils/api.js`)
-- `cleanFieldKey()` - Normalizes ACF field keys
-- `loadOriginalValue()` - Fetches original field values
-- `translateText()` - Handles translation API calls
-- `updateACFField()` - Updates ACF fields and triggers events
+- `cleanFieldKey()` - Normalizes ACF field keys for API calls
+- `loadOriginalValue()` - Fetches field values from default language posts
+- `translateText()` - Makes REST API calls to DeepL translation endpoint
+- `updateACFField()` - Updates ACF field values and triggers change events
 
 ### 5. Field Utilities (`utils/fields.js`)
-- `copyOriginalToField()` - Copy functionality using API utils
-- `createTranslationButton()` - Creates translation/copy button icons
+- `copyOriginalToField()` - Copies original field value to current field
+- `createTranslationButton()` - Creates and configures translation/copy buttons with event handlers
 
 ## Benefits
 

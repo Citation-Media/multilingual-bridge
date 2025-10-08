@@ -11,13 +11,14 @@ When editing a post in a non-default language, supported ACF fields (text, texta
 
 ## Setup
 
-### 1. DeepL Free API Configuration
+### 1. DeepL API Configuration
 
-Add your DeepL Free API key to `wp-config.php`:
+Configure your DeepL API key through the WordPress admin:
 
-```php
-define('DEEPL_API_KEY', 'your-deepl-api-key-here');
-```
+1. Go to **Settings > Multilingual Bridge DeepL**
+2. Enter your DeepL API key
+3. Choose between Free or Premium API
+4. Save the settings
 
 ### 2. Requirements
 
@@ -93,15 +94,14 @@ POST /wp-json/multilingual-bridge/v1/translate
 
 ### React Components
 
-- `App.jsx`: Main React application entry point
-- `Modal.jsx`: Generic modal component
-- `TranslationModal.jsx`: Translation-specific modal with two-column layout
+- `TranslationModal.js`: Main modal component using WordPress UI components
+- `TranslationApp`: React app component that manages modal state
 
-### Hooks
+### WordPress Hooks
 
-- `acf/render_field`: Adds translation buttons to ACF fields
-- `acf/input/admin_enqueue_scripts`: Enqueues React scripts
-- `acf/input/admin_footer`: Adds React root container
+- `acf/field_wrapper_attributes`: Adds data attributes and CSS classes to translatable fields
+- `acf/input/admin_footer`: Adds React modal container
+- `admin_enqueue_scripts`: Enqueues React scripts and dependencies
 
 ## Future Enhancements
 
