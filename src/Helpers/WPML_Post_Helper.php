@@ -21,6 +21,43 @@ use WP_Term;
 class WPML_Post_Helper {
 
 	/**
+	 * Get the post ID of the default language version
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return int|null Post ID of default language version, or null if not found
+	 */
+	public static function get_default_language_post_id( int|WP_Post $post ): ?int {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		if ( ! $post_id ) {
+			return null;
+		}
+
+		$language_versions = self::get_language_versions( $post_id );
+
+		if ( empty( $language_versions ) ) {
+			return null;
+		}
+
+		$default_language = WPML_Language_Helper::get_default_language();
+
+		return isset( $language_versions[ $default_language ] ) ? $language_versions[ $default_language ] : null;
+	}
+
+	/**
+	 * Check if a post is a translated post (not in default language)
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return bool True if post is translated, false if in default language
+	 */
+	public static function is_translated_post( int|WP_Post $post ): bool {
+		$post_language    = self::get_language( $post );
+		$default_language = WPML_Language_Helper::get_default_language();
+
+		return ! empty( $post_language ) && $post_language !== $default_language;
+	}
+
+	/**
 	 * Get the language code of a post
 	 *
 	 * @param int|WP_Post $post Post ID or WP_Post object..
@@ -800,7 +837,7 @@ class WPML_Post_Helper {
 		if ( null === $language ) {
 			// Try to get existing language of the source post using existing helper
 			$language = self::get_language( $post_obj );
-			
+
 			// If no language set, use helper to get missing translations
 			if ( empty( $language ) ) {
 				// Get first missing translation language
@@ -809,7 +846,7 @@ class WPML_Post_Helper {
 					$language = $missing_languages[0];
 				}
 			}
-			
+
 			// Still no language? Error
 			if ( empty( $language ) ) {
 				return new \WP_Error(
@@ -829,7 +866,7 @@ class WPML_Post_Helper {
 					)
 				);
 			}
-			
+
 			// Language cannot be the same as default
 			if ( $language === $default_language ) {
 				return new \WP_Error(
@@ -848,7 +885,7 @@ class WPML_Post_Helper {
 
 		// Get or create translation group ID (trid) from target post
 		$target_trid = apply_filters( 'wpml_element_trid', null, $target_post_id, $element_type );
-		
+
 		// If target doesn't have a trid, it needs to be set as original first
 		if ( ! $target_trid ) {
 			// Set target as original in default language
@@ -862,10 +899,10 @@ class WPML_Post_Helper {
 					'source_language_code' => null, // Original post has no source
 				)
 			);
-			
+
 			// Get the newly created trid
 			$target_trid = apply_filters( 'wpml_element_trid', null, $target_post_id, $element_type );
-			
+
 			if ( ! $target_trid ) {
 				return new \WP_Error(
 					'trid_creation_failed',
@@ -892,7 +929,7 @@ class WPML_Post_Helper {
 		// Verify the relationship was created using existing helpers
 		$post_language = self::get_language( $post_obj );
 		$translations  = self::get_language_versions( $post_obj );
-		
+
 		if ( $post_language !== $language || ! isset( $translations[ $default_language ] ) || $translations[ $default_language ] !== $target_post_id ) {
 			return new \WP_Error(
 				'relationship_creation_failed',
