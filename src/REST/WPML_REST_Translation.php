@@ -44,14 +44,18 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'post_id'   => array(
-							'required'          => true,
-							'validate_callback' => function ( $param ) {
-								return is_numeric( $param );
-							},
+							'description' => 'Post ID to retrieve meta value from',
+							'required'    => true,
+							'type'        => 'integer',
+							'minimum'     => 1,
 						),
 						'field_key' => array(
-							'required'          => true,
-							'sanitize_callback' => 'sanitize_text_field',
+							'description' => 'Meta field key to retrieve',
+							'required'    => true,
+							'type'        => 'string',
+							'minLength'   => 1,
+							'maxLength'   => 255,
+							'pattern'     => '^[a-zA-Z0-9_-]+$',
 						),
 					),
 				),
@@ -69,15 +73,26 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'text'        => array(
-							'required'          => true,
-							'sanitize_callback' => 'sanitize_textarea_field',
+							'description' => 'Text to translate',
+							'required'    => true,
+							'type'        => 'string',
+							'minLength'   => 1,
+							'maxLength'   => 50000,
 						),
 						'target_lang' => array(
-							'required'          => true,
-							'sanitize_callback' => 'sanitize_text_field',
+							'description' => 'Target language code (ISO 639-1)',
+							'required'    => true,
+							'type'        => 'string',
+							'minLength'   => 2,
+							'maxLength'   => 5,
+							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
 						),
 						'source_lang' => array(
-							'sanitize_callback' => 'sanitize_text_field',
+							'description' => 'Source language code (ISO 639-1), auto-detect if not provided',
+							'type'        => 'string',
+							'minLength'   => 2,
+							'maxLength'   => 5,
+							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
 						),
 					),
 				),
@@ -97,10 +112,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Get meta value from default language post
 	 *
-	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error
-	 *
-	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
 	public function get_meta_value( WP_REST_Request $request ) {
 		$post_id   = (int) $request->get_param( 'post_id' );

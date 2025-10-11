@@ -50,12 +50,21 @@ export async function translateText(text, sourceLang, targetLang) {
 }
 
 /**
+ * Escape CSS selector special characters
+ * @param selector
+ */
+function escapeCSSSelector(selector) {
+	return selector.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
+}
+
+/**
  * Update ACF field value and trigger change events
  * @param fieldKey
  * @param value
  */
 export function updateACFField(fieldKey, value) {
-	const input = document.querySelector(`[name="${fieldKey}"]`);
+	const escapedFieldKey = escapeCSSSelector(fieldKey);
+	const input = document.querySelector(`[name="${escapedFieldKey}"]`);
 
 	if (input) {
 		input.value = value;

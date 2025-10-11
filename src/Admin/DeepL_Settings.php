@@ -185,10 +185,13 @@ class DeepL_Settings {
 	 * @return void
 	 */
 	public function display_admin_notice(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! empty( $_GET['msg'] ) && isset( $_GET['page'] ) && 'multilingual-bridge-deepl-settings' === $_GET['page'] ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			switch ( $_GET['msg'] ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Displaying admin notice only.
+		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+		$msg  = isset( $_GET['msg'] ) ? sanitize_text_field( wp_unslash( $_GET['msg'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		if ( ! empty( $msg ) && 'multilingual-bridge-deepl-settings' === $page ) {
+			switch ( $msg ) {
 				case 'settings_updated':
 					wp_admin_notice( __( 'DeepL settings updated successfully.', 'multilingual-bridge' ), array( 'type' => 'success' ) );
 					break;
