@@ -85,14 +85,6 @@ Yes, the plugin is fully compatible with the block editor and enhances its REST 
 
 Use the Language Debug tool under Tools → Language Debug in your WordPress admin. It can find and manage posts in languages that are no longer active in WPML.
 
-= Does the plugin sync ACF fields across translations? =
-
-Yes! When you empty an ACF field in the original language post, the plugin automatically empties the same field in all translations. This solves a WPML limitation where empty fields don't sync to translations. The feature works automatically for fields set to "translate" mode.
-
-= Why are my ACF fields not syncing to translations? =
-
-Fields set to "copy" mode are synced by WPML. Fields set to "translate" mode require this plugin for empty value synchronization. Make sure ACF is installed and activated.
-
 == Screenshots ==
 
 1. REST API response showing language_code field
@@ -100,12 +92,6 @@ Fields set to "copy" mode are synced by WPML. Fields set to "translate" mode req
 3. Language filtering in action
 
 == Changelog ==
-
-= 1.3.5 =
-* New: Automatic synchronization of empty ACF fields from original language to all translations
-* Enhancement: Added sync_empty_acf_fields_to_translations() method to WPML_Post_Helper
-* Fix: WPML now correctly syncs empty ACF fields in "translate" mode to prevent stale data in translations
-* Documentation: Added comprehensive ACF integration documentation in README and wpml-post-helper.md
 
 = 1.3.1 =
 * New: Added trigger_automatic_translation() method to WPML_Post_Helper for programmatically triggering WPML automatic translations
