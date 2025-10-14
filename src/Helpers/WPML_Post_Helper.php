@@ -1029,8 +1029,10 @@ class WPML_Post_Helper {
 	 * @return mixed The original value (unchanged).
 	 */
 	public static function sync_empty_acf_fields_to_translations( $value, int $post_id, array $field ) {
-		// Early exit: Only proceed if value is empty
-		if ( ! empty( $value ) ) {
+		// Early exit: Only proceed if value is truly empty (not 0, false, or '0')
+		// We want to sync: null, '', [] (empty array)
+		// We don't want to sync: 0, '0', false (valid values)
+		if ( null !== $value && '' !== $value && array() !== $value ) {
 			return $value;
 		}
 
