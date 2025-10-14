@@ -97,6 +97,14 @@ class Multilingual_Bridge {
 			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_acf_hidden_meta_after_translation' ),
 			999
 		);
+
+		// Sync empty ACF fields from original to translations
+		add_filter(
+			'acf/update_value',
+			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_empty_acf_fields_to_translations' ),
+			999,
+			3
+		);
 	}
 
 	/**

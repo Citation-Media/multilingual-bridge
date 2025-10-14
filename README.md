@@ -17,6 +17,7 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 - **Missing Translation Links**: No easy way to discover content translations via REST API
 - **Cumbersome WPML API**: Simplifies complex WPML operations with helper functions
 - **Term Relationship Bugs**: Works around WPML bugs when deleting term relationships across languages
+- **ACF Field Sync Issues**: WPML doesn't sync empty ACF fields to translations, causing stale data
 
 ## Key Features
 
@@ -31,6 +32,7 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 - Retrieve all translations of a post easily
 - Check translation completeness
 - Safely delete term relationships across languages
+- Automatic synchronization of empty ACF fields across translations
 
 ### 🚀 Modern Development
 - Full support for headless WordPress architectures
@@ -103,6 +105,27 @@ if (WPML_Post_Helper::is_post_in_unconfigured_language($post_id)) {
     echo "Post is in a deactivated language!";
 }
 ```
+
+### ACF Integration
+
+The plugin includes automatic synchronization of empty ACF fields across translations:
+
+**Problem it solves:**
+WPML does not properly sync empty fields from the original language to translations when fields are set to "translate" mode. This causes translations to keep old values even after the original field is emptied.
+
+**How it works:**
+When you empty an ACF field in the original language post, the plugin automatically empties the same field in all translations. This works for all ACF field types and requires no configuration.
+
+**Example:**
+```php
+// Empty a field in the original English post
+update_field('featured_quote', '', $english_post_id);
+
+// Plugin automatically clears the same field in German, French, and all other translations
+// No manual intervention needed!
+```
+
+**Note:** This only affects fields set to "translate" mode. Fields in "copy" mode are correctly handled by WPML.
 
 ## Documentation
 
