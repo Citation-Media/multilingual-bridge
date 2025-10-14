@@ -1023,12 +1023,12 @@ class WPML_Post_Helper {
 	 * Note: Fields set to "copy" mode in WPML are correctly synced by WPML itself.
 	 * This only affects fields set to "translate" mode.
 	 *
-	 * @param mixed  $value The field value being updated.
-	 * @param int    $post_id The post ID the field belongs to.
-	 * @param array  $field The field array containing field settings.
+	 * @param mixed $value The field value being updated.
+	 * @param int|string $post_id The post ID the field belongs to.
+	 * @param array $field The field array containing field settings.
 	 * @return mixed The original value (unchanged).
 	 */
-	public static function sync_empty_acf_fields_to_translations( $value, int $post_id, array $field ) {
+	public static function sync_empty_acf_fields_to_translations( $value, int|string $post_id, array $field ) {
 		// Early exit: Only proceed if value is truly empty (not 0, false, or '0')
 		// We want to sync: null, '', [] (empty array)
 		// We don't want to sync: 0, '0', false (valid values)
@@ -1047,14 +1047,8 @@ class WPML_Post_Helper {
 			return $value;
 		}
 
-		// Early exit: Check if this is the original language post
-		$post_language_details = apply_filters( 'wpml_post_language_details', null, $post_id );
-		if ( empty( $post_language_details ) || ! is_array( $post_language_details ) ) {
-			return $value;
-		}
-
-		// Only proceed if this is the original/source post (source_language_code is empty)
-		if ( ! empty( $post_language_details['source_language_code'] ) ) {
+		// Only proceed if this is the original/source post
+		if ( self::get_language($post_id) !== WPML_Language_Helper::get_default_language()) {
 			return $value;
 		}
 
@@ -1066,12 +1060,6 @@ class WPML_Post_Helper {
 			return $value;
 		}
 
-		// Get the field name/key to delete
-		$field_name = $field['name'] ?? $field['key'] ?? '';
-		if ( empty( $field_name ) ) {
-			return $value;
-		}
-
 		// Iterate through translations and delete the field
 		foreach ( $translations as $language_code => $translation_id ) {
 			// Skip the original post itself
@@ -1080,7 +1068,7 @@ class WPML_Post_Helper {
 			}
 
 			// Delete the field from translation (we're in ACF hook, function exists)
-			delete_field( $field_name, $translation_id );
+			delete_field( $field['name'], $translation_id );
 		}
 
 		return $value;
