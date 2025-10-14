@@ -1036,8 +1036,8 @@ class WPML_Post_Helper {
 			return $value;
 		}
 
-		// Early exit: Bail on invalid post, revision, or autosave
-		if ( ! $post_id || wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		// Early exit: Bail on invalid post, non-numeric ID (e.g. "term_123"), revision, or autosave
+		if ( ! $post_id || ! is_numeric( $post_id ) || wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 			return $value;
 		}
 
@@ -1079,10 +1079,8 @@ class WPML_Post_Helper {
 				continue;
 			}
 
-			// Use ACF's delete_field function if available
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field_name, $translation_id );
-			}
+			// Delete the field from translation (we're in ACF hook, function exists)
+			delete_field( $field_name, $translation_id );
 		}
 
 		return $value;
