@@ -1006,4 +1006,71 @@ class WPML_Post_Helper {
 			}
 		}
 	}
+
+	/**
+	 * Sync empty ACF fields from original language to translations.
+	 *
+	 * WPML does not correctly pass through empty fields from the original language to translations
+	 * when fields are set to "translate" mode. This method ensures that when an ACF field is emptied
+	 * in the original language, the same field is also emptied in all translations.
+	 *
+	 * This hooks into 'acf/update_value' with a very late priority to:
+	 * - Check if the new value is empty (if not, exit early)
+	 * - Check if the updated post is the original language (if not, exit early)
+	 * - Check if the updated post has translations (if not, exit early)
+	 * - Delete the field from all translations using delete_field()
+	 *
+	 * Note: Fields set to "copy" mode in WPML are correctly synced by WPML itself.
+	 * This only affects fields set to "translate" mode.
+	 *
+	 * @param mixed $value The field value being updated.
+	 * @param int|string $post_id The post ID the field belongs to.
+	 * @param array $field The field array containing field settings.
+	 * @return mixed The original value (unchanged).
+	 */
+	public static function sync_empty_acf_fields_to_translations( $value, int|string $post_id, array $field ) {
+		// Early exit: Only proceed if value is truly empty (not 0, false, or '0')
+		// We want to sync: null, '', [] (empty array)
+		// We don't want to sync: 0, '0', false (valid values)
+		if ( null !== $value && '' !== $value && array() !== $value ) {
+			return $value;
+		}
+
+		// Early exit: Bail on invalid post, non-numeric ID (e.g. "term_123"), revision, or autosave
+		if ( ! $post_id || ! is_numeric( $post_id ) || wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			return $value;
+		}
+
+		// Early exit: Check if post exists
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return $value;
+		}
+
+		// Only proceed if this is the original/source post
+		if ( self::get_language($post_id) !== WPML_Language_Helper::get_default_language()) {
+			return $value;
+		}
+
+		// Get all translations of this post
+		$translations = self::get_language_versions( $post_id );
+
+		// Early exit: If no translations exist, nothing to sync
+		if ( empty( $translations ) || count( $translations ) <= 1 ) {
+			return $value;
+		}
+
+		// Iterate through translations and delete the field
+		foreach ( $translations as $language_code => $translation_id ) {
+			// Skip the original post itself
+			if ( (int) $translation_id === $post_id ) {
+				continue;
+			}
+
+			// Delete the field from translation (we're in ACF hook, function exists)
+			delete_field( $field['name'], $translation_id );
+		}
+
+		return $value;
+	}
 }

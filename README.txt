@@ -20,6 +20,7 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 * Complex WPML API calls simplified
 * Missing translation information in REST responses
 * WPML bugs when deleting term relationships
+* ACF empty fields not syncing to translations
 
 **Main Features:**
 
@@ -28,6 +29,7 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 * **Language Filtering** - Query posts by language with `?lang=` parameter
 * **Developer Helpers** - Simplified functions for common WPML operations
 * **Bug Workarounds** - Safely handle term relationships across languages
+* **ACF Integration** - Automatically syncs empty ACF fields across all translations
 * **Language Debug Tool** - Admin tool to manage posts in unconfigured languages
 
 **REST API Examples:**

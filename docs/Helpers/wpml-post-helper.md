@@ -15,6 +15,7 @@ The `WPML_Post_Helper` class provides convenient methods for:
 - Detecting and fixing cross-language term issues
 - Safely assigning terms with language validation
 - Triggering automatic translations
+- Automatic syncing of empty ACF fields across translations
 
 All methods are static and can be called directly without instantiation.
 
@@ -696,6 +697,53 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
 | Fix cross-language terms       | Complex manual process                                                           | `WPML_Post_Helper::remove_cross_language_term_relationships($id)`  |
 | Safe term assignment           | Manual validation and translation lookup                                         | `WPML_Post_Helper::safe_assign_terms($id, $terms, $taxonomy)`      |
 | Trigger automatic translation  | Manual batch creation with WPML_TM_Translation_Batch classes                     | `WPML_Post_Helper::trigger_automatic_translation($id, $languages)` |
+
+## Automatic Features
+
+### ACF Empty Field Synchronization
+
+The plugin automatically synchronizes empty ACF fields from the original language to all translations. This feature addresses a WPML limitation where empty fields in the original language are not properly cleared in translations.
+
+**How it works:**
+
+When an ACF field is emptied in the original language post:
+1. The plugin hooks into `acf/update_value` with priority 999
+2. Checks if the new value is empty
+3. Verifies the post is in the original language (not a translation)
+4. If translations exist, automatically deletes the field from all translations using `delete_field()`
+
+**Important Notes:**
+
+- **Only affects fields set to "translate" mode**: Fields set to "copy" mode are correctly synced by WPML
+- **Automatic operation**: No action required from developers - it works automatically
+- **Original language only**: Only triggers when updating the original/source language post
+- **Empty values only**: Only triggers when a field is being cleared/emptied
+
+**Why this is needed:**
+
+WPML does not sync empty field values to translations when fields are in "translate" mode. This causes:
+- Translations keeping old values that were deleted from the original
+- Issues with automatic translations (they keep stale data)
+- Problems in the Advanced Translation Editor (ATE) where empty fields don't show up
+- Inconsistent data across language versions
+
+**Example Scenario:**
+
+```php
+// Original post (English, ID: 123) has an ACF field 'featured_quote' with value "Hello World"
+// German translation (ID: 456) has the same field with value "Hallo Welt"
+
+// User empties the 'featured_quote' field in English post
+update_field('featured_quote', '', 123);
+
+// Without this plugin:
+// - English: featured_quote = '' (empty)
+// - German: featured_quote = 'Hallo Welt' (old value remains!)
+
+// With this plugin:
+// - English: featured_quote = '' (empty)
+// - German: featured_quote = '' (automatically cleared!)
+```
 
 ## Error Handling
 
