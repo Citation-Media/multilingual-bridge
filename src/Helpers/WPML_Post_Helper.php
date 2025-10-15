@@ -800,7 +800,7 @@ class WPML_Post_Helper {
 		if ( null === $language ) {
 			// Try to get existing language of the source post using existing helper
 			$language = self::get_language( $post_obj );
-			
+
 			// If no language set, use helper to get missing translations
 			if ( empty( $language ) ) {
 				// Get first missing translation language
@@ -809,7 +809,7 @@ class WPML_Post_Helper {
 					$language = $missing_languages[0];
 				}
 			}
-			
+
 			// Still no language? Error
 			if ( empty( $language ) ) {
 				return new \WP_Error(
@@ -829,7 +829,7 @@ class WPML_Post_Helper {
 					)
 				);
 			}
-			
+
 			// Language cannot be the same as default
 			if ( $language === $default_language ) {
 				return new \WP_Error(
@@ -848,7 +848,7 @@ class WPML_Post_Helper {
 
 		// Get or create translation group ID (trid) from target post
 		$target_trid = apply_filters( 'wpml_element_trid', null, $target_post_id, $element_type );
-		
+
 		// If target doesn't have a trid, it needs to be set as original first
 		if ( ! $target_trid ) {
 			// Set target as original in default language
@@ -862,10 +862,10 @@ class WPML_Post_Helper {
 					'source_language_code' => null, // Original post has no source
 				)
 			);
-			
+
 			// Get the newly created trid
 			$target_trid = apply_filters( 'wpml_element_trid', null, $target_post_id, $element_type );
-			
+
 			if ( ! $target_trid ) {
 				return new \WP_Error(
 					'trid_creation_failed',
@@ -892,7 +892,7 @@ class WPML_Post_Helper {
 		// Verify the relationship was created using existing helpers
 		$post_language = self::get_language( $post_obj );
 		$translations  = self::get_language_versions( $post_obj );
-		
+
 		if ( $post_language !== $language || ! isset( $translations[ $default_language ] ) || $translations[ $default_language ] !== $target_post_id ) {
 			return new \WP_Error(
 				'relationship_creation_failed',
@@ -1023,8 +1023,8 @@ class WPML_Post_Helper {
 	 * Note: Fields set to "copy" mode in WPML are correctly synced by WPML itself.
 	 * This only affects fields set to "translate" mode.
 	 *
-	 * @param mixed $value The field value being updated.
-	 * @param int|string $post_id The post ID the field belongs to.
+	 * @param mixed        $value The field value being updated.
+	 * @param int|string   $post_id The post ID the field belongs to.
 	 * @param array<mixed> $field The field array containing field settings.
 	 * @return mixed The original value (unchanged).
 	 */
@@ -1048,7 +1048,7 @@ class WPML_Post_Helper {
 		}
 
 		// Only proceed if this is the original/source post
-		if ( self::get_language($post_id) !== WPML_Language_Helper::get_default_language()) {
+		if ( self::get_language( $post_id ) !== WPML_Language_Helper::get_default_language() ) {
 			return $value;
 		}
 
