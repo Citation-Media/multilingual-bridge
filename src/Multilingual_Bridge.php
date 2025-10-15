@@ -33,7 +33,7 @@ class Multilingual_Bridge {
 
 
 	const PLUGIN_NAME    = 'multilingual-bridge';
-	const PLUGIN_VERSION = '1.3.4';
+	const PLUGIN_VERSION = '1.3.5';
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
