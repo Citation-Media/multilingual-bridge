@@ -1025,7 +1025,7 @@ class WPML_Post_Helper {
 	 *
 	 * @param mixed $value The field value being updated.
 	 * @param int|string $post_id The post ID the field belongs to.
-	 * @param array $field The field array containing field settings.
+	 * @param array<mixed> $field The field array containing field settings.
 	 * @return mixed The original value (unchanged).
 	 */
 	public static function sync_empty_acf_fields_to_translations( $value, int|string $post_id, array $field ) {
