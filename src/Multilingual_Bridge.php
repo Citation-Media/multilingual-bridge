@@ -36,7 +36,7 @@ class Multilingual_Bridge {
 
 
 	const PLUGIN_NAME    = 'multilingual-bridge';
-	const PLUGIN_VERSION = '1.3.4';
+	const PLUGIN_VERSION = '1.3.5';
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -114,6 +114,14 @@ class Multilingual_Bridge {
 			'wpml_pro_translation_completed',
 			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_acf_hidden_meta_after_translation' ),
 			999
+		);
+
+		// Sync empty ACF fields from original to translations
+		add_filter(
+			'acf/update_value',
+			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_empty_acf_fields_to_translations' ),
+			999,
+			3
 		);
 	}
 
