@@ -37,7 +37,7 @@ export const TranslationModal = ({ isOpen, onClose, modalData }) => {
 			loadedDataRef.current = null;
 			reset();
 		}
-	}, [isOpen, modalData?.postId, modalData?.fieldKey, loadOriginal, reset]);
+	}, [isOpen, modalData, loadOriginal, reset]);
 
 	const saveTranslation = () => {
 		// Dispatch event to save the translation

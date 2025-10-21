@@ -7,35 +7,26 @@ import { loadOriginalValue, updateACFField } from './api';
 
 /**
  * Copy original value to ACF field
- * @param fieldKey
- * @param postId
+ * @param {string} fieldKey
+ * @param {number} postId
  */
 export async function copyOriginalToField(fieldKey, postId) {
 	try {
 		const originalValue = await loadOriginalValue(postId, fieldKey);
 
 		if (originalValue.trim()) {
-			const success = updateACFField(fieldKey, originalValue);
-			if (!success) {
-				console.warn(
-					'Multilingual Bridge: Could not find field to update',
-					fieldKey
-				);
-			}
+			updateACFField(fieldKey, originalValue);
 		}
 	} catch (error) {
-		console.error(
-			'Multilingual Bridge: Error copying original value',
-			error
-		);
+		// Silent fail - user will see nothing happens if field not found
 	}
 }
 
 /**
  * Create translation button icons
- * @param fieldData
- * @param onTranslate
- * @param onCopy
+ * @param {Object}   fieldData
+ * @param {Function} onTranslate
+ * @param {Function} onCopy
  */
 export function createTranslationButton(fieldData, onTranslate, onCopy) {
 	const { fieldKey, fieldLabel, postId, sourceLang, targetLang, fieldType } =

@@ -13,15 +13,7 @@ export function useTranslation(modalData) {
 	const [errorMessage, setErrorMessage] = useState('');
 
 	// Memoize modalData to prevent unnecessary re-renders
-	const memoizedModalData = useMemo(
-		() => modalData,
-		[
-			modalData?.postId,
-			modalData?.fieldKey,
-			modalData?.sourceLang,
-			modalData?.targetLang,
-		]
-	);
+	const memoizedModalData = useMemo(() => modalData, [modalData]);
 
 	const loadOriginal = useCallback(async () => {
 		if (!memoizedModalData) {
@@ -38,7 +30,6 @@ export function useTranslation(modalData) {
 			);
 			setOriginalValue(value);
 		} catch (error) {
-			console.error('Error loading original value:', error);
 			setErrorMessage(
 				error.message ||
 					__('Error loading original value', 'multilingual-bridge')

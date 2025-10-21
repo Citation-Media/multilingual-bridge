@@ -6,7 +6,7 @@ import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Extract field key from ACF field name (remove acf[] wrapper if present)
- * @param fieldKey
+ * @param {string} fieldKey
  */
 export function cleanFieldKey(fieldKey) {
 	const acfMatch = fieldKey.match(/^acf\[([^\]]+)\]$/);
@@ -15,8 +15,8 @@ export function cleanFieldKey(fieldKey) {
 
 /**
  * Load original value from meta field
- * @param postId
- * @param fieldKey
+ * @param {number} postId
+ * @param {string} fieldKey
  */
 export async function loadOriginalValue(postId, fieldKey) {
 	const cleanKey = cleanFieldKey(fieldKey);
@@ -31,9 +31,9 @@ export async function loadOriginalValue(postId, fieldKey) {
 
 /**
  * Translate text using API
- * @param text
- * @param sourceLang
- * @param targetLang
+ * @param {string} text
+ * @param {string} sourceLang
+ * @param {string} targetLang
  */
 export async function translateText(text, sourceLang, targetLang) {
 	const response = await apiFetch({
@@ -51,7 +51,7 @@ export async function translateText(text, sourceLang, targetLang) {
 
 /**
  * Escape CSS selector special characters
- * @param selector
+ * @param {string} selector
  */
 function escapeCSSSelector(selector) {
 	return selector.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
@@ -59,8 +59,8 @@ function escapeCSSSelector(selector) {
 
 /**
  * Update ACF field value and trigger change events
- * @param fieldKey
- * @param value
+ * @param {string} fieldKey
+ * @param {string} value
  */
 export function updateACFField(fieldKey, value) {
 	const escapedFieldKey = escapeCSSSelector(fieldKey);
@@ -71,7 +71,9 @@ export function updateACFField(fieldKey, value) {
 		// Trigger change event for ACF
 		input.dispatchEvent(new Event('change', { bubbles: true }));
 		// Also trigger ACF's change event if available
+		// eslint-disable-next-line no-undef
 		if (typeof acf !== 'undefined' && acf.trigger) {
+			// eslint-disable-next-line no-undef
 			acf.trigger('change', input);
 		}
 		return true;

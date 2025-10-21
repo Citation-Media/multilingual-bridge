@@ -54,6 +54,7 @@ const TranslationApp = () => {
 // Initialize the React app and event handlers
 document.addEventListener('DOMContentLoaded', function () {
 	// Only run on ACF edit screens
+	// eslint-disable-next-line no-undef
 	if (typeof acf === 'undefined') {
 		return;
 	}
@@ -121,8 +122,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	initializeACFTranslationButtons();
 
 	// Re-initialize when ACF fields are loaded (for dynamic fields)
+	// eslint-disable-next-line no-undef
 	if (typeof acf !== 'undefined' && acf.addAction) {
+		// eslint-disable-next-line no-undef
 		acf.addAction('ready', initializeACFTranslationButtons);
+		// eslint-disable-next-line no-undef
 		acf.addAction('append', initializeACFTranslationButtons);
 	}
 
