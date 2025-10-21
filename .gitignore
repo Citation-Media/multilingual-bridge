@@ -6,6 +6,7 @@ setup.sh
 .idea
 .vscode
 dist/
+build/
 .budfiles/
 /tests/cypress/screenshots/
 /tests/cypress/videos/
