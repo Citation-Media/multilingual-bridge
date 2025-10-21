@@ -177,6 +177,10 @@ class Multilingual_Bridge {
 
 		$filesystem = new \WP_Filesystem_Direct( false );
 		$asset_file = MULTILINGUAL_BRIDGE_PATH . "/build/{$entry}.asset.php";
+
+		error_log( "Multilingual Bridge: Checking asset file: {$asset_file}" );
+		error_log( 'Multilingual Bridge: Asset file exists: ' . ( $filesystem->exists( $asset_file ) ? 'YES' : 'NO' ) );
+
 		if ( ! $filesystem->exists( $asset_file ) ) {
 			return;
 		}
@@ -186,6 +190,9 @@ class Multilingual_Bridge {
 			return;
 		}
 
+		$js_file = MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js";
+		error_log( 'Multilingual Bridge: JS file exists: ' . ( $filesystem->exists( $js_file ) ? 'YES' : 'NO' ) );
+
 		if ( $filesystem->exists( MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js" ) ) {
 			wp_enqueue_script(
 				self::PLUGIN_NAME . "/{$entry}",
@@ -194,6 +201,8 @@ class Multilingual_Bridge {
 				$asset['version'],
 				true
 			);
+
+			error_log( 'Multilingual Bridge: Enqueued script: ' . self::PLUGIN_NAME . "/{$entry}" );
 
 			// Potentially add localize data
 			if ( ! empty( $localize_data ) ) {

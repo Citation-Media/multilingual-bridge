@@ -46,7 +46,7 @@ class DeepL_Translator {
 		$api_key = self::get_api_key();
 
 		if ( ! $api_key ) {
-			return new WP_Error( 'deepl_api_key_missing', 'DeepL API key not configured in settings' );
+			return new WP_Error( 'deepl_api_key_missing', 'Please provide a DeepL API credentials in the settings.' );
 		}
 
 		if ( empty( $text ) ) {
