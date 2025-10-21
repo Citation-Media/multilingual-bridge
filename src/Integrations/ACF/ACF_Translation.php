@@ -5,7 +5,7 @@
  * @package Multilingual_Bridge
  */
 
-namespace Multilingual_Bridge\Admin;
+namespace Multilingual_Bridge\Integrations\ACF;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 
@@ -19,7 +19,7 @@ class ACF_Translation {
 	 */
 	public function register_hooks(): void {
 		// Only run if ACF is active
-		if ( ! function_exists( 'acf' ) ) {
+		if ( ! class_exists( 'ACF' ) ) {
 			return;
 		}
 

@@ -21,21 +21,7 @@ class DeepL_Settings {
 	 */
 	const OPTION_NAME = 'multilingual_bridge_deepl_settings';
 
-	/**
-	 * Registers WordPress hooks for the DeepL Settings functionality
-	 *
-	 * @return void
-	 */
-	public function register_hooks(): void {
-		// Register admin menu for settings
-		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
-		// Register settings
-		add_action( 'admin_init', array( $this, 'register_settings' ) );
-
-		// Admin notice for success or error messages
-		add_action( 'admin_notices', array( $this, 'display_admin_notice' ) );
-	}
 
 	/**
 	 * Registers a new entry under the "Settings" menu in WordPress admin
