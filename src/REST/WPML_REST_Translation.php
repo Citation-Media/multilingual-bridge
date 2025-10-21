@@ -114,6 +114,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 * @return WP_REST_Response|WP_Error
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
 	public function get_meta_value( WP_REST_Request $request ) {
 		$post_id   = (int) $request->get_param( 'post_id' );
