@@ -38,8 +38,8 @@ class ACF_Translation {
 	 * @return array<string, mixed>
 	 */
 	public function add_field_wrapper_attributes( array $wrapper, array $field ): array {
-		// Only add to supported field types
-		$supported_types = array( 'text', 'textarea', 'wysiwyg' );
+		// Allow filtering of supported field types
+		$supported_types = apply_filters( 'multilingual_bridge_acf_supported_types', array( 'text', 'textarea', 'wysiwyg', 'lexical-editor' ) );
 		if ( ! in_array( $field['type'], $supported_types, true ) ) {
 			return $wrapper;
 		}
