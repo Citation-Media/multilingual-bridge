@@ -10,7 +10,7 @@
  * This hook encapsulates complex async logic and provides a clean interface
  * for the TranslationModal component.
  *
- * @package Multilingual_Bridge
+ * @package
  */
 
 import { useState, useCallback, useMemo } from '@wordpress/element';
@@ -20,24 +20,14 @@ import { loadOriginalValue, translateText } from '../utils/api';
 /**
  * Translation modal state management hook
  *
- * @param {Object|null} modalData             - Data about the field being translated
- * @param {string}      modalData.fieldKey    - ACF field key
- * @param {string}      modalData.fieldLabel  - Field label for display
- * @param {number}      modalData.postId      - Original language post ID
- * @param {string}      modalData.sourceLang  - Source language code
- * @param {string}      modalData.targetLang  - Target language code
- * @param {string}      modalData.fieldType   - ACF field type
- *
- * @return {Object} Translation state and operations
- * @return {string}   return.originalValue    - Original language text
- * @return {Function} return.setOriginalValue - Update original text (allows manual editing)
- * @return {string}   return.translatedValue  - Translated text
- * @return {Function} return.setTranslatedValue - Update translation (allows manual editing)
- * @return {boolean}  return.isLoading        - True during API calls
- * @return {string}   return.errorMessage     - Error message to display (empty if no error)
- * @return {Function} return.loadOriginal     - Load original text from API
- * @return {Function} return.translate        - Translate original text via API
- * @return {Function} return.reset            - Reset all state to initial values
+ * @param {Object|null} modalData            - Data about the field being translated
+ * @param {string}      modalData.fieldKey   - ACF field key
+ * @param {string}      modalData.fieldLabel - Field label for display
+ * @param {number}      modalData.postId     - Original language post ID
+ * @param {string}      modalData.sourceLang - Source language code
+ * @param {string}      modalData.targetLang - Target language code
+ * @param {string}      modalData.fieldType  - ACF field type
+ * @return {Object} Translation state and operations containing originalValue (string), setOriginalValue (Function), translatedValue (string), setTranslatedValue (Function), isLoading (boolean), errorMessage (string), loadOriginal (Function), translate (Function), and reset (Function)
  */
 export function useTranslation(modalData) {
 	// State for original language text (loaded from default language post)

@@ -14,7 +14,7 @@
  * 4. User clicks "Use Translation" to insert text into ACF field
  * 5. Modal closes and field is populated
  *
- * @package Multilingual_Bridge
+ * @package
  */
 
 import { createElement, useEffect, useRef } from '@wordpress/element';

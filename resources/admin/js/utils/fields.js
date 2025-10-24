@@ -4,7 +4,7 @@
  * Handles DOM manipulation and button creation for translatable ACF fields.
  * Provides quick actions for copying original text and opening translation modal.
  *
- * @package Multilingual_Bridge
+ * @package
  */
 
 import { __ } from '@wordpress/i18n';
@@ -47,15 +47,15 @@ export async function copyOriginalToField(fieldKey, postId) {
  * These buttons are injected into ACF field labels for fields marked as translatable
  * by the ACF_Translation PHP class via data attributes.
  *
- * @param {Object}   fieldData             - Field configuration data
- * @param {string}   fieldData.fieldKey    - ACF field key
- * @param {string}   fieldData.fieldLabel  - Human-readable field label
- * @param {string}   fieldData.postId      - Original language post ID
- * @param {string}   fieldData.sourceLang  - Source language code (e.g., 'en')
- * @param {string}   fieldData.targetLang  - Target language code (e.g., 'fr')
- * @param {string}   fieldData.fieldType   - ACF field type (text, textarea, wysiwyg, etc.)
- * @param {Function} onTranslate           - Callback when translation button is clicked
- * @param {Function} onCopy                - Callback when copy button is clicked
+ * @param {Object}   fieldData            - Field configuration data
+ * @param {string}   fieldData.fieldKey   - ACF field key
+ * @param {string}   fieldData.fieldLabel - Human-readable field label
+ * @param {string}   fieldData.postId     - Original language post ID
+ * @param {string}   fieldData.sourceLang - Source language code (e.g., 'en')
+ * @param {string}   fieldData.targetLang - Target language code (e.g., 'fr')
+ * @param {string}   fieldData.fieldType  - ACF field type (text, textarea, wysiwyg, etc.)
+ * @param {Function} onTranslate          - Callback when translation button is clicked
+ * @param {Function} onCopy               - Callback when copy button is clicked
  * @return {HTMLElement} Button element ready to append to field label
  */
 export function createTranslationButton(fieldData, onTranslate, onCopy) {

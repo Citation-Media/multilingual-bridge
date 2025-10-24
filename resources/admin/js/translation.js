@@ -14,7 +14,7 @@
  * - User clicks "Use Translation" → triggers 'save-translation' event
  * - Event handler updates ACF field value in DOM
  *
- * @package Multilingual_Bridge
+ * @package
  */
 
 import {

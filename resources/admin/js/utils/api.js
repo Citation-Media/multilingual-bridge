@@ -6,7 +6,7 @@
  * - Sending translation requests to DeepL API
  * - Updating ACF field values in the DOM
  *
- * @package Multilingual_Bridge
+ * @package
  */
 
 import apiFetch from '@wordpress/api-fetch';
