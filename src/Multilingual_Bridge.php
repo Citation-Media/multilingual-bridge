@@ -14,7 +14,9 @@
 namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
+use Multilingual_Bridge\Integrations\ACF\ACF_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
+use Multilingual_Bridge\REST\WPML_REST_Translation;
 
 /**
  * The core plugin class.
@@ -82,7 +84,7 @@ class Multilingual_Bridge {
 		add_action(
 			'admin_enqueue_scripts',
 			function () {
-				$this->enqueue_bud_entrypoint( 'multilingual-bridge-admin' );
+				$this->enqueue_entrypoint( 'multilingual-bridge-admin' );
 			},
 			100
 		);
@@ -90,6 +92,10 @@ class Multilingual_Bridge {
 		// Register Language Debug functionality
 		$language_debug = new Language_Debug();
 		$language_debug->register_hooks();
+
+		// Register ACF Translation functionality
+		$acf_translation = new ACF_Translation();
+		$acf_translation->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
@@ -115,22 +121,14 @@ class Multilingual_Bridge {
 	 * @access   private
 	 */
 	private function define_public_hooks(): void {
-		// Frontend scripts are currently disabled.
-		// Uncomment the following code to enable frontend assets:
-
-		/*
-		Add_action(
-			'wp_enqueue_scripts',
-			function () {
-				$this->enqueue_bud_entrypoint( 'multilingual-bridge-frontend' );
-			},
-			100
-		);
-		*/
 
 		// Register REST API fields for WPML language support
 		$wpml_rest_fields = new WPML_REST_Fields();
 		$this->loader->add_action( 'rest_api_init', $wpml_rest_fields, 'register_fields', 10, 1 );
+
+		// Register REST API endpoints for translation
+		$wpml_rest_translation = new WPML_REST_Translation();
+		$this->loader->add_action( 'rest_api_init', $wpml_rest_translation, 'register_routes', 10, 1 );
 	}
 
 	/**
@@ -152,12 +150,10 @@ class Multilingual_Bridge {
 	/**
 	 * Enqueue a bud entrypoint
 	 *
-	 * @param string              $entry Name if the entrypoint defined in bud.js .
+	 * @param string              $entry Name of the entrypoint defined in webpack.config.js.
 	 * @param array<string,mixed> $localize_data Array of associated data. See https://developer.wordpress.org/reference/functions/wp_localize_script/ .
 	 */
-	private function enqueue_bud_entrypoint( string $entry, array $localize_data = array() ): void {
-		$entrypoints_manifest = MULTILINGUAL_BRIDGE_PATH . '/dist/entrypoints.json';
-
+	private function enqueue_entrypoint( string $entry, array $localize_data = array() ): void {
 		// Try to get WordPress filesystem. If not possible load it.
 		global $wp_filesystem;
 		if ( ! is_a( $wp_filesystem, 'WP_Filesystem_Base' ) ) {
@@ -166,52 +162,51 @@ class Multilingual_Bridge {
 		}
 
 		$filesystem = new \WP_Filesystem_Direct( false );
-		if ( ! $filesystem->exists( $entrypoints_manifest ) ) {
+		$asset_file = MULTILINGUAL_BRIDGE_PATH . "/build/{$entry}.asset.php";
+
+		error_log( "Multilingual Bridge: Checking asset file: {$asset_file}" );
+		error_log( 'Multilingual Bridge: Asset file exists: ' . ( $filesystem->exists( $asset_file ) ? 'YES' : 'NO' ) );
+
+		if ( ! $filesystem->exists( $asset_file ) ) {
 			return;
 		}
 
-		// parse json file
-		$entrypoints = json_decode( $filesystem->get_contents( $entrypoints_manifest ) );
+		$asset = require $asset_file;
+		if ( ! isset( $asset['dependencies'], $asset['version'] ) ) {
+			return;
+		}
 
-		// Iterate entrypoint groups
-		foreach ( $entrypoints as $key => $bundle ) {
+		$js_file = MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js";
+		error_log( 'Multilingual Bridge: JS file exists: ' . ( $filesystem->exists( $js_file ) ? 'YES' : 'NO' ) );
 
-			// Only process the entrypoint that should be enqueued per call
-			if ( $key !== $entry ) {
-				continue;
+		if ( $filesystem->exists( MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js" ) ) {
+			wp_enqueue_script(
+				self::PLUGIN_NAME . "/{$entry}",
+				MULTILINGUAL_BRIDGE_URL . "build/{$entry}.js",
+				$asset['dependencies'],
+				$asset['version'],
+				true
+			);
+
+			error_log( 'Multilingual Bridge: Enqueued script: ' . self::PLUGIN_NAME . "/{$entry}" );
+
+			// Potentially add localize data
+			if ( ! empty( $localize_data ) ) {
+				wp_localize_script(
+					self::PLUGIN_NAME . "/{$entry}",
+					str_replace( '-', '_', self::PLUGIN_NAME ),
+					$localize_data
+				);
 			}
+		}
 
-			// Iterate js and css files
-			foreach ( $bundle as $type => $files ) {
-				foreach ( $files as $file ) {
-					if ( 'js' === $type ) {
-						wp_enqueue_script(
-							self::PLUGIN_NAME . "/$file",
-							MULTILINGUAL_BRIDGE_URL . 'dist/' . $file,
-							$bundle->dependencies ?? array(),
-							self::PLUGIN_VERSION,
-							true,
-						);
-
-						// Maybe localize js
-						if ( ! empty( $localize_data ) ) {
-							wp_localize_script( self::PLUGIN_NAME . "/$file", str_replace( '-', '_', self::PLUGIN_NAME ), $localize_data );
-
-							// Unset after localize since we only need to localize one script per bundle so on next iteration will be skipped
-							unset( $localize_data );
-						}
-					}
-
-					if ( 'css' === $type ) {
-						wp_enqueue_style(
-							self::PLUGIN_NAME . "/$file",
-							MULTILINGUAL_BRIDGE_URL . 'dist/' . $file,
-							array(),
-							self::PLUGIN_VERSION,
-						);
-					}
-				}
-			}
+		if ( $filesystem->exists( MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.css" ) ) {
+			wp_enqueue_style(
+				self::PLUGIN_NAME . "/{$entry}",
+				MULTILINGUAL_BRIDGE_URL . "build/{$entry}.css",
+				array(),
+				$asset['version']
+			);
 		}
 	}
 }

@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			const action = debugAction ? debugAction.value : '';
 
 			if (action === 'delete') {
-				// eslint-disable-next-line no-alert
+				// eslint-disable-next-line no-alert, no-undef
 				const confirmDelete = confirm(
 					'Are you sure you want to delete all posts in unconfigured languages? This action cannot be undone.'
 				);
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					e.preventDefault();
 				}
 			} else if (action === 'fix_language') {
-				// eslint-disable-next-line no-alert
+				// eslint-disable-next-line no-alert, no-undef
 				const confirmFix = confirm(
 					'Are you sure you want to change the language assignment for all posts in unconfigured languages?'
 				);
