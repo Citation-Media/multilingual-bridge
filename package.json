@@ -3,13 +3,6 @@
   "devDependencies": {
     "@roots/eslint-config": "^6.23.2",
     "@wordpress/api-fetch": "^7.31.0",
-    "@wordpress/components": "^30.4.0",
-    "@wordpress/data": "^10.31.0",
-    "@wordpress/element": "^6.31.0",
-    "@wordpress/eslint-plugin": "^21",
-    "@wordpress/hooks": "^4.31.0",
-    "@wordpress/i18n": "^6.4.0",
-    "@wordpress/prettier-config": "^4.5.0",
     "@wordpress/scripts": "^30.26.0"
   },
   "scripts": {

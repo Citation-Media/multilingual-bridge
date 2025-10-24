@@ -1,12 +1,29 @@
 /**
- * API utilities for multilingual bridge translation
+ * API Utilities for Multilingual Bridge Translation
+ *
+ * Handles all API interactions for the translation modal including:
+ * - Loading original field values from the default language post
+ * - Sending translation requests to DeepL API
+ * - Updating ACF field values in the DOM
+ *
+ * @package Multilingual_Bridge
  */
 
 import apiFetch from '@wordpress/api-fetch';
 
 /**
- * Extract field key from ACF field name (remove acf[] wrapper if present)
- * @param {string} fieldKey
+ * Clean ACF field key by removing wrapper syntax
+ *
+ * ACF fields can be accessed via meta with simple keys (e.g., "field_name")
+ * or via form submission with wrapper syntax (e.g., "acf[field_name]").
+ * This function extracts the clean key for API requests.
+ *
+ * @param {string} fieldKey - The field key (may include acf[] wrapper)
+ * @return {string} Clean field key without wrapper syntax
+ *
+ * @example
+ * cleanFieldKey('acf[my_field]') // Returns: 'my_field'
+ * cleanFieldKey('my_field')      // Returns: 'my_field'
  */
 export function cleanFieldKey(fieldKey) {
 	const acfMatch = fieldKey.match(/^acf\[([^\]]+)\]$/);
@@ -14,9 +31,16 @@ export function cleanFieldKey(fieldKey) {
 }
 
 /**
- * Load original value from meta field
- * @param {number} postId
- * @param {string} fieldKey
+ * Load original field value from the default language post
+ *
+ * Fetches the meta value from the original (default language) post version.
+ * This allows translators to see the source text they need to translate.
+ *
+ * @param {number} postId   - ID of the original language post
+ * @param {string} fieldKey - ACF field key to load
+ * @return {Promise<string>} The original field value (empty string if not found)
+ *
+ * @throws {Error} If API request fails or post/field not found
  */
 export async function loadOriginalValue(postId, fieldKey) {
 	const cleanKey = cleanFieldKey(fieldKey);
@@ -30,10 +54,17 @@ export async function loadOriginalValue(postId, fieldKey) {
 }
 
 /**
- * Translate text using API
- * @param {string} text
- * @param {string} sourceLang
- * @param {string} targetLang
+ * Translate text using DeepL API
+ *
+ * Sends text to the plugin's translation endpoint which uses DeepL API
+ * to translate from source language to target language.
+ *
+ * @param {string} text       - Text to translate
+ * @param {string} sourceLang - Source language code (e.g., 'en', 'de')
+ * @param {string} targetLang - Target language code (e.g., 'fr', 'es')
+ * @return {Promise<string>} Translated text (empty string if translation fails)
+ *
+ * @throws {Error} If API request fails or translation service unavailable
  */
 export async function translateText(text, sourceLang, targetLang) {
 	const response = await apiFetch({
@@ -50,32 +81,54 @@ export async function translateText(text, sourceLang, targetLang) {
 }
 
 /**
- * Escape CSS selector special characters
- * @param {string} selector
+ * Escape special characters in CSS selectors
+ *
+ * CSS selectors require special characters to be escaped with backslashes.
+ * This prevents errors when selecting elements by field names that contain
+ * special characters like brackets, dots, or colons.
+ *
+ * @param {string} selector - CSS selector string to escape
+ * @return {string} Escaped selector safe for use in querySelector
+ *
+ * @private
  */
 function escapeCSSSelector(selector) {
 	return selector.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
 }
 
 /**
- * Update ACF field value and trigger change events
- * @param {string} fieldKey
- * @param {string} value
+ * Update ACF field value in the DOM and trigger change events
+ *
+ * Finds the ACF input field by name, updates its value, and triggers both
+ * native and ACF-specific change events to ensure proper state synchronization.
+ *
+ * Why trigger multiple events:
+ * - Native 'change' event: For browser/framework listeners
+ * - ACF.trigger(): For ACF's internal state management
+ *
+ * @param {string} fieldKey - ACF field key/name
+ * @param {string} value    - New value to set
+ * @return {boolean} True if field was updated, false if field not found
  */
 export function updateACFField(fieldKey, value) {
 	const escapedFieldKey = escapeCSSSelector(fieldKey);
 	const input = document.querySelector(`[name="${escapedFieldKey}"]`);
 
 	if (input) {
+		// Update the input value
 		input.value = value;
-		// Trigger change event for ACF
+
+		// Trigger native change event (bubbles up for React/Vue listeners)
 		input.dispatchEvent(new Event('change', { bubbles: true }));
-		// Also trigger ACF's change event if available
+
+		// Trigger ACF's internal change handler if available
+		// This ensures ACF's validation and conditional logic runs
 		// eslint-disable-next-line no-undef
 		if (typeof acf !== 'undefined' && acf.trigger) {
 			// eslint-disable-next-line no-undef
 			acf.trigger('change', input);
 		}
+
 		return true;
 	}
 

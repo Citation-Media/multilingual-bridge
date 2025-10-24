@@ -85,13 +85,6 @@ class Multilingual_Bridge {
 			'admin_enqueue_scripts',
 			function () {
 				$this->enqueue_entrypoint( 'multilingual-bridge-admin' );
-				$this->enqueue_entrypoint(
-					'multilingual-bridge-translation',
-					array(
-						'nonce'    => wp_create_nonce( 'wp_rest' ),
-						'rest_url' => rest_url(),
-					)
-				);
 			},
 			100
 		);

@@ -12,8 +12,5 @@ module.exports = {
             path.resolve( __dirname, 'resources/admin/js/app.js' ),
             path.resolve( __dirname, 'resources/admin/scss/app.scss' ),
         ],
-        'multilingual-bridge-translation': [
-            path.resolve( __dirname, 'resources/admin/js/translation.js' ),
-        ],
     },
 };

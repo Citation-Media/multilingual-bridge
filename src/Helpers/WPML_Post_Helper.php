@@ -45,16 +45,26 @@ class WPML_Post_Helper {
 	}
 
 	/**
+	 * Check if a post is an original post (in default language)
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return bool True if post is in default language, false otherwise
+	 */
+	public static function is_original_post( int|WP_Post $post ): bool {
+		$post_language    = self::get_language( $post );
+		$default_language = WPML_Language_Helper::get_default_language();
+
+		return ! empty( $post_language ) && $post_language === $default_language;
+	}
+
+	/**
 	 * Check if a post is a translated post (not in default language)
 	 *
 	 * @param int|WP_Post $post Post ID or WP_Post object.
 	 * @return bool True if post is translated, false if in default language
 	 */
 	public static function is_translated_post( int|WP_Post $post ): bool {
-		$post_language    = self::get_language( $post );
-		$default_language = WPML_Language_Helper::get_default_language();
-
-		return ! empty( $post_language ) && $post_language !== $default_language;
+		return ! self::is_original_post( $post );
 	}
 
 	/**

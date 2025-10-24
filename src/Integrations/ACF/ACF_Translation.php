@@ -18,10 +18,6 @@ class ACF_Translation {
 	 * Initialize hooks
 	 */
 	public function register_hooks(): void {
-		// Only run if ACF is active
-		if ( ! class_exists( 'ACF' ) ) {
-			return;
-		}
 
 		// Hook into ACF field wrapper to add data attributes
 		add_filter( 'acf/field_wrapper_attributes', array( $this, 'add_field_wrapper_attributes' ), 10, 2 );
@@ -38,26 +34,19 @@ class ACF_Translation {
 	 * @return array<string, mixed>
 	 */
 	public function add_field_wrapper_attributes( array $wrapper, array $field ): array {
-		// Allow filtering of supported field types
-		$supported_types = apply_filters( 'multilingual_bridge_acf_supported_types', array( 'text', 'textarea', 'wysiwyg', 'lexical-editor' ) );
-		if ( ! in_array( $field['type'], $supported_types, true ) ) {
+		global $post;
+		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
 			return $wrapper;
 		}
 
-		// Only show on translated posts (not default language)
-		global $post;
-		if ( ! $post || ! WPML_Post_Helper::is_translated_post( $post->ID ) ) {
+		$supported_types = apply_filters( 'multilingual_bridge_acf_supported_types', array( 'text', 'textarea', 'wysiwyg' ) );
+		if ( ! in_array( $field['type'], $supported_types, true ) ) {
 			return $wrapper;
 		}
 
 		$current_lang = WPML_Post_Helper::get_language( $post->ID );
 		$default_lang = \Multilingual_Bridge\Helpers\WPML_Language_Helper::get_default_language();
 
-		if ( $current_lang === $default_lang ) {
-			return $wrapper;
-		}
-
-		// Add class and data attributes
 		$wrapper['class']            = isset( $wrapper['class'] ) ? $wrapper['class'] . ' multilingual-translatable-field' : 'multilingual-translatable-field';
 		$wrapper['data-field-key']   = $field['name'];
 		$wrapper['data-field-label'] = $field['label'];
@@ -74,20 +63,11 @@ class ACF_Translation {
 	 * Add React modal container to ACF admin footer
 	 */
 	public function add_react_container(): void {
-		// Only show on translated posts (not default language)
 		global $post;
-		if ( ! $post || ! WPML_Post_Helper::is_translated_post( $post->ID ) ) {
+		if ( WPML_Post_Helper::is_original_post( $post->ID ) ) {
 			return;
 		}
 
-		$current_lang = WPML_Post_Helper::get_language( $post->ID );
-		$default_lang = \Multilingual_Bridge\Helpers\WPML_Language_Helper::get_default_language();
-
-		if ( $current_lang === $default_lang ) {
-			return;
-		}
-
-		// React will render the modal here
 		echo '<div id="multilingual-bridge-react-modal"></div>';
 	}
 }
