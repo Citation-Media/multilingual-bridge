@@ -14,7 +14,6 @@
 namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
-use Multilingual_Bridge\Admin\DeepL_Settings;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
@@ -104,12 +103,6 @@ class Multilingual_Bridge {
 		// Register ACF Translation functionality
 		$acf_translation = new ACF_Translation();
 		$acf_translation->register_hooks();
-
-		// Register DeepL Settings
-		$deepl_settings = new DeepL_Settings();
-		add_action( 'admin_menu', array( $deepl_settings, 'register_admin_menu' ) );
-		add_action( 'admin_init', array( $deepl_settings, 'register_settings' ) );
-		add_action( 'admin_notices', array( $deepl_settings, 'display_admin_notice' ) );
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(

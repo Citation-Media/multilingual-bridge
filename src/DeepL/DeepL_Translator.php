@@ -1,13 +1,12 @@
 <?php
 /**
- * DeepL Translator class for handling Free API interactions
+ * DeepL Translator class for handling API interactions
  *
  * @package Multilingual_Bridge
  */
 
 namespace Multilingual_Bridge\DeepL;
 
-use Multilingual_Bridge\Admin\DeepL_Settings;
 use WP_Error;
 
 /**
@@ -26,12 +25,30 @@ class DeepL_Translator {
 	const PREMIUM_API_BASE_URL = 'https://api.deepl.com/v2/translate';
 
 	/**
-	 * Get DeepL API key from settings
+	 * Get DeepL API key from wp-config.php constant
 	 *
 	 * @return string|null
 	 */
 	public static function get_api_key(): ?string {
-		return DeepL_Settings::get_api_key();
+		if ( defined( 'DEEPL_API_KEY' ) && ! empty( DEEPL_API_KEY ) ) {
+			return DEEPL_API_KEY;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Checks if premium API should be used based on DEEPL_API_TYPE constant
+	 * Expects 'premium' or 'free' (defaults to 'free' if not set)
+	 *
+	 * @return bool True if premium API should be used.
+	 */
+	public static function use_premium_api(): bool {
+		if ( defined( 'DEEPL_API_TYPE' ) && 'premium' === strtolower( DEEPL_API_TYPE ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -53,8 +70,8 @@ class DeepL_Translator {
 			return '';
 		}
 
-		// Determine API URL based on settings
-		$api_url = DeepL_Settings::use_premium_api() ? self::PREMIUM_API_BASE_URL : self::FREE_API_BASE_URL;
+		// Determine API URL based on constant
+		$api_url = self::use_premium_api() ? self::PREMIUM_API_BASE_URL : self::FREE_API_BASE_URL;
 
 		// Prepare request data
 		$data = array(
