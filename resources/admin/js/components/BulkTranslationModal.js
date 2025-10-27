@@ -4,9 +4,20 @@
  * @package
  */
 
-import { createElement, useState, useEffect } from '@wordpress/element';
+import {
+	createElement,
+	useState,
+	useEffect,
+	useCallback,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Button, Modal, Notice, Spinner, TextareaControl } from '@wordpress/components';
+import {
+	Button,
+	Modal,
+	Notice,
+	Spinner,
+	TextareaControl,
+} from '@wordpress/components';
 import { fetchFields, translateText } from '../utils/api';
 import { updateFieldValue } from '../utils/fields';
 
@@ -26,14 +37,6 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 	const [translationProgress, setTranslationProgress] = useState({});
 	const [errorMessage, setErrorMessage] = useState('');
 
-	useEffect(() => {
-		if (isOpen && modalData) {
-			loadFields();
-		} else if (!isOpen) {
-			resetState();
-		}
-	}, [isOpen, modalData]);
-
 	const resetState = () => {
 		setFields([]);
 		setIsLoadingFields(false);
@@ -42,7 +45,7 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 		setErrorMessage('');
 	};
 
-	const loadFields = async () => {
+	const loadFields = useCallback(async () => {
 		setIsLoadingFields(true);
 		setErrorMessage('');
 
@@ -50,14 +53,27 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 			const response = await fetchFields(modalData.postId);
 			setFields(response.fields || []);
 			if (!response.fields || response.fields.length === 0) {
-				setErrorMessage(__('No translatable fields found.', 'multilingual-bridge'));
+				setErrorMessage(
+					__('No translatable fields found.', 'multilingual-bridge')
+				);
 			}
 		} catch (error) {
-			setErrorMessage(error.message || __('Failed to load fields.', 'multilingual-bridge'));
+			setErrorMessage(
+				error.message ||
+					__('Failed to load fields.', 'multilingual-bridge')
+			);
 		} finally {
 			setIsLoadingFields(false);
 		}
-	};
+	}, [modalData]);
+
+	useEffect(() => {
+		if (isOpen && modalData) {
+			loadFields();
+		} else if (!isOpen) {
+			resetState();
+		}
+	}, [isOpen, modalData, loadFields]);
 
 	const translateAllFields = async () => {
 		setIsTranslating(true);
@@ -68,7 +84,7 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 
 		for (let i = 0; i < updatedFields.length; i++) {
 			const field = updatedFields[i];
-			
+
 			if (!field.sourceValue || !field.sourceValue.trim()) {
 				progress[field.key] = { status: 'skipped' };
 				continue;
@@ -85,11 +101,16 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 				);
 
 				updatedFields[i] = { ...field, targetValue: translated };
-				progress[field.key] = { status: 'completed', value: translated };
+				progress[field.key] = {
+					status: 'completed',
+					value: translated,
+				};
 			} catch (error) {
-				progress[field.key] = { 
-					status: 'error', 
-					error: error.message || __('Translation failed', 'multilingual-bridge')
+				progress[field.key] = {
+					status: 'error',
+					error:
+						error.message ||
+						__('Translation failed', 'multilingual-bridge'),
 				};
 			}
 
@@ -111,11 +132,13 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 	};
 
 	const updateFieldTargetValue = (fieldKey, newValue) => {
-		setFields(fields.map(field => 
-			field.key === fieldKey 
-				? { ...field, targetValue: newValue }
-				: field
-		));
+		setFields(
+			fields.map((field) =>
+				field.key === fieldKey
+					? { ...field, targetValue: newValue }
+					: field
+			)
+		);
 	};
 
 	if (!isOpen || !modalData) {
@@ -150,10 +173,15 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 					'div',
 					{ className: 'multilingual-bridge-loading' },
 					createElement(Spinner),
-					createElement('p', {}, __('Loading fields...', 'multilingual-bridge'))
+					createElement(
+						'p',
+						{},
+						__('Loading fields…', 'multilingual-bridge')
+					)
 				),
 
-			!isLoadingFields && fields.length > 0 &&
+			!isLoadingFields &&
+				fields.length > 0 &&
 				createElement(
 					'div',
 					{ className: 'multilingual-bridge-fields-list' },
@@ -168,65 +196,111 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 						fields.map((field) =>
 							createElement(
 								'div',
-								{ 
-									key: field.key, 
-									className: 'multilingual-bridge-field-item'
+								{
+									key: field.key,
+									className: 'multilingual-bridge-field-item',
 								},
 								createElement(
 									'div',
-									{ className: 'multilingual-bridge-field-header' },
+									{
+										className:
+											'multilingual-bridge-field-header',
+									},
 									createElement(
 										'strong',
-										{ className: 'multilingual-bridge-field-label' },
+										{
+											className:
+												'multilingual-bridge-field-label',
+										},
 										field.label
 									),
 									createElement(
 										'div',
-										{ className: 'multilingual-bridge-field-status' },
-										translationProgress[field.key]?.status === 'translating' &&
+										{
+											className:
+												'multilingual-bridge-field-status',
+										},
+										translationProgress[field.key]
+											?.status === 'translating' &&
 											createElement(Spinner),
-										translationProgress[field.key]?.status === 'completed' &&
-											createElement('span', { className: 'dashicons dashicons-yes-alt' }),
-										translationProgress[field.key]?.status === 'error' &&
-											createElement('span', { className: 'dashicons dashicons-warning' }),
-										translationProgress[field.key]?.status === 'skipped' &&
-											createElement('span', { className: 'multilingual-bridge-skipped' }, __('Skipped', 'multilingual-bridge'))
+										translationProgress[field.key]
+											?.status === 'completed' &&
+											createElement('span', {
+												className:
+													'dashicons dashicons-yes-alt',
+											}),
+										translationProgress[field.key]
+											?.status === 'error' &&
+											createElement('span', {
+												className:
+													'dashicons dashicons-warning',
+											}),
+										translationProgress[field.key]
+											?.status === 'skipped' &&
+											createElement(
+												'span',
+												{
+													className:
+														'multilingual-bridge-skipped',
+												},
+												__(
+													'Skipped',
+													'multilingual-bridge'
+												)
+											)
 									)
 								),
 								createElement(
 									'div',
-									{ className: 'multilingual-bridge-field-content' },
+									{
+										className:
+											'multilingual-bridge-field-content',
+									},
 									createElement(
 										'div',
-										{ className: 'multilingual-bridge-field-source' },
+										{
+											className:
+												'multilingual-bridge-field-source',
+										},
 										createElement(TextareaControl, {
 											label: `${__('Original', 'multilingual-bridge')} (${modalData.sourceLang})`,
 											value: field.sourceValue || '',
 											disabled: true,
 											rows: 4,
-											className: 'multilingual-bridge-source-field',
+											className:
+												'multilingual-bridge-source-field',
 										})
 									),
 									createElement(
 										'div',
-										{ className: 'multilingual-bridge-field-target' },
+										{
+											className:
+												'multilingual-bridge-field-target',
+										},
 										createElement(TextareaControl, {
 											label: `${__('Translation', 'multilingual-bridge')} (${modalData.targetLang})`,
 											value: field.targetValue || '',
-											onChange: (newValue) => updateFieldTargetValue(field.key, newValue),
+											onChange: (newValue) =>
+												updateFieldTargetValue(
+													field.key,
+													newValue
+												),
 											disabled: isTranslating,
 											rows: 4,
-											className: 'multilingual-bridge-target-field',
+											className:
+												'multilingual-bridge-target-field',
 										})
 									)
 								),
-								translationProgress[field.key]?.status === 'error' &&
+								translationProgress[field.key]?.status ===
+									'error' &&
 									createElement(
 										Notice,
 										{
 											status: 'error',
 											isDismissible: false,
-											className: 'multilingual-bridge-field-error',
+											className:
+												'multilingual-bridge-field-error',
 										},
 										translationProgress[field.key].error
 									)
@@ -235,7 +309,8 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 					)
 				),
 
-			!isLoadingFields && fields.length > 0 &&
+			!isLoadingFields &&
+				fields.length > 0 &&
 				createElement(
 					'div',
 					{ className: 'multilingual-bridge-modal-actions' },
@@ -246,7 +321,8 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 							onClick: translateAllFields,
 							disabled: isTranslating,
 							isBusy: isTranslating,
-							className: 'multilingual-bridge-bulk-translate-button',
+							className:
+								'multilingual-bridge-bulk-translate-button',
 						},
 						__('Translate All', 'multilingual-bridge')
 					),
@@ -255,7 +331,11 @@ export const BulkTranslationModal = ({ isOpen, onClose, modalData }) => {
 						{
 							variant: 'primary',
 							onClick: applyTranslations,
-							disabled: isTranslating || !fields.some(f => f.targetValue && f.targetValue.trim()),
+							disabled:
+								isTranslating ||
+								!fields.some(
+									(f) => f.targetValue && f.targetValue.trim()
+								),
 							className: 'multilingual-bridge-apply-button',
 						},
 						__('Apply Translations', 'multilingual-bridge')

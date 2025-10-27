@@ -29,8 +29,7 @@ export async function copyOriginalToField(fieldKey, postId) {
 		if (originalValue.trim()) {
 			updateACFField(fieldKey, originalValue);
 		}
-	} catch (error) {
-	}
+	} catch (error) {}
 }
 
 /**
@@ -44,7 +43,7 @@ export function updateFieldValue(fieldName, value, fieldType) {
 	if (fieldType === 'wysiwyg') {
 		const iframeId = `acf[${fieldName}]_ifr`;
 		const iframe = document.getElementById(iframeId);
-		
+
 		if (iframe && iframe.contentWindow) {
 			const doc = iframe.contentWindow.document;
 			if (doc.body) {

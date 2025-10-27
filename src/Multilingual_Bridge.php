@@ -14,8 +14,8 @@
 namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
+use Multilingual_Bridge\Admin\Meta_Bulk_Translation;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation;
-use Multilingual_Bridge\Integrations\ACF\ACF_Bulk_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 
@@ -99,8 +99,8 @@ class Multilingual_Bridge {
 		$acf_translation->register_hooks();
 
 		// Register ACF Bulk Translation functionality
-		$acf_bulk_translation = new ACF_Bulk_Translation();
-		$acf_bulk_translation->register_hooks();
+		$meta_bulk_translation = new Meta_Bulk_Translation();
+		$meta_bulk_translation->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
@@ -169,9 +169,6 @@ class Multilingual_Bridge {
 		$filesystem = new \WP_Filesystem_Direct( false );
 		$asset_file = MULTILINGUAL_BRIDGE_PATH . "/build/{$entry}.asset.php";
 
-		error_log( "Multilingual Bridge: Checking asset file: {$asset_file}" );
-		error_log( 'Multilingual Bridge: Asset file exists: ' . ( $filesystem->exists( $asset_file ) ? 'YES' : 'NO' ) );
-
 		if ( ! $filesystem->exists( $asset_file ) ) {
 			return;
 		}
@@ -182,7 +179,6 @@ class Multilingual_Bridge {
 		}
 
 		$js_file = MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js";
-		error_log( 'Multilingual Bridge: JS file exists: ' . ( $filesystem->exists( $js_file ) ? 'YES' : 'NO' ) );
 
 		if ( $filesystem->exists( MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js" ) ) {
 			wp_enqueue_script(
@@ -192,8 +188,6 @@ class Multilingual_Bridge {
 				$asset['version'],
 				true
 			);
-
-			error_log( 'Multilingual Bridge: Enqueued script: ' . self::PLUGIN_NAME . "/{$entry}" );
 
 			// Potentially add localize data
 			if ( ! empty( $localize_data ) ) {

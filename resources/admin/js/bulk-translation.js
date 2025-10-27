@@ -7,7 +7,12 @@
  * @package
  */
 
-import { createElement, createRoot, useState, useEffect } from '@wordpress/element';
+import {
+	createElement,
+	createRoot,
+	useState,
+	useEffect,
+} from '@wordpress/element';
 import { BulkTranslationModal } from './components/BulkTranslationModal';
 
 const BulkTranslationApp = () => {
@@ -46,14 +51,18 @@ const BulkTranslationApp = () => {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-	const button = document.getElementById('multilingual-bridge-bulk-translate');
-	
+	const button = document.getElementById(
+		'multilingual-bridge-bulk-translate'
+	);
+
 	if (!button) {
 		return;
 	}
 
-	const modalContainer = document.getElementById('multilingual-bridge-bulk-translate-modal');
-	
+	const modalContainer = document.getElementById(
+		'multilingual-bridge-bulk-translate-modal'
+	);
+
 	if (!modalContainer) {
 		return;
 	}
@@ -63,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	button.addEventListener('click', (e) => {
 		e.preventDefault();
-		
+
 		const postId = parseInt(button.getAttribute('data-post-id'));
 		const sourceLang = button.getAttribute('data-source-lang');
 		const targetLang = button.getAttribute('data-target-lang');
@@ -81,4 +90,3 @@ document.addEventListener('DOMContentLoaded', function () {
 		document.dispatchEvent(event);
 	});
 });
-

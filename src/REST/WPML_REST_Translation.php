@@ -229,10 +229,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$fields     = array_merge( $fields, $acf_fields );
 		}
 
-		// Get native meta fields
-		$meta_fields = $this->get_meta_fields( $post_id, $default_lang_post_id );
-		$fields      = array_merge( $fields, $meta_fields );
-
 		return new WP_REST_Response(
 			array(
 				'fields' => $fields,
@@ -262,6 +258,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				continue;
 			}
 
+			// Check WPML translation preference for ACF fields
+			if ( ! $this->is_wpml_translatable_field( $field['name'] ) ) {
+				continue;
+			}
+
 			$source_value = get_field( $field_key, $default_lang_post_id );
 			$target_value = $field['value'];
 
@@ -281,63 +282,49 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	}
 
 	/**
-	 * Get native meta fields
-	 *
-	 * @param int $post_id                Post ID.
-	 * @param int $default_lang_post_id   Default language post ID.
-	 * @return array<int, array<string, mixed>>
-	 */
-	private function get_meta_fields( int $post_id, int $default_lang_post_id ): array {
-		$all_meta = get_post_meta( $default_lang_post_id );
-		$fields   = array();
-
-		// Exclude internal WordPress fields, ACF fields
-		$excluded_prefixes = array( '_', 'acf-' );
-
-		foreach ( $all_meta as $meta_key => $meta_value ) {
-
-			$should_exclude = false;
-			foreach ( $excluded_prefixes as $prefix ) {
-				if ( str_starts_with( $meta_key, $prefix ) ) {
-					$should_exclude = true;
-					break;
-				}
-			}
-
-			if ( $should_exclude ) {
-				continue;
-			}
-
-			// Only include text-based meta fields
-			if ( ! is_string( $meta_value[0] ) || empty( $meta_value[0] ) ) {
-				continue;
-			}
-
-			$source_value = $meta_value[0];
-			$target_value = get_post_meta( $post_id, $meta_key, true );
-
-			$fields[] = array(
-				'key'         => $meta_key,
-				'name'        => $meta_key,
-				'label'       => $this->format_meta_label( $meta_key ),
-				'type'        => 'meta',
-				'sourceValue' => $source_value,
-				'targetValue' => $target_value,
-				'hasSource'   => ! empty( $source_value ),
-				'needsUpdate' => empty( $target_value ) && ! empty( $source_value ),
-			);
-		}
-
-		return apply_filters( 'multilingual_bridge_translatable_meta_fields', $fields, $post_id, $default_lang_post_id );
-	}
-
-	/**
-	 * Format meta key into human-readable label
+	 * Check if field is translatable according to WPML settings
 	 *
 	 * @param string $meta_key Meta key.
-	 * @return string
+	 * @return bool
 	 */
-	private function format_meta_label( string $meta_key ): string {
-		return ucwords( str_replace( array( '_', '-' ), ' ', $meta_key ) );
+	private function is_wpml_translatable_field( string $meta_key ): bool {
+		global $iclTranslationManagement; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+
+		// If WPML Translation Management is not available, consider all fields translatable
+		if ( ! isset( $iclTranslationManagement ) || ! is_object( $iclTranslationManagement ) || ! property_exists( $iclTranslationManagement, 'settings' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+			return true;
+		}
+
+		$settings = $iclTranslationManagement->settings; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+
+		// Check custom fields translation settings
+		if ( ! isset( $settings['custom_fields_translation'] ) ) {
+			return true;
+		}
+
+		$cf_settings = $settings['custom_fields_translation'];
+
+		// Check both with and without underscore prefix (ACF compatibility)
+		$keys_to_check = array( $meta_key );
+		if ( 0 !== strpos( $meta_key, '_' ) ) {
+			$keys_to_check[] = '_' . $meta_key;
+		}
+
+		foreach ( $keys_to_check as $key ) {
+			if ( isset( $cf_settings[ $key ] ) ) {
+				// WPML uses these values:
+				// 0 = Don't translate (copy from original)
+				// 1 = Copy (copy once from original)
+				// 2 = Translate (field is translatable)
+				// 3 = Ignore (don't copy or translate)
+				$translation_mode = (int) $cf_settings[ $key ];
+
+				// Only include fields marked as translatable (2)
+				return 2 === $translation_mode;
+			}
+		}
+
+		// If field is not in settings, it's translatable by default
+		return true;
 	}
 }
