@@ -3,206 +3,319 @@
  * included in this file.
  */
 
-// Language Debug page styles
-.multilingual-bridge-language-debug {
+// =============================================================================
+// Variables
+// =============================================================================
 
-	.postbox {
-		max-width: 100%;
+// Colors
+$color-primary: #0073aa;
+$color-success: #00a32a;
+$color-warning: #dba617;
+$color-error: #d63638;
 
-		.inside {
-			padding: 20px;
+$color-text-primary: #1e1e1e;
+$color-text-secondary: #757575;
+$color-text-muted: #666;
 
-			form {
+$color-border-primary: #dcdcde;
+$color-border-hover: #c3c4c7;
+$color-border-light: #f0f0f1;
 
-				p {
-					margin: 15px 0;
+$color-bg-info: #e7f3ff;
+$color-bg-info-border: #b3d9ff;
+$color-bg-disabled: #f6f7f7;
 
-					label {
-						display: block;
-						font-weight: 600;
-						margin-bottom: 5px;
-					}
+// Spacing
+$spacing-xs: 5px;
+$spacing-sm: 10px;
+$spacing-md: 15px;
+$spacing-lg: 20px;
 
-					select {
-						min-width: 200px;
-					}
+// Typography
+$font-weight-semibold: 600;
+$font-size-sm: 12px;
+$font-size-base: 14px;
+$font-size-icon: 20px;
 
-					select[multiple] {
+// Other
+$border-radius: 4px;
+
+// =============================================================================
+// Mixins
+// =============================================================================
+
+@mixin flex-center($gap: 0) {
+	display: flex;
+	align-items: center;
+
+	@if $gap > 0 {
+		gap: $gap;
+	}
+}
+
+@mixin flex-between {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+@mixin disabled-field {
+	pointer-events: none;
+	opacity: 0.6;
+}
+
+@mixin card-border {
+	border: 1px solid $color-border-primary;
+	border-radius: $border-radius;
+
+	&:hover {
+		border-color: $color-border-hover;
+	}
+}
+
+// =============================================================================
+// Language Debug Page
+// =============================================================================
+
+.multilingual-bridge {
+
+	&-language-debug {
+
+		.postbox {
+			max-width: 100%;
+
+			.inside {
+				padding: $spacing-lg;
+			}
+		}
+
+		form {
+
+			p {
+				margin: $spacing-md 0;
+
+				label {
+					display: block;
+					font-weight: $font-weight-semibold;
+					margin-bottom: $spacing-xs;
+				}
+
+				select {
+					min-width: 200px;
+
+					&[multiple] {
 						height: auto;
-					}
-
-					small {
-						display: block;
-						margin-top: 5px;
-						color: #666;
 					}
 				}
 
-				.button-secondary {
-					margin-top: 10px;
+				small {
+					display: block;
+					margin-top: $spacing-xs;
+					color: $color-text-muted;
 				}
 			}
 
-			.notice-box {
-				background: #e7f3ff;
-				border: 1px solid #b3d9ff;
-				padding: 15px;
-				margin: 15px 0;
-				border-radius: 4px;
+			.button-secondary {
+				margin-top: $spacing-sm;
+			}
+		}
 
-				strong {
-					color: #0073aa;
+		.notice-box {
+			background: $color-bg-info;
+			border: 1px solid $color-bg-info-border;
+			padding: $spacing-md;
+			margin: $spacing-md 0;
+			border-radius: $border-radius;
+
+			strong {
+				color: $color-primary;
+			}
+		}
+	}
+
+	// =========================================================================
+	// WPML Copied Fields
+	// =========================================================================
+
+	&-field-copied {
+
+		.acf-switch {
+
+			@include disabled-field;
+		}
+
+		.select2 {
+			pointer-events: none;
+
+			&-selection {
+
+				&--multiple {
+					background: $color-bg-disabled !important;
+				}
+
+				&__choice__remove {
+					display: none;
 				}
 			}
 		}
 	}
+
+	// =========================================================================
+	// Translation Modals (Shared Styles)
+	// =========================================================================
+
+	&-translation-modal {
+		width: 800px;
+	}
+
+	&-bulk-translation-modal {
+		max-width: 1000px;
+		width: 90vw;
+	}
+
+	&-modal {
+
+		&-fields {
+			display: flex;
+			gap: $spacing-lg;
+		}
+
+		&-field {
+			flex: 1;
+		}
+
+		&-actions {
+
+			@include flex-center($spacing-md);
+			justify-content: flex-end;
+			margin-top: $spacing-lg;
+		}
+	}
+
+	// =========================================================================
+	// Bulk Translation Specific Styles
+	// =========================================================================
+
+	&-fields {
+
+		&-list {
+			max-height: 600px;
+			overflow-y: auto;
+		}
+
+		&-summary {
+			font-weight: $font-weight-semibold;
+			margin-bottom: $spacing-md;
+			color: $color-text-primary;
+		}
+
+		&-grid {
+			display: flex;
+			flex-direction: column;
+			gap: $spacing-lg;
+		}
+	}
+
+	&-field {
+
+		&-item {
+
+			@include card-border;
+			padding: $spacing-md;
+			background: #fff;
+		}
+
+		&-header {
+
+			@include flex-between;
+			margin-bottom: $spacing-md;
+			padding-bottom: $spacing-sm;
+			border-bottom: 1px solid $color-border-light;
+		}
+
+		&-label {
+			font-size: $font-size-base;
+			color: $color-text-primary;
+		}
+
+		&-status {
+
+			@include flex-center(8px);
+
+			.dashicons {
+				font-size: $font-size-icon;
+
+				&-yes-alt {
+					color: $color-success;
+				}
+
+				&-warning {
+					color: $color-warning;
+				}
+			}
+		}
+
+		&-content {
+			display: flex;
+			gap: $spacing-lg;
+		}
+
+		&-source,
+		&-target {
+			flex: 1;
+		}
+
+		&-error {
+			margin-top: $spacing-sm;
+			margin-bottom: 0;
+		}
+	}
+
+	&-skipped {
+		color: $color-text-secondary;
+		font-size: $font-size-sm;
+	}
+
+	&-source-field {
+
+		textarea {
+			background: $color-bg-disabled;
+			cursor: not-allowed;
+		}
+	}
+
+	&-loading {
+
+		@include flex-center($spacing-sm);
+		padding: $spacing-lg;
+		color: $color-text-secondary;
+	}
 }
 
-// WPML Copied fields
+// =============================================================================
+// Third-Party Integrations
+// =============================================================================
+
 .acfml-field-copied {
 
 	.acf-switch {
-		pointer-events: none;
-		opacity: 0.6;
+
+		@include disabled-field;
 	}
 
 	.select2 {
 		pointer-events: none;
 
-		.select2-selection--multiple {
-			background: #f6f7f7 !important;
+		&-selection {
+
+			&--multiple {
+				background: $color-bg-disabled !important;
+			}
+
+			&__choice__remove {
+				display: none;
+			}
 		}
-
-		.select2-selection__choice__remove {
-			display: none;
-		}
-	}
-}
-
-// ACF Translation Modal
-.multilingual-bridge-translation-modal {
-	width: 800px;
-
-	.multilingual-bridge-modal-fields {
-		display: flex;
-		gap: 20px;
-
-		.multilingual-bridge-modal-field {
-			flex: 1;
-		}
-	}
-
-	.multilingual-bridge-modal-actions {
-		display: flex;
-		gap: 15px;
-		justify-content: flex-end;
-		margin-top: 20px;
-	}
-}
-
-// ACF Bulk Translation Modal
-.multilingual-bridge-bulk-translation-modal {
-	max-width: 1000px;
-	width: 90vw;
-
-	.multilingual-bridge-fields-list {
-		max-height: 600px;
-		overflow-y: auto;
-	}
-
-	.multilingual-bridge-fields-summary {
-		font-weight: 600;
-		margin-bottom: 15px;
-		color: #1e1e1e;
-	}
-
-	.multilingual-bridge-fields-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-	}
-
-	.multilingual-bridge-field-item {
-		border: 1px solid #dcdcde;
-		border-radius: 4px;
-		padding: 15px;
-		background: #fff;
-
-		&:hover {
-			border-color: #c3c4c7;
-		}
-	}
-
-	.multilingual-bridge-field-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 15px;
-		padding-bottom: 10px;
-		border-bottom: 1px solid #f0f0f1;
-	}
-
-	.multilingual-bridge-field-label {
-		font-size: 14px;
-		color: #1e1e1e;
-	}
-
-	.multilingual-bridge-field-status {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-
-		.dashicons-yes-alt {
-			color: #00a32a;
-			font-size: 20px;
-		}
-
-		.dashicons-warning {
-			color: #dba617;
-			font-size: 20px;
-		}
-	}
-
-	.multilingual-bridge-skipped {
-		color: #757575;
-		font-size: 12px;
-	}
-
-	.multilingual-bridge-field-content {
-		display: flex;
-		gap: 20px;
-
-		.multilingual-bridge-field-source,
-		.multilingual-bridge-field-target {
-			flex: 1;
-		}
-	}
-
-	.multilingual-bridge-source-field textarea {
-		background: #f6f7f7;
-		cursor: not-allowed;
-	}
-
-	.multilingual-bridge-field-error {
-		margin-top: 10px;
-		margin-bottom: 0;
-	}
-
-	.multilingual-bridge-modal-actions {
-		display: flex;
-		gap: 15px;
-		justify-content: flex-end;
-		margin-top: 20px;
-		padding-top: 20px;
-		border-top: 1px solid #dcdcde;
-	}
-
-	.multilingual-bridge-loading {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 20px;
-		color: #757575;
 	}
 }
 
