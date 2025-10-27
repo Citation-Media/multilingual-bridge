@@ -60,13 +60,13 @@ export async function loadOriginalValue(postId, fieldKey) {
  * to translate from source language to target language.
  *
  * @param {string} text       - Text to translate
- * @param {string} sourceLang - Source language code (e.g., 'en', 'de')
  * @param {string} targetLang - Target language code (e.g., 'fr', 'es')
+ * @param {string} sourceLang - Source language code (e.g., 'en', 'de')
  * @return {Promise<string>} Translated text (empty string if translation fails)
  *
  * @throws {Error} If API request fails or translation service unavailable
  */
-export async function translateText(text, sourceLang, targetLang) {
+export async function translateText(text, targetLang, sourceLang) {
 	const response = await apiFetch({
 		path: '/multilingual-bridge/v1/translate',
 		method: 'POST',
@@ -78,6 +78,23 @@ export async function translateText(text, sourceLang, targetLang) {
 	});
 
 	return response.translation || '';
+}
+
+/**
+ * Fetch all translatable fields for bulk translation
+ *
+ * @param {number} postId - ID of the post to fetch fields for
+ * @return {Promise<Object>} Object containing fields array
+ *
+ * @throws {Error} If API request fails
+ */
+export async function fetchFields(postId) {
+	const response = await apiFetch({
+		path: `/multilingual-bridge/v1/fields/${postId}`,
+		method: 'GET',
+	});
+
+	return response;
 }
 
 /**

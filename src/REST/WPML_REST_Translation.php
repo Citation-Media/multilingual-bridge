@@ -98,6 +98,27 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				),
 			)
 		);
+
+		// Get all translatable fields for bulk translation
+		register_rest_route(
+			$this->namespace,
+			'/fields/(?P<post_id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_translatable_fields' ),
+					'permission_callback' => array( $this, 'permissions_check' ),
+					'args'                => array(
+						'post_id' => array(
+							'description' => 'Post ID to retrieve translatable fields from',
+							'required'    => true,
+							'type'        => 'integer',
+							'minimum'     => 1,
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -132,11 +153,15 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			);
 		}
 
-		// For ACF fields, use get_field function
+		$value = null;
+
+		// Try ACF fields first if available
 		if ( function_exists( 'get_field' ) ) {
 			$value = get_field( $field_key, $default_lang_post_id );
-		} else {
-			// Fallback to post meta if ACF not available
+		}
+
+		// Fallback to post meta if ACF returns nothing
+		if ( empty( $value ) ) {
 			$value = get_post_meta( $default_lang_post_id, $field_key, true );
 		}
 
@@ -173,5 +198,146 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Get all translatable fields for bulk translation
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
+	 */
+	public function get_translatable_fields( WP_REST_Request $request ) {
+		$post_id = (int) $request->get_param( 'post_id' );
+
+		$default_lang_post_id = WPML_Post_Helper::get_default_language_post_id( $post_id );
+
+		if ( ! $default_lang_post_id ) {
+			return new WP_Error(
+				'post_not_found',
+				'Default language version of post not found',
+				array( 'status' => 404 )
+			);
+		}
+
+		$fields = array();
+
+		// Get ACF fields if available
+		if ( function_exists( 'get_field_objects' ) ) {
+			$acf_fields = $this->get_acf_fields( $post_id, $default_lang_post_id );
+			$fields     = array_merge( $fields, $acf_fields );
+		}
+
+		// Get native meta fields
+		$meta_fields = $this->get_meta_fields( $post_id, $default_lang_post_id );
+		$fields      = array_merge( $fields, $meta_fields );
+
+		return new WP_REST_Response(
+			array(
+				'fields' => $fields,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Get ACF fields
+	 *
+	 * @param int $post_id                Post ID.
+	 * @param int $default_lang_post_id   Default language post ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function get_acf_fields( int $post_id, int $default_lang_post_id ): array {
+		$field_objects = get_field_objects( $post_id );
+		if ( ! $field_objects ) {
+			return array();
+		}
+
+		$supported_types = apply_filters( 'multilingual_bridge_acf_supported_types', array( 'text', 'textarea', 'wysiwyg', 'lexical-editor' ) );
+		$fields          = array();
+
+		foreach ( $field_objects as $field_key => $field ) {
+			if ( ! in_array( $field['type'], $supported_types, true ) ) {
+				continue;
+			}
+
+			$source_value = get_field( $field_key, $default_lang_post_id );
+			$target_value = $field['value'];
+
+			$fields[] = array(
+				'key'         => $field_key,
+				'name'        => $field['name'],
+				'label'       => $field['label'],
+				'type'        => $field['type'],
+				'sourceValue' => $source_value,
+				'targetValue' => $target_value,
+				'hasSource'   => ! empty( $source_value ),
+				'needsUpdate' => empty( $target_value ) && ! empty( $source_value ),
+			);
+		}
+
+		return $fields;
+	}
+
+	/**
+	 * Get native meta fields
+	 *
+	 * @param int $post_id                Post ID.
+	 * @param int $default_lang_post_id   Default language post ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function get_meta_fields( int $post_id, int $default_lang_post_id ): array {
+		$all_meta = get_post_meta( $default_lang_post_id );
+		$fields   = array();
+
+		// Exclude internal WordPress fields, ACF fields
+		$excluded_prefixes = array( '_', 'acf-' );
+
+		foreach ( $all_meta as $meta_key => $meta_value ) {
+
+			$should_exclude = false;
+			foreach ( $excluded_prefixes as $prefix ) {
+				if ( str_starts_with( $meta_key, $prefix ) ) {
+					$should_exclude = true;
+					break;
+				}
+			}
+
+			if ( $should_exclude ) {
+				continue;
+			}
+
+			// Only include text-based meta fields
+			if ( ! is_string( $meta_value[0] ) || empty( $meta_value[0] ) ) {
+				continue;
+			}
+
+			$source_value = $meta_value[0];
+			$target_value = get_post_meta( $post_id, $meta_key, true );
+
+			$fields[] = array(
+				'key'         => $meta_key,
+				'name'        => $meta_key,
+				'label'       => $this->format_meta_label( $meta_key ),
+				'type'        => 'meta',
+				'sourceValue' => $source_value,
+				'targetValue' => $target_value,
+				'hasSource'   => ! empty( $source_value ),
+				'needsUpdate' => empty( $target_value ) && ! empty( $source_value ),
+			);
+		}
+
+		return apply_filters( 'multilingual_bridge_translatable_meta_fields', $fields, $post_id, $default_lang_post_id );
+	}
+
+	/**
+	 * Format meta key into human-readable label
+	 *
+	 * @param string $meta_key Meta key.
+	 * @return string
+	 */
+	private function format_meta_label( string $meta_key ): string {
+		return ucwords( str_replace( array( '_', '-' ), ' ', $meta_key ) );
 	}
 }

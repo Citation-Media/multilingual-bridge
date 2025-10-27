@@ -15,6 +15,7 @@ namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation;
+use Multilingual_Bridge\Integrations\ACF\ACF_Bulk_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 
@@ -96,6 +97,10 @@ class Multilingual_Bridge {
 		// Register ACF Translation functionality
 		$acf_translation = new ACF_Translation();
 		$acf_translation->register_hooks();
+
+		// Register ACF Bulk Translation functionality
+		$acf_bulk_translation = new ACF_Bulk_Translation();
+		$acf_bulk_translation->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(

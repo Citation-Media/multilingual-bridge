@@ -75,17 +75,18 @@ export const TranslationModal = ({ isOpen, onClose, modalData }) => {
 	}, [isOpen, modalData, loadOriginal, reset]);
 
 	/**
-	 * Save translated value to ACF field
+	 * Save translated value to field
 	 *
-	 * Dispatches custom event that translation.js listens for.
+	 * Dispatches custom event that translation.js or meta-translation.js listens for.
 	 * This decouples the React modal from DOM manipulation.
 	 */
 	const saveTranslation = () => {
-		// Dispatch event with field key and translated value
+		// Dispatch event with field key, translated value, and field type
 		const event = new CustomEvent('multilingual-bridge:save-translation', {
 			detail: {
 				fieldKey: modalData.fieldKey,
 				value: translatedValue,
+				fieldType: modalData.fieldType,
 			},
 		});
 		document.dispatchEvent(event);

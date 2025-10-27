@@ -99,3 +99,110 @@
 		margin-top: 20px;
 	}
 }
+
+// ACF Bulk Translation Modal
+.multilingual-bridge-bulk-translation-modal {
+	max-width: 1000px;
+	width: 90vw;
+
+	.multilingual-bridge-fields-list {
+		max-height: 600px;
+		overflow-y: auto;
+	}
+
+	.multilingual-bridge-fields-summary {
+		font-weight: 600;
+		margin-bottom: 15px;
+		color: #1e1e1e;
+	}
+
+	.multilingual-bridge-fields-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.multilingual-bridge-field-item {
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		padding: 15px;
+		background: #fff;
+
+		&:hover {
+			border-color: #c3c4c7;
+		}
+	}
+
+	.multilingual-bridge-field-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #f0f0f1;
+	}
+
+	.multilingual-bridge-field-label {
+		font-size: 14px;
+		color: #1e1e1e;
+	}
+
+	.multilingual-bridge-field-status {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+
+		.dashicons-yes-alt {
+			color: #00a32a;
+			font-size: 20px;
+		}
+
+		.dashicons-warning {
+			color: #dba617;
+			font-size: 20px;
+		}
+	}
+
+	.multilingual-bridge-skipped {
+		color: #757575;
+		font-size: 12px;
+	}
+
+	.multilingual-bridge-field-content {
+		display: flex;
+		gap: 20px;
+
+		.multilingual-bridge-field-source,
+		.multilingual-bridge-field-target {
+			flex: 1;
+		}
+	}
+
+	.multilingual-bridge-source-field textarea {
+		background: #f6f7f7;
+		cursor: not-allowed;
+	}
+
+	.multilingual-bridge-field-error {
+		margin-top: 10px;
+		margin-bottom: 0;
+	}
+
+	.multilingual-bridge-modal-actions {
+		display: flex;
+		gap: 15px;
+		justify-content: flex-end;
+		margin-top: 20px;
+		padding-top: 20px;
+		border-top: 1px solid #dcdcde;
+	}
+
+	.multilingual-bridge-loading {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 20px;
+		color: #757575;
+	}
+}
+

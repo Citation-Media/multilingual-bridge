@@ -24,16 +24,46 @@ import { loadOriginalValue, updateACFField } from './api';
  */
 export async function copyOriginalToField(fieldKey, postId) {
 	try {
-		// Load the original value from default language post
 		const originalValue = await loadOriginalValue(postId, fieldKey);
 
-		// Only update if we got a non-empty value
 		if (originalValue.trim()) {
 			updateACFField(fieldKey, originalValue);
 		}
 	} catch (error) {
-		// Silently fail - user will simply see no change if field not found
-		// This prevents error messages for edge cases like deleted fields
+	}
+}
+
+/**
+ * Update field value based on field type
+ *
+ * @param {string} fieldName - Field name
+ * @param {string} value     - Value to set
+ * @param {string} fieldType - Field type (text, textarea, wysiwyg, lexical-editor, meta)
+ */
+export function updateFieldValue(fieldName, value, fieldType) {
+	if (fieldType === 'wysiwyg') {
+		const iframeId = `acf[${fieldName}]_ifr`;
+		const iframe = document.getElementById(iframeId);
+		
+		if (iframe && iframe.contentWindow) {
+			const doc = iframe.contentWindow.document;
+			if (doc.body) {
+				doc.body.innerHTML = value;
+			}
+		}
+	} else if (fieldType === 'lexical-editor') {
+		updateACFField(`acf[${fieldName}]`, value);
+	} else if (fieldType === 'meta') {
+		// Native WordPress meta field
+		const metaInput = document.querySelector(`[name="${fieldName}"]`);
+		if (metaInput) {
+			metaInput.value = value;
+			metaInput.dispatchEvent(new Event('input', { bubbles: true }));
+			metaInput.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+	} else {
+		// ACF text/textarea fields
+		updateACFField(`acf[${fieldName}]`, value);
 	}
 }
 
@@ -62,18 +92,15 @@ export function createTranslationButton(fieldData, onTranslate, onCopy) {
 	const { fieldKey, fieldLabel, postId, sourceLang, targetLang, fieldType } =
 		fieldData;
 
-	// Create button container (span allows inline display next to label)
 	const button = document.createElement('span');
 	button.className = 'multilingual-bridge-translate-btn';
 
-	// Create translation modal icon
 	const translationIcon = document.createElement('span');
 	translationIcon.className = 'dashicons dashicons-translation';
 	translationIcon.title = __('Translate field', 'multilingual-bridge');
 	translationIcon.style.cursor = 'pointer';
 	button.appendChild(translationIcon);
 
-	// Create direct copy icon
 	const pasteIcon = document.createElement('span');
 	pasteIcon.className = 'dashicons dashicons-editor-paste-text';
 	pasteIcon.title = __(
@@ -84,7 +111,6 @@ export function createTranslationButton(fieldData, onTranslate, onCopy) {
 	pasteIcon.style.marginLeft = '5px';
 	button.appendChild(pasteIcon);
 
-	// Handle translation modal open
 	translationIcon.addEventListener('click', (e) => {
 		e.preventDefault();
 		onTranslate({
@@ -97,10 +123,9 @@ export function createTranslationButton(fieldData, onTranslate, onCopy) {
 		});
 	});
 
-	// Handle direct copy action
 	pasteIcon.addEventListener('click', (e) => {
 		e.preventDefault();
-		e.stopPropagation(); // Prevent triggering parent click handlers
+		e.stopPropagation();
 		onCopy(fieldKey, postId);
 	});
 
