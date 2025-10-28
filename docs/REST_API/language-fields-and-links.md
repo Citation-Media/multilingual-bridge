@@ -4,26 +4,41 @@ This document describes the language field and translation link features availab
 
 ## Overview
 
-The Multilingual Bridge plugin extends the WordPress REST API with WPML integration, providing language information and translation links for all post types that have REST API support enabled.
+The Multilingual Bridge plugin extends the WordPress REST API with WPML integration, providing language information and translation links for all post types and taxonomies that have REST API support enabled.
 
 ## Features
 
 ### 1. Language Code Field
 
-Every post type with REST API support automatically gets a `language_code` field that indicates the language of the content.
+Every post type and taxonomy with REST API support automatically gets a `language_code` field that indicates the language of the content.
 
-#### Example Request
+#### Example Request for Posts
 ```
 GET /wp-json/wp/v2/posts/123
 ```
 
-#### Example Response
+#### Example Response for Posts
 ```json
 {
   "id": 123,
   "title": {
     "rendered": "Hello World"
   },
+  "language_code": "en",
+  // ... other fields
+}
+```
+
+#### Example Request for Terms (Categories)
+```
+GET /wp-json/wp/v2/categories/45
+```
+
+#### Example Response for Terms
+```json
+{
+  "id": 45,
+  "name": "Technology",
   "language_code": "en",
   // ... other fields
 }
@@ -38,14 +53,14 @@ GET /wp-json/wp/v2/posts/123
 
 ### 2. Translation Links in _links with Full Embed Support
 
-The plugin automatically adds translation links to the `_links` property of REST API responses with full embed support. This allows you to discover all available translations of a post and embed them in a single request.
+The plugin automatically adds translation links to the `_links` property of REST API responses for both posts and terms with full embed support. This allows you to discover all available translations and embed them in a single request.
 
-#### Example Request
+#### Example Request for Posts
 ```
 GET /wp-json/wp/v2/posts/123
 ```
 
-#### Example Response with Translation Links
+#### Example Response with Translation Links for Posts
 ```json
 {
   "id": 123,
@@ -62,14 +77,45 @@ GET /wp-json/wp/v2/posts/123
     "translations": [
       {
         "href": "https://example.com/wp-json/wp/v2/posts/456",
-        "title": "Translation: German",
-        "wpml_language": "de",
+        "language": "de",
         "embeddable": true
       },
       {
         "href": "https://example.com/wp-json/wp/v2/posts/789",
-        "title": "Translation: French", 
-        "wpml_language": "fr",
+        "language": "fr",
+        "embeddable": true
+      }
+    ]
+  }
+}
+```
+
+#### Example Request for Terms (Categories)
+```
+GET /wp-json/wp/v2/categories/45
+```
+
+#### Example Response with Translation Links for Terms
+```json
+{
+  "id": 45,
+  "name": "Technology",
+  "language_code": "en",
+  "_links": {
+    "self": [
+      {
+        "href": "https://example.com/wp-json/wp/v2/categories/45"
+      }
+    ],
+    "translations": [
+      {
+        "href": "https://example.com/wp-json/wp/v2/categories/67",
+        "language": "de",
+        "embeddable": true
+      },
+      {
+        "href": "https://example.com/wp-json/wp/v2/categories/89",
+        "language": "fr",
         "embeddable": true
       }
     ]
@@ -148,12 +194,19 @@ if (post._embedded && post._embedded.translations) {
 
 This is more efficient than making separate requests for each translation.
 
-## Supported Post Types
+## Supported Content Types
 
-These features are automatically available for all post types that have REST API support enabled, including:
+These features are automatically available for all post types and taxonomies that have REST API support enabled, including:
+
+### Post Types
 - Posts (`/wp/v2/posts`)
 - Pages (`/wp/v2/pages`)
 - Custom Post Types (if REST API is enabled)
+
+### Taxonomies
+- Categories (`/wp/v2/categories`)
+- Tags (`/wp/v2/tags`)
+- Custom Taxonomies (if REST API is enabled)
 
 ## Requirements
 
@@ -163,12 +216,14 @@ These features are automatically available for all post types that have REST API
 
 ## Performance Considerations
 
-1. The language code is fetched using WPML's `wpml_post_language_details` filter
-2. Translation links are generated using WPML's `wpml_element_trid` and `wpml_get_element_translations` filters
-3. Both features check the `_fields` parameter to avoid unnecessary processing
+1. **For Posts**: Language code is fetched using WPML's `wpml_post_language_details` filter
+2. **For Terms**: Language code is fetched using WPML's `wpml_element_language_details` filter
+3. **Translation Links**: Generated using WPML's `wpml_element_trid` and `wpml_get_element_translations` filters
+4. Both features check the `_fields` parameter to avoid unnecessary processing
 
 ## Limitations
 
 - The features only work when WPML is active
-- Translation links are only added for posts that have translations
+- Translation links are only added for content that has translations
 - The language code field returns an empty string if language information is not available
+- For terms, the taxonomy information is automatically available through the REST API context
