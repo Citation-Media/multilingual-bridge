@@ -6,7 +6,6 @@
  */
 
 import './translation';
-import './bulk-translation';
 
 document.addEventListener('DOMContentLoaded', function () {
 	const debugForm = document.querySelector(

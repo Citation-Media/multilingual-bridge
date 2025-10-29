@@ -81,23 +81,6 @@ export async function translateText(text, targetLang, sourceLang) {
 }
 
 /**
- * Fetch all translatable fields for bulk translation
- *
- * @param {number} postId - ID of the post to fetch fields for
- * @return {Promise<Object>} Object containing fields array
- *
- * @throws {Error} If API request fails
- */
-export async function fetchFields(postId) {
-	const response = await apiFetch({
-		path: `/multilingual-bridge/v1/fields/${postId}`,
-		method: 'GET',
-	});
-
-	return response;
-}
-
-/**
  * Escape special characters in CSS selectors
  *
  * CSS selectors require special characters to be escaped with backslashes.
