@@ -54,30 +54,58 @@ export async function loadOriginalValue(postId, fieldKey) {
 }
 
 /**
- * Translate text using DeepL API
+ * Translate text using configured translation provider
  *
- * Sends text to the plugin's translation endpoint which uses DeepL API
- * to translate from source language to target language.
+ * Sends text to the plugin's translation endpoint which uses the configured
+ * translation provider (e.g., DeepL, Google Translate) to translate from
+ * source language to target language.
  *
- * @param {string} text       - Text to translate
- * @param {string} targetLang - Target language code (e.g., 'fr', 'es')
- * @param {string} sourceLang - Source language code (e.g., 'en', 'de')
+ * @param {string}      text       - Text to translate
+ * @param {string}      targetLang - Target language code (e.g., 'fr', 'es')
+ * @param {string}      sourceLang - Source language code (e.g., 'en', 'de')
+ * @param {string|null} provider   - Optional provider ID (uses default if not specified)
  * @return {Promise<string>} Translated text (empty string if translation fails)
  *
  * @throws {Error} If API request fails or translation service unavailable
  */
-export async function translateText(text, targetLang, sourceLang) {
+export async function translateText(text, targetLang, sourceLang, provider = null) {
+	const data = {
+		text,
+		target_lang: targetLang,
+		source_lang: sourceLang,
+	};
+
+	// Include provider if specified.
+	if (provider) {
+		data.provider = provider;
+	}
+
 	const response = await apiFetch({
 		path: '/multilingual-bridge/v1/translate',
 		method: 'POST',
-		data: {
-			text,
-			target_lang: targetLang,
-			source_lang: sourceLang,
-		},
+		data,
 	});
 
 	return response.translation || '';
+}
+
+/**
+ * Get available translation providers
+ *
+ * Fetches list of configured translation providers and the default provider.
+ * This allows the UI to show provider selection if multiple providers are available.
+ *
+ * @return {Promise<{providers: Array<{id: string, name: string, available: boolean}>, default: string}>}
+ *
+ * @throws {Error} If API request fails
+ */
+export async function getProviders() {
+	const response = await apiFetch({
+		path: '/multilingual-bridge/v1/providers',
+		method: 'GET',
+	});
+
+	return response;
 }
 
 /**

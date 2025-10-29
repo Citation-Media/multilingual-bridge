@@ -18,6 +18,9 @@ use Multilingual_Bridge\Admin\Meta_Bulk_Translation;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
+use Multilingual_Bridge\Translation\Translation_Manager;
+use Multilingual_Bridge\Translation\Field_Registry;
+use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
 
 /**
  * The core plugin class.
@@ -58,6 +61,7 @@ class Multilingual_Bridge {
 	public function __construct() {
 
 		$this->load_dependencies();
+		$this->init_translation_system();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
 	}
@@ -77,6 +81,48 @@ class Multilingual_Bridge {
 	}
 
 	/**
+	 * Initialize the translation system
+	 *
+	 * Registers translation providers and field integrations.
+	 * This is the central initialization point for the translation architecture.
+	 *
+	 * @since    1.4.0
+	 * @access   private
+	 */
+	private function init_translation_system(): void {
+		// Get Translation Manager instance.
+		$translation_manager = Translation_Manager::instance();
+
+		// Fire action to allow third-party plugins to register providers.
+		do_action( 'multilingual_bridge_register_translation_providers', $translation_manager );
+
+		// Register default DeepL provider.
+		$deepl_provider = new DeepL_Provider();
+		$translation_manager->register_provider( $deepl_provider );
+
+		// Set DeepL as default provider if available.
+		if ( $deepl_provider->is_available() ) {
+			$translation_manager->set_default_provider( 'deepl' );
+		}
+
+		// Get Field Registry instance.
+		$field_registry = Field_Registry::instance();
+
+		/**
+		 * Fires after translation system is initialized
+		 *
+		 * Use this hook to:
+		 * - Register custom translation providers
+		 * - Register custom field types
+		 * - Register field integrations (ACF alternatives)
+		 *
+		 * @param Translation_Manager $translation_manager Translation Manager instance
+		 * @param Field_Registry      $field_registry      Field Registry instance
+		 */
+		do_action( 'multilingual_bridge_translation_system_init', $translation_manager, $field_registry );
+	}
+
+	/**
 	 * Register all of the hooks related to the admin area functionality
 	 * of the plugin.
 	 */
@@ -85,7 +131,10 @@ class Multilingual_Bridge {
 		add_action(
 			'admin_enqueue_scripts',
 			function () {
-				$this->enqueue_entrypoint( 'multilingual-bridge-admin' );
+				// Only enqueue translation modal assets if Classic Editor is active.
+				if ( $this->is_classic_editor_active() ) {
+					$this->enqueue_entrypoint( 'multilingual-bridge-admin' );
+				}
 			},
 			100
 		);
@@ -146,6 +195,58 @@ class Multilingual_Bridge {
 	 */
 	public function get_loader(): Loader {
 		return $this->loader;
+	}
+
+	/**
+	 * Check if Classic Editor is active
+	 *
+	 * Detects whether the current editing screen uses the Classic Editor
+	 * or the Block Editor (Gutenberg). Translation modal only works with
+	 * Classic Editor + ACF fields.
+	 *
+	 * @since 1.4.0
+	 * @return bool True if Classic Editor is active, false if Block Editor
+	 */
+	private function is_classic_editor_active(): bool {
+		global $post;
+
+		// Not on an edit screen.
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+
+		// Not on a post edit screen.
+		if ( ! $screen || ! in_array( $screen->base, array( 'post', 'post-new' ), true ) ) {
+			return false;
+		}
+
+		// Check if Classic Editor plugin is active and enabled for this post type.
+		if ( function_exists( 'classic_editor_replace_block_editor' ) ) {
+			// Classic Editor plugin controls the editor.
+			return classic_editor_replace_block_editor();
+		}
+
+		// Check if Block Editor is explicitly disabled via filter.
+		$use_block_editor = use_block_editor_for_post( $post );
+
+		/**
+		 * Filter whether translation modal should be enabled
+		 *
+		 * Allows overriding the automatic detection. Useful for custom
+		 * editor implementations or specific post types.
+		 *
+		 * @param bool $enabled Whether translation modal is enabled
+		 * @param \WP_Post|null $post Current post object
+		 * @param \WP_Screen|null $screen Current admin screen
+		 */
+		return apply_filters(
+			'multilingual_bridge_enable_translation_modal',
+			! $use_block_editor,
+			$post,
+			$screen
+		);
 	}
 
 	/**

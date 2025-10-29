@@ -94,8 +94,8 @@ export function useTranslation(modalData) {
 
 			const translation = await translateText(
 				originalValue,
-				memoizedModalData.sourceLang,
-				memoizedModalData.targetLang
+				memoizedModalData.targetLang,
+				memoizedModalData.sourceLang
 			);
 			setTranslatedValue(translation);
 		} catch (error) {
