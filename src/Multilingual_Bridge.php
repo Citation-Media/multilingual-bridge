@@ -98,10 +98,6 @@ class Multilingual_Bridge {
 		$acf_translation = new ACF_Translation();
 		$acf_translation->register_hooks();
 
-		// Register ACF Bulk Translation functionality
-		$meta_bulk_translation = new Meta_Bulk_Translation();
-		$meta_bulk_translation->register_hooks();
-
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
 			'wpml_pro_translation_completed',
