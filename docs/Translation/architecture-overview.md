@@ -120,4 +120,4 @@ Return Translated Text
 
 - [Creating Custom Providers](./custom-providers.md)
 - [Hook Reference](./hooks-reference.md)
-- [Migration Guide](./migration-guide.md)
+- [Field Registry](./field-registry.md)

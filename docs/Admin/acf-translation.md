@@ -136,7 +136,7 @@ POST /wp-json/multilingual-bridge/v1/translate
 ```
 
 **Implementation Notes:**
-- Uses `DeepL_Translator::translate()` static method
+- Uses `Translation_Manager` with provider-agnostic architecture
 - Returns `WP_Error` on translation failure (API key invalid, quota exceeded, etc.)
 - Validates language codes using regex patterns
 - Enforces text length limits to prevent abuse
@@ -144,7 +144,7 @@ POST /wp-json/multilingual-bridge/v1/translate
 **Error Responses:**
 - `400`: Invalid parameters (validation failure)
 - `403`: Insufficient permissions
-- `500`: DeepL API error (see error message for details)
+- `500`: Translation API error (see error message for details)
 
 ## Technical Implementation
 
@@ -162,10 +162,11 @@ The translation feature uses a hybrid React + vanilla JavaScript architecture:
 - **`Multilingual_Bridge\Integrations\ACF\ACF_Translation`**: Main class handling ACF integration
   - Hooks into ACF field wrapper to add data attributes and CSS classes
   - Only activates for non-default language posts
-  - Filters supported field types via `multilingual_bridge_acf_supported_types` filter
+  - Uses Field_Registry to determine translatable field types
 
-- **`Multilingual_Bridge\DeepL\DeepL_Translator`**: Handles DeepL API communication
-  - Static `translate()` method for translating text
+- **`Multilingual_Bridge\Translation\Translation_Manager`**: Manages translation providers
+  - Provider-agnostic singleton for translation operations
+  - Supports multiple translation providers (DeepL, Google, OpenAI, etc.)
   - Returns `WP_Error` on failure
 
 - **`Multilingual_Bridge\REST\WPML_REST_Translation`**: REST API endpoints (extends `WP_REST_Controller`)

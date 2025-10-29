@@ -341,4 +341,4 @@ add_action( 'multilingual_bridge_translation_system_init', function() {
 
 - [Architecture Overview](./architecture-overview.md)
 - [Creating Custom Providers](./custom-providers.md)
-- [Migration Guide](./migration-guide.md)
+- [Field Registry](./field-registry.md)
