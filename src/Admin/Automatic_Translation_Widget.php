@@ -95,100 +95,38 @@ class Automatic_Translation_Widget {
 		);
 
 		wp_nonce_field( 'multilingual_bridge_automatic_translation', 'multilingual_bridge_automatic_translation_nonce' );
+
+		// Prepare data for React app.
+		$widget_data = array(
+			'postId'          => $post->ID,
+			'sourceLanguage'  => $source_language,
+			'targetLanguages' => $target_languages,
+			'translations'    => $translations,
+		);
 		?>
 
-		<div id="multilingual-bridge-automatic-widget">
-			<div class="mlb-widget-header">
-				<p>
-					<?php
-					echo esc_html(
-						sprintf(
-							/* translators: %s: language name */
-							__( 'Source Language: %s', 'multilingual-bridge' ),
-							$available_languages[ $source_language ]['name'] ?? $source_language
-						)
-					);
-					?>
-				</p>
-			</div>
+		<div class="mlb-widget-header">
+			<p>
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: %s: language name */
+						__( 'Source Language: %s', 'multilingual-bridge' ),
+						$available_languages[ $source_language ]['name'] ?? $source_language
+					)
+				);
+				?>
+			</p>
+		</div>
 
-			<div class="mlb-widget-languages">
-				<p><strong><?php esc_html_e( 'Select target languages:', 'multilingual-bridge' ); ?></strong></p>
-
-				<?php if ( empty( $target_languages ) ) : ?>
-					<p class="mlb-no-languages">
-						<?php esc_html_e( 'No other languages available.', 'multilingual-bridge' ); ?>
-					</p>
-				<?php else : ?>
-					<div class="mlb-language-list">
-						<?php foreach ( $target_languages as $lang_code => $language ) : ?>
-							<?php
-							$has_translation = isset( $translations[ $lang_code ] );
-							$translation_id  = $has_translation ? $translations[ $lang_code ] : 0;
-							?>
-							<label class="mlb-language-item">
-								<input
-									type="checkbox"
-									name="mlb_target_languages[]"
-									value="<?php echo esc_attr( $lang_code ); ?>"
-									data-language-code="<?php echo esc_attr( $lang_code ); ?>"
-									data-language-name="<?php echo esc_attr( $language['name'] ?? $lang_code ); ?>"
-									data-has-translation="<?php echo esc_attr( $has_translation ? '1' : '0' ); ?>"
-									data-translation-id="<?php echo esc_attr( (string) $translation_id ); ?>"
-								/>
-								<span class="mlb-language-flag">
-									<?php echo esc_html( $language['name'] ?? $lang_code ); ?>
-								</span>
-								<?php if ( $has_translation ) : ?>
-									<a
-										href="<?php echo esc_url( get_edit_post_link( $translation_id ) ); ?>"
-										class="mlb-translation-edit-link"
-										title="<?php esc_attr_e( 'Edit translation', 'multilingual-bridge' ); ?>"
-										target="_blank"
-									>
-										<span class="dashicons dashicons-edit"></span>
-									</a>
-									<span class="mlb-translation-status mlb-has-translation" title="<?php esc_attr_e( 'Translation exists', 'multilingual-bridge' ); ?>">
-										<span class="dashicons dashicons-yes-alt"></span>
-									</span>
-								<?php else : ?>
-									<span class="mlb-translation-status mlb-no-translation" title="<?php esc_attr_e( 'No translation', 'multilingual-bridge' ); ?>">
-										<span class="dashicons dashicons-marker"></span>
-									</span>
-								<?php endif; ?>
-							</label>
-						<?php endforeach; ?>
-					</div>
-
-					<div class="mlb-widget-actions">
-						<button
-							type="button"
-							id="mlb-generate-translation"
-							class="button button-primary button-large"
-							data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-							data-source-language="<?php echo esc_attr( $source_language ); ?>"
-						>
-							<span class="dashicons dashicons-translation"></span>
-							<?php esc_html_e( 'Generate Translations', 'multilingual-bridge' ); ?>
-						</button>
-					</div>
-
-					<div class="mlb-widget-progress" style="display: none;">
-						<div class="mlb-progress-bar">
-							<div class="mlb-progress-fill" style="width: 0%"></div>
-						</div>
-						<p class="mlb-progress-text"><?php esc_html_e( 'Translating...', 'multilingual-bridge' ); ?></p>
-					</div>
-
-					<div class="mlb-widget-results" style="display: none;"></div>
-				<?php endif; ?>
-			</div>
-
-			<div class="mlb-widget-footer">
-				<p class="description">
-					<?php esc_html_e( 'This will translate all translatable post meta (ACF fields, custom fields, etc.) to the selected languages.', 'multilingual-bridge' ); ?>
-				</p>
-			</div>
+		<div
+			id="multilingual-bridge-automatic-widget"
+			data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
+			data-source-language="<?php echo esc_attr( $source_language ); ?>"
+			data-target-languages="<?php echo esc_attr( wp_json_encode( $target_languages ) ); ?>"
+			data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
+		>
+			<!-- React app will render here -->
 		</div>
 
 		<?php
@@ -218,25 +156,28 @@ class Automatic_Translation_Widget {
 
 		// Localize script for the automatic translation functionality.
 		// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
+		// Note: @wordpress/api-fetch handles authentication/nonce automatically
 		wp_localize_script(
 			'multilingual-bridge/multilingual-bridge-admin',
 			'multilingualBridgeAuto',
 			array(
-				'nonce'       => wp_create_nonce( 'wp_rest' ),
-				'apiUrl'      => rest_url( 'multilingual-bridge/v1' ),
 				'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
 				'strings'     => array(
-					'noLanguages'       => __( 'Please select at least one target language.', 'multilingual-bridge' ),
-					'translating'       => __( 'Translating...', 'multilingual-bridge' ),
-					'success'           => __( 'Translation completed successfully!', 'multilingual-bridge' ),
-					'error'             => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
-					'partial'           => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
-					'editTranslation'   => __( 'Edit translation', 'multilingual-bridge' ),
+					'noLanguages'          => __( 'Please select at least one target language.', 'multilingual-bridge' ),
+					'translating'          => __( 'Translating...', 'multilingual-bridge' ),
+					'success'              => __( 'Translation completed successfully!', 'multilingual-bridge' ),
+					'error'                => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
+					'partial'              => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
+					'editTranslation'      => __( 'Edit translation', 'multilingual-bridge' ),
+					'editPost'             => __( 'Edit Post', 'multilingual-bridge' ),
+					'newTranslation'       => __( 'New translation created.', 'multilingual-bridge' ),
+					'updatedTranslation'   => __( 'Translation updated.', 'multilingual-bridge' ),
+					'translationCompleted' => __( 'Translation completed.', 'multilingual-bridge' ),
 					/* translators: %s: language name */
-					'processing'        => __( 'Processing language: %s', 'multilingual-bridge' ),
-					'generatingPost'    => __( 'Creating translation post...', 'multilingual-bridge' ),
-					'translatingMeta'   => __( 'Translating post meta...', 'multilingual-bridge' ),
-					'savingTranslation' => __( 'Saving translations...', 'multilingual-bridge' ),
+					'processing'           => __( 'Processing language: %s', 'multilingual-bridge' ),
+					'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
+					'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
+					'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
 				),
 			)
 		);

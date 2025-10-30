@@ -9,7 +9,6 @@ import './translation';
 import './automatic-translation';
 
 document.addEventListener('DOMContentLoaded', function () {
-
 	const debugForm = document.querySelector(
 		'form[action="admin-post.php"] input[value="language_debug"]'
 	);

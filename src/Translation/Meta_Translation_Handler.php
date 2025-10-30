@@ -149,6 +149,16 @@ class Meta_Translation_Handler {
 				continue;
 			}
 
+			// Check WPML translation preference for this field.
+			// Only translate fields explicitly marked as "translate" in WPML settings.
+			// WPML automatically handles "copy" and "don't translate" fields.
+			$wpml_preference = $this->get_wpml_field_translation_preference( $meta_key, $source_post_id );
+			if ( 'translate' !== $wpml_preference ) {
+				// Skip - let WPML handle copy/ignore preferences automatically.
+				++$results['skipped'];
+				continue;
+			}
+
 			// Try each registered handler until one successfully processes the field.
 			$handled = false;
 
@@ -308,6 +318,61 @@ class Meta_Translation_Handler {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Get WPML translation preference for a custom field
+	 *
+	 * Checks WPML's custom field translation settings to determine if a field
+	 * should be translated, copied, or ignored.
+	 *
+	 * @param string $meta_key      Meta key to check.
+	 * @param int    $source_post_id Source post ID (for post type context).
+	 * @return string Translation preference: 'translate', 'copy', or 'ignore'
+	 *
+	 * @phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	 */
+	private function get_wpml_field_translation_preference( string $meta_key, int $source_post_id ): string {
+		// Get WPML custom fields translation settings.
+		$wpml_settings = get_option( 'icl_sitepress_settings', array() );
+
+		if ( empty( $wpml_settings ) || ! is_array( $wpml_settings ) ) {
+			// No WPML settings found - default to 'copy' (safe default).
+			return 'copy';
+		}
+
+		// Check if custom_fields_translation setting exists.
+		if ( ! isset( $wpml_settings['custom_fields_translation'] ) || ! is_array( $wpml_settings['custom_fields_translation'] ) ) {
+			// No custom fields settings - default to 'copy'.
+			return 'copy';
+		}
+
+		$custom_fields_settings = $wpml_settings['custom_fields_translation'];
+
+		// Check if this specific field has a translation preference set.
+		if ( ! isset( $custom_fields_settings[ $meta_key ] ) ) {
+			// Field not configured in WPML - default to 'copy'.
+			return 'copy';
+		}
+
+		// Get the preference value.
+		$preference = $custom_fields_settings[ $meta_key ];
+
+		// WPML uses numeric codes:
+		// 0 = "Don't translate" (ignore)
+		// 1 = "Copy" (copy as-is)
+		// 2 = "Translate" (translate the value)
+		// 3 = "Copy once" (copy on first translation, then don't update).
+		switch ( $preference ) {
+			case 2:
+				return 'translate';
+			case 1:
+			case 3: // Treat "copy once" as "copy" for our purposes.
+				return 'copy';
+			case 0:
+			default:
+				return 'ignore';
+		}
 	}
 
 	/**

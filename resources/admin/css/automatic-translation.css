@@ -247,6 +247,18 @@
 	color: #1d2327;
 }
 
+.mlb-result-language .mlb-edit-link {
+	color: #2271b1;
+	text-decoration: none;
+	font-weight: 500;
+	transition: color 0.15s ease;
+}
+
+.mlb-result-language .mlb-edit-link:hover {
+	color: #135e96;
+	text-decoration: underline;
+}
+
 /* Widget Footer */
 .mlb-widget-footer {
 	padding: 12px;

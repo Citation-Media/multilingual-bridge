@@ -386,8 +386,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post_id, $target_lang );
 
 		if ( $existing_translation ) {
-			// Use existing translation.
-			$target_post_id           = $existing_translation;
+			// Update existing translation.
+			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang, $target_lang );
+
+			if ( is_wp_error( $target_post_id ) ) {
+				$result['errors'][] = $target_post_id->get_error_message();
+				return $result;
+			}
+
 			$result['target_post_id'] = $target_post_id;
 			$result['created_new']    = false;
 		} else {
@@ -512,6 +518,73 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			// Clean up created post.
 			wp_delete_post( $target_post_id, true );
 			return $relation_result;
+		}
+
+		return $target_post_id;
+	}
+
+	/**
+	 * Update an existing translation post with fresh translations
+	 *
+	 * @param \WP_Post $source_post        Source post object.
+	 * @param int      $target_post_id     Existing translation post ID.
+	 * @param string   $source_lang        Source language code.
+	 * @param string   $target_lang        Target language code.
+	 * @return int|WP_Error Target post ID or error
+	 */
+	private function update_translation_post( \WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang ) {
+		// Translate post title.
+		$translated_title = $this->translation_manager->translate(
+			$source_post->post_title,
+			$target_lang,
+			$source_lang
+		);
+
+		if ( is_wp_error( $translated_title ) ) {
+			return $translated_title;
+		}
+
+		// Translate post content (if not empty).
+		$translated_content = '';
+		if ( ! empty( $source_post->post_content ) ) {
+			$translated_content = $this->translation_manager->translate(
+				$source_post->post_content,
+				$target_lang,
+				$source_lang
+			);
+
+			if ( is_wp_error( $translated_content ) ) {
+				return $translated_content;
+			}
+		}
+
+		// Translate post excerpt (if not empty).
+		$translated_excerpt = '';
+		if ( ! empty( $source_post->post_excerpt ) ) {
+			$translated_excerpt = $this->translation_manager->translate(
+				$source_post->post_excerpt,
+				$target_lang,
+				$source_lang
+			);
+
+			if ( is_wp_error( $translated_excerpt ) ) {
+				return $translated_excerpt;
+			}
+		}
+
+		// Update post data with translated content.
+		$post_data = array(
+			'ID'           => $target_post_id,
+			'post_title'   => $translated_title,
+			'post_content' => $translated_content,
+			'post_excerpt' => $translated_excerpt,
+		);
+
+		// Update post.
+		$result = wp_update_post( $post_data, true );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
 		return $target_post_id;

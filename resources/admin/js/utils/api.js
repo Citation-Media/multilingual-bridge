@@ -68,7 +68,12 @@ export async function loadOriginalValue(postId, fieldKey) {
  *
  * @throws {Error} If API request fails or translation service unavailable
  */
-export async function translateText(text, targetLang, sourceLang, provider = null) {
+export async function translateText(
+	text,
+	targetLang,
+	sourceLang,
+	provider = null
+) {
 	const data = {
 		text,
 		target_lang: targetLang,
@@ -95,7 +100,7 @@ export async function translateText(text, targetLang, sourceLang, provider = nul
  * Fetches list of configured translation providers and the default provider.
  * This allows the UI to show provider selection if multiple providers are available.
  *
- * @return {Promise<{providers: Array<{id: string, name: string, available: boolean}>, default: string}>}
+ * @return {Promise<{providers: Array<{id: string, name: string, available: boolean}>, default: string}>} Object containing array of provider configurations and default provider ID
  *
  * @throws {Error} If API request fails
  */
