@@ -75,13 +75,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'post_id'   => array(
-							'description' => 'Post ID to retrieve meta value from',
+							'description' => __( 'Post ID to retrieve meta value from', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'integer',
 							'minimum'     => 1,
 						),
 						'field_key' => array(
-							'description' => 'Meta field key to retrieve',
+							'description' => __( 'Meta field key to retrieve', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'string',
 							'minLength'   => 1,
@@ -104,14 +104,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'text'        => array(
-							'description' => 'Text to translate',
+							'description' => __( 'Text to translate', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'string',
 							'minLength'   => 1,
 							'maxLength'   => 50000,
 						),
 						'target_lang' => array(
-							'description' => 'Target language code (ISO 639-1)',
+							'description' => __( 'Target language code (ISO 639-1)', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'string',
 							'minLength'   => 2,
@@ -119,14 +119,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
 						),
 						'source_lang' => array(
-							'description' => 'Source language code (ISO 639-1), auto-detect if not provided',
+							'description' => __( 'Source language code (ISO 639-1), auto-detect if not provided', 'multilingual-bridge' ),
 							'type'        => 'string',
 							'minLength'   => 2,
 							'maxLength'   => 5,
 							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
 						),
 						'provider'    => array(
-							'description' => 'Translation provider ID (uses default if not specified)',
+							'description' => __( 'Translation provider ID (uses default if not specified)', 'multilingual-bridge' ),
 							'type'        => 'string',
 							'minLength'   => 1,
 							'maxLength'   => 50,
@@ -160,13 +160,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'post_id'          => array(
-							'description' => 'Source post ID to translate from',
+							'description' => __( 'Source post ID to translate from', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'integer',
 							'minimum'     => 1,
 						),
 						'target_languages' => array(
-							'description' => 'Array of target language codes',
+							'description' => __( 'Array of target language codes', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'array',
 							'items'       => array(
