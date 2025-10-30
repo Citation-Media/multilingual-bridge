@@ -15,7 +15,8 @@ namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Admin\Meta_Bulk_Translation;
-use Multilingual_Bridge\Integrations\ACF\ACF_Translation;
+use Multilingual_Bridge\Admin\Automatic_Translation_Widget;
+use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 use Multilingual_Bridge\Translation\Translation_Manager;
@@ -144,22 +145,18 @@ class Multilingual_Bridge {
 		$language_debug->register_hooks();
 
 		// Register ACF Translation functionality
-		$acf_translation = new ACF_Translation();
+		$acf_translation = new ACF_Translation_Modal();
 		$acf_translation->register_hooks();
+
+		// Register Automatic Translation Widget
+		$automatic_translation_widget = new Automatic_Translation_Widget();
+		$automatic_translation_widget->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
 			'wpml_pro_translation_completed',
 			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_acf_hidden_meta_after_translation' ),
 			999
-		);
-
-		// Sync empty ACF fields from original to translations
-		add_filter(
-			'acf/update_value',
-			array( \Multilingual_Bridge\Helpers\WPML_Post_Helper::class, 'sync_empty_acf_fields_to_translations' ),
-			999,
-			3
 		);
 	}
 

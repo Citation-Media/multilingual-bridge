@@ -6,6 +6,7 @@
  */
 
 import './translation';
+import './automatic-translation';
 
 document.addEventListener('DOMContentLoaded', function () {
 	const debugForm = document.querySelector(

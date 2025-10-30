@@ -1,0 +1,255 @@
+/**
+ * Automatic Translation Widget Styles
+ *
+ * Styling for the automatic translation sidebar widget on post edit screens
+ */
+
+/* Widget Container */
+#multilingual-bridge-automatic-widget {
+	padding: 0;
+}
+
+.mlb-widget-header {
+	padding: 10px 12px;
+	background-color: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	margin: 0 -12px 12px;
+}
+
+.mlb-widget-header p {
+	margin: 0;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+/* Language List */
+.mlb-widget-languages {
+	margin-bottom: 16px;
+}
+
+.mlb-widget-languages > p {
+	margin: 0 0 8px;
+}
+
+.mlb-language-list {
+	margin: 0;
+}
+
+.mlb-language-item {
+	display: flex;
+	align-items: center;
+	padding: 8px 0;
+	border-bottom: 1px solid #f0f0f1;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.mlb-language-item:last-child {
+	border-bottom: none;
+}
+
+.mlb-language-item:hover {
+	background-color: #f6f7f7;
+}
+
+.mlb-language-item input[type="checkbox"] {
+	margin: 0 8px 0 0;
+	cursor: pointer;
+}
+
+.mlb-language-flag {
+	flex: 1;
+	font-weight: 500;
+	color: #2c3338;
+}
+
+.mlb-translation-status {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+}
+
+.mlb-translation-status .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+}
+
+.mlb-has-translation .dashicons {
+	color: #00a32a;
+}
+
+.mlb-no-translation .dashicons {
+	color: #dba617;
+}
+
+.mlb-no-languages {
+	color: #646970;
+	font-style: italic;
+	margin: 16px 0;
+}
+
+/* Action Button */
+.mlb-widget-actions {
+	margin: 16px 0;
+}
+
+#mlb-generate-translation {
+	width: 100%;
+	height: auto;
+	padding: 10px 16px;
+	font-size: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+#mlb-generate-translation .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+}
+
+#mlb-generate-translation:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Progress Bar */
+.mlb-widget-progress {
+	margin: 16px 0;
+}
+
+.mlb-progress-bar {
+	height: 24px;
+	background-color: #f0f0f1;
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 8px;
+}
+
+.mlb-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #2271b1 0%, #135e96 100%);
+	transition: width 0.3s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.mlb-progress-text {
+	margin: 0;
+	text-align: center;
+	color: #50575e;
+	font-size: 13px;
+}
+
+/* Results */
+.mlb-widget-results {
+	margin: 16px 0;
+}
+
+.mlb-results-list {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.mlb-result-overall,
+.mlb-result-language {
+	padding: 12px;
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.mlb-result-overall {
+	background-color: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.mlb-result-overall .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.mlb-result-success {
+	background-color: #ecf7ed;
+	border-color: #68de7c;
+}
+
+.mlb-result-success .dashicons {
+	color: #00a32a;
+}
+
+.mlb-result-error {
+	background-color: #fcf0f1;
+	border-color: #f86368;
+}
+
+.mlb-result-error .dashicons {
+	color: #d63638;
+}
+
+.mlb-result-language {
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 13px;
+}
+
+.mlb-result-language:last-child {
+	border-bottom: none;
+}
+
+.mlb-result-language .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.mlb-lang-success .dashicons {
+	color: #00a32a;
+}
+
+.mlb-lang-error .dashicons {
+	color: #d63638;
+}
+
+.mlb-result-language strong {
+	font-weight: 600;
+	color: #1d2327;
+}
+
+/* Widget Footer */
+.mlb-widget-footer {
+	padding: 12px;
+	background-color: #f6f7f7;
+	border-top: 1px solid #dcdcde;
+	margin: 16px -12px -12px;
+}
+
+.mlb-widget-footer .description {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #646970;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+	.mlb-language-item {
+		padding: 10px 0;
+	}
+
+	#mlb-generate-translation {
+		padding: 12px 16px;
+	}
+}

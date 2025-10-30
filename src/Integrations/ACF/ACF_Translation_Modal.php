@@ -1,9 +1,12 @@
 <?php
 /**
- * ACF Translation integration
+ * ACF Translation Modal Integration
  *
- * Implements Field Registry integration for Advanced Custom Fields.
- * Uses the new provider-agnostic architecture for translation UI.
+ * Provides inline translation modal UI for ACF fields in Classic Editor.
+ * Adds "Translate" buttons to ACF fields that open a modal for translating
+ * field content from the original language post.
+ *
+ * Only works with Classic Editor. Block Editor (Gutenberg) is not supported.
  *
  * @package Multilingual_Bridge
  */
@@ -14,11 +17,11 @@ use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Field_Registry;
 
 /**
- * Class ACF_Translation
+ * Class ACF_Translation_Modal
  *
- * Integrates ACF fields with the translation system
+ * Provides inline translation modal for ACF fields
  */
-class ACF_Translation {
+class ACF_Translation_Modal {
 
 	/**
 	 * Field Registry instance

@@ -6,6 +6,7 @@
  * - Fetching original field values from default language posts
  * - Translating text using configured translation provider
  * - Listing available translation providers
+ * - Bulk translating post meta to multiple languages
  *
  * @package Multilingual_Bridge
  */
@@ -14,6 +15,7 @@ namespace Multilingual_Bridge\REST;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
+use Multilingual_Bridge\Translation\Meta_Translation_Handler;
 use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Request;
@@ -42,10 +44,18 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	private Translation_Manager $translation_manager;
 
 	/**
+	 * Meta Translation Handler instance
+	 *
+	 * @var Meta_Translation_Handler
+	 */
+	private Meta_Translation_Handler $meta_handler;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
+		$this->meta_handler        = new Meta_Translation_Handler();
 	}
 
 	/**
@@ -135,6 +145,40 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_providers' ),
 					'permission_callback' => array( $this, 'permissions_check' ),
+				),
+			)
+		);
+
+		// Automatic translate post meta.
+		register_rest_route(
+			$this->namespace,
+			'/automatic-translate',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'bulk_translate_post' ),
+					'permission_callback' => array( $this, 'permissions_check' ),
+					'args'                => array(
+						'post_id'          => array(
+							'description' => 'Source post ID to translate from',
+							'required'    => true,
+							'type'        => 'integer',
+							'minimum'     => 1,
+						),
+						'target_languages' => array(
+							'description' => 'Array of target language codes',
+							'required'    => true,
+							'type'        => 'array',
+							'items'       => array(
+								'type'      => 'string',
+								'minLength' => 2,
+								'maxLength' => 5,
+								'pattern'   => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
+							),
+							'minItems'    => 1,
+							'maxItems'    => 20,
+						),
+					),
 				),
 			)
 		);
@@ -259,5 +303,175 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		}
 
 		return new WP_REST_Response( $response, 200 );
+	}
+
+	/**
+	 * Bulk translate post meta to multiple languages
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
+	 */
+	public function bulk_translate_post( WP_REST_Request $request ) {
+		$post_id          = (int) $request->get_param( 'post_id' );
+		$target_languages = $request->get_param( 'target_languages' );
+
+		// Verify post exists.
+		$source_post = get_post( $post_id );
+		if ( ! $source_post ) {
+			return new WP_Error(
+				'post_not_found',
+				__( 'Source post not found', 'multilingual-bridge' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Verify post is original/source language.
+		if ( ! WPML_Post_Helper::is_original_post( $post_id ) ) {
+			return new WP_Error(
+				'not_source_post',
+				__( 'Post is not a source language post', 'multilingual-bridge' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$source_language = WPML_Post_Helper::get_language( $post_id );
+		$results         = array(
+			'success'     => true,
+			'source_post' => $post_id,
+			'languages'   => array(),
+		);
+
+		// Process each target language.
+		foreach ( $target_languages as $target_lang ) {
+			$language_result = $this->translate_to_language(
+				$post_id,
+				$source_post,
+				$source_language,
+				$target_lang
+			);
+
+			$results['languages'][ $target_lang ] = $language_result;
+
+			// Mark overall success as false if any language fails.
+			if ( ! $language_result['success'] ) {
+				$results['success'] = false;
+			}
+		}
+
+		return new WP_REST_Response( $results, 200 );
+	}
+
+	/**
+	 * Translate post to a single target language
+	 *
+	 * @param int      $source_post_id Source post ID.
+	 * @param \WP_Post $source_post    Source post object.
+	 * @param string   $source_lang    Source language code.
+	 * @param string   $target_lang    Target language code.
+	 * @return array<string, mixed> Translation result
+	 */
+	private function translate_to_language( int $source_post_id, \WP_Post $source_post, string $source_lang, string $target_lang ): array {
+		$result = array(
+			'success'         => false,
+			'target_post_id'  => 0,
+			'created_new'     => false,
+			'meta_translated' => 0,
+			'meta_skipped'    => 0,
+			'errors'          => array(),
+		);
+
+		// Check if translation already exists.
+		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post_id, $target_lang );
+
+		if ( $existing_translation ) {
+			// Use existing translation.
+			$target_post_id           = $existing_translation;
+			$result['target_post_id'] = $target_post_id;
+			$result['created_new']    = false;
+		} else {
+			// Create new translation post.
+			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $target_lang );
+
+			if ( is_wp_error( $target_post_id ) ) {
+				$result['errors'][] = $target_post_id->get_error_message();
+				return $result;
+			}
+
+			$result['target_post_id'] = $target_post_id;
+			$result['created_new']    = true;
+		}
+
+		// Translate post meta.
+		$meta_results = $this->meta_handler->translate_post_meta(
+			$source_post_id,
+			$target_post_id,
+			$target_lang,
+			$source_lang
+		);
+
+		$result['meta_translated'] = $meta_results['translated'];
+		$result['meta_skipped']    = $meta_results['skipped'];
+
+		// Only include actual critical errors (not skip errors).
+		if ( ! empty( $meta_results['errors'] ) ) {
+			$result['errors'] = array_merge( $result['errors'], $meta_results['errors'] );
+		}
+
+		// Consider success if:
+		// 1. Target post exists
+		// 2. Either some meta was translated, OR there were no critical errors in meta translation.
+		$has_critical_errors = ! empty( $meta_results['errors'] );
+		$result['success']   = $target_post_id > 0 && ! $has_critical_errors;
+
+		return $result;
+	}
+
+	/**
+	 * Create a new translation post
+	 *
+	 * @param \WP_Post $source_post    Source post object.
+	 * @param int      $source_post_id Source post ID.
+	 * @param string   $target_lang    Target language code.
+	 * @return int|WP_Error Target post ID or error
+	 */
+	private function create_translation_post( \WP_Post $source_post, int $source_post_id, string $target_lang ) {
+		// Create post data.
+		$post_data = array(
+			'post_title'   => $source_post->post_title . ' (' . strtoupper( $target_lang ) . ')',
+			'post_content' => $source_post->post_content,
+			'post_excerpt' => $source_post->post_excerpt,
+			'post_status'  => 'draft', // Create as draft for review.
+			'post_type'    => $source_post->post_type,
+			'post_author'  => (int) $source_post->post_author,
+		);
+
+		// Insert post.
+		$target_post_id = wp_insert_post( $post_data, true );
+
+		if ( is_wp_error( $target_post_id ) ) {
+			return $target_post_id;
+		}
+
+		// Set language for new post.
+		$wpml_result = WPML_Post_Helper::set_language( $target_post_id, $target_lang );
+
+		if ( is_wp_error( $wpml_result ) ) {
+			// Clean up created post.
+			wp_delete_post( $target_post_id, true );
+			return $wpml_result;
+		}
+
+		// Now relate the posts as translations.
+		$relation_result = WPML_Post_Helper::relate_posts_as_translations( $target_post_id, $source_post_id, $target_lang );
+
+		if ( is_wp_error( $relation_result ) ) {
+			// Clean up created post.
+			wp_delete_post( $target_post_id, true );
+			return $relation_result;
+		}
+
+		return $target_post_id;
 	}
 }

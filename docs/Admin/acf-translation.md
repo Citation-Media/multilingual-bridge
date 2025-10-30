@@ -41,6 +41,45 @@ Currently supports:
 
 Additional field types can be added using the `multilingual_bridge_acf_supported_types` filter.
 
+## Empty Field Syncing
+
+When using the automatic translation system (via REST API or Bulk Translation Widget), **empty ACF fields are automatically synced to translations**. This ensures translations stay in sync when source fields are cleared.
+
+### How It Works
+
+1. **During Automatic Translation**: When a post is translated via `/automatic-translate` endpoint or the admin widget, the system checks each ACF field
+2. **Empty Detection**: The system detects empty values (null, empty string, empty array)
+3. **Field Deletion**: Empty fields are deleted from translations using ACF's `delete_field()` function
+4. **Valid Values Preserved**: The system correctly identifies `0`, `'0'`, and `false` as valid values that should NOT be deleted
+
+### Implementation
+
+Empty field syncing is handled natively in `Meta_Translation_Handler::handle_acf_meta()` (src/Translation/Meta_Translation_Handler.php:307-315):
+
+```php
+// Handle empty values by syncing them to translations (delete field)
+if ( $this->is_empty_value( $meta_value ) ) {
+    // Delete the field from translation to sync empty state
+    if ( function_exists( 'delete_field' ) ) {
+        delete_field( $field['name'], $target_post_id );
+    }
+    // Return success - empty field was synced
+    return true;
+}
+```
+
+### Use Cases
+
+- **Content Updates**: When you empty a field in the source post, translations automatically reflect this change on next translation
+- **Field Cleanup**: Remove outdated content from all translations by clearing the source field
+- **Data Consistency**: Ensures translations don't retain old values when source is emptied
+
+### Important Notes
+
+- Empty field syncing only occurs during **automatic translation** (REST API or admin widget)
+- Manual field updates in the WordPress admin do NOT trigger syncing (you must re-run automatic translation)
+- The system uses the same logic as `WPML_Post_Helper::sync_empty_acf_fields_to_translations()` for consistency
+
 ## Usage
 
 ### Translation Modal Workflow
