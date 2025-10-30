@@ -247,23 +247,15 @@ class Multilingual_Bridge {
 	}
 
 	/**
-	 * Enqueue a bud entrypoint
+	 * Enqueue a script entrypoint
 	 *
 	 * @param string              $entry Name of the entrypoint defined in webpack.config.js.
 	 * @param array<string,mixed> $localize_data Array of associated data. See https://developer.wordpress.org/reference/functions/wp_localize_script/ .
 	 */
 	private function enqueue_entrypoint( string $entry, array $localize_data = array() ): void {
-		// Try to get WordPress filesystem. If not possible load it.
-		global $wp_filesystem;
-		if ( ! is_a( $wp_filesystem, 'WP_Filesystem_Base' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php'; // @phpstan-ignore requireOnce.fileNotFound
-			WP_Filesystem();
-		}
+		$asset_file = MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.asset.php";
 
-		$filesystem = new \WP_Filesystem_Direct( false );
-		$asset_file = MULTILINGUAL_BRIDGE_PATH . "/build/{$entry}.asset.php";
-
-		if ( ! $filesystem->exists( $asset_file ) ) {
+		if ( ! file_exists( $asset_file ) ) {
 			return;
 		}
 
@@ -274,7 +266,7 @@ class Multilingual_Bridge {
 
 		$js_file = MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js";
 
-		if ( $filesystem->exists( MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.js" ) ) {
+		if ( file_exists( $js_file ) ) {
 			wp_enqueue_script(
 				self::PLUGIN_NAME . "/{$entry}",
 				MULTILINGUAL_BRIDGE_URL . "build/{$entry}.js",
@@ -293,7 +285,9 @@ class Multilingual_Bridge {
 			}
 		}
 
-		if ( $filesystem->exists( MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.css" ) ) {
+		$css_file = MULTILINGUAL_BRIDGE_PATH . "build/{$entry}.css";
+
+		if ( file_exists( $css_file ) ) {
 			wp_enqueue_style(
 				self::PLUGIN_NAME . "/{$entry}",
 				MULTILINGUAL_BRIDGE_URL . "build/{$entry}.css",

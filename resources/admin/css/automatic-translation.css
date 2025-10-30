@@ -63,6 +63,25 @@
 	color: #2c3338;
 }
 
+.mlb-translation-edit-link {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+	color: #2271b1;
+	text-decoration: none;
+	transition: color 0.15s ease;
+}
+
+.mlb-translation-edit-link:hover {
+	color: #135e96;
+}
+
+.mlb-translation-edit-link .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+}
+
 .mlb-translation-status {
 	display: inline-flex;
 	align-items: center;

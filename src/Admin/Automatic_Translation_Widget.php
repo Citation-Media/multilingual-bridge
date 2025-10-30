@@ -28,7 +28,8 @@ class Automatic_Translation_Widget {
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 
 		// Enqueue scripts and styles.
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		// Priority 200 ensures this runs AFTER main script is enqueued (priority 100)
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ), 200 );
 	}
 
 	/**
@@ -41,12 +42,8 @@ class Automatic_Translation_Widget {
 	public function add_meta_box( string $post_type ): void {
 		global $post;
 
-		if ( ! $post ) {
-			return;
-		}
-
 		// Only show on original/source language posts.
-		if ( ! WPML_Post_Helper::is_original_post( $post->ID ) ) {
+		if ( ! $post || ! WPML_Post_Helper::is_original_post( $post->ID ) ) {
 			return;
 		}
 
@@ -74,7 +71,7 @@ class Automatic_Translation_Widget {
 			array( $this, 'render_meta_box' ),
 			$post_type,
 			'side',
-			'default'
+			'high'
 		);
 	}
 
@@ -143,6 +140,14 @@ class Automatic_Translation_Widget {
 									<?php echo esc_html( $language['name'] ?? $lang_code ); ?>
 								</span>
 								<?php if ( $has_translation ) : ?>
+									<a
+										href="<?php echo esc_url( get_edit_post_link( $translation_id ) ); ?>"
+										class="mlb-translation-edit-link"
+										title="<?php esc_attr_e( 'Edit translation', 'multilingual-bridge' ); ?>"
+										target="_blank"
+									>
+										<span class="dashicons dashicons-edit"></span>
+									</a>
 									<span class="mlb-translation-status mlb-has-translation" title="<?php esc_attr_e( 'Translation exists', 'multilingual-bridge' ); ?>">
 										<span class="dashicons dashicons-yes-alt"></span>
 									</span>
@@ -190,7 +195,12 @@ class Automatic_Translation_Widget {
 	}
 
 	/**
-	 * Enqueue JavaScript and CSS
+	 * Enqueue localization data for automatic translation widget
+	 *
+	 * Note: The main admin script is already enqueued by Multilingual_Bridge::define_admin_hooks()
+	 * at priority 100. This method runs at priority 200 to ensure the script is enqueued before
+	 * we try to localize it. This method only adds localization data for the automatic translation
+	 * functionality.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -206,22 +216,22 @@ class Automatic_Translation_Widget {
 			return;
 		}
 
-		// Enqueue the admin script bundle that includes automatic-translation.js.
-		$this->enqueue_admin_script();
-
 		// Localize script for the automatic translation functionality.
+		// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
 		wp_localize_script(
 			'multilingual-bridge/multilingual-bridge-admin',
 			'multilingualBridgeAuto',
 			array(
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-				'apiUrl'  => rest_url( 'multilingual-bridge/v1' ),
-				'strings' => array(
+				'nonce'       => wp_create_nonce( 'wp_rest' ),
+				'apiUrl'      => rest_url( 'multilingual-bridge/v1' ),
+				'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
+				'strings'     => array(
 					'noLanguages'       => __( 'Please select at least one target language.', 'multilingual-bridge' ),
 					'translating'       => __( 'Translating...', 'multilingual-bridge' ),
 					'success'           => __( 'Translation completed successfully!', 'multilingual-bridge' ),
 					'error'             => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
 					'partial'           => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
+					'editTranslation'   => __( 'Edit translation', 'multilingual-bridge' ),
 					/* translators: %s: language name */
 					'processing'        => __( 'Processing language: %s', 'multilingual-bridge' ),
 					'generatingPost'    => __( 'Creating translation post...', 'multilingual-bridge' ),
@@ -230,45 +240,5 @@ class Automatic_Translation_Widget {
 				),
 			)
 		);
-	}
-
-	/**
-	 * Enqueue admin script bundle
-	 *
-	 * Enqueues the built admin JavaScript bundle that includes the automatic
-	 * translation widget functionality.
-	 *
-	 * @return void
-	 */
-	private function enqueue_admin_script(): void {
-		$asset_file = MULTILINGUAL_BRIDGE_PATH . '/build/multilingual-bridge-admin.asset.php';
-
-		if ( ! file_exists( $asset_file ) ) {
-			return;
-		}
-
-		$asset = require $asset_file; // @phpstan-ignore require.fileNotFound
-		if ( ! isset( $asset['dependencies'], $asset['version'] ) ) {
-			return;
-		}
-
-		// Enqueue script.
-		wp_enqueue_script(
-			'multilingual-bridge/multilingual-bridge-admin',
-			MULTILINGUAL_BRIDGE_URL . 'build/multilingual-bridge-admin.js',
-			$asset['dependencies'],
-			$asset['version'],
-			true
-		);
-
-		// Enqueue styles.
-		if ( file_exists( MULTILINGUAL_BRIDGE_PATH . 'build/multilingual-bridge-admin.css' ) ) {
-			wp_enqueue_style(
-				'multilingual-bridge/multilingual-bridge-admin',
-				MULTILINGUAL_BRIDGE_URL . 'build/multilingual-bridge-admin.css',
-				array(),
-				$asset['version']
-			);
-		}
 	}
 }

@@ -146,30 +146,6 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	}
 
 	/**
-	 * Get supported source languages
-	 *
-	 * DeepL supports all languages dynamically, so no hardcoded list is needed.
-	 *
-	 * @return array<string, string>
-	 */
-	public function get_supported_source_languages(): array {
-		return array();
-	}
-
-	/**
-	 * Get supported target languages
-	 *
-	 * DeepL supports all languages dynamically, so no hardcoded list is needed.
-	 *
-	 * @return array<string, string>
-	 */
-	public function get_supported_target_languages(): array {
-		return array();
-	}
-
-
-
-	/**
 	 * Get DeepL API key from wp-config.php constant
 	 *
 	 * @return string|null

@@ -207,31 +207,47 @@
 						</div>`
 					);
 
-					// Update checkbox status icon
-					if (langResult.success && langResult.target_post_id > 0) {
-						checkbox
-							.closest('.mlb-language-item')
-							.find('.mlb-translation-status')
-							.removeClass('mlb-no-translation')
-							.addClass('mlb-has-translation')
-							.attr(
-								'title',
-								multilingualBridgeAuto.strings.success
-							)
-							.find('.dashicons')
-							.removeClass('dashicons-marker')
-							.addClass('dashicons-yes-alt');
-
-						// Update data attributes
-						checkbox
-							.data('has-translation', '1')
-							.data('translation-id', langResult.target_post_id)
-							.attr('data-has-translation', '1')
-							.attr(
-								'data-translation-id',
-								langResult.target_post_id
-							);
+				// Update checkbox status icon
+				if (langResult.success && langResult.target_post_id > 0) {
+					const $languageItem = checkbox.closest('.mlb-language-item');
+					
+					// Add edit link if it doesn't exist
+					if ($languageItem.find('.mlb-translation-edit-link').length === 0) {
+						const editUrl = multilingualBridgeAuto.editPostUrl.replace(
+							'POST_ID',
+							langResult.target_post_id
+						);
+						const $editLink = $(
+							`<a href="${editUrl}" class="mlb-translation-edit-link" title="${multilingualBridgeAuto.strings.editTranslation}" target="_blank">
+								<span class="dashicons dashicons-edit"></span>
+							</a>`
+						);
+						$languageItem.find('.mlb-language-flag').after($editLink);
 					}
+
+					// Update status icon
+					$languageItem
+						.find('.mlb-translation-status')
+						.removeClass('mlb-no-translation')
+						.addClass('mlb-has-translation')
+						.attr(
+							'title',
+							multilingualBridgeAuto.strings.success
+						)
+						.find('.dashicons')
+						.removeClass('dashicons-marker')
+						.addClass('dashicons-yes-alt');
+
+					// Update data attributes
+					checkbox
+						.data('has-translation', '1')
+						.data('translation-id', langResult.target_post_id)
+						.attr('data-has-translation', '1')
+						.attr(
+							'data-translation-id',
+							langResult.target_post_id
+						);
+				}
 				}
 			});
 
