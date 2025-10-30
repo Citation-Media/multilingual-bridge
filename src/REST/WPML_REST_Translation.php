@@ -425,6 +425,20 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$result['errors'] = array_merge( $result['errors'], $meta_results['errors'] );
 		}
 
+		// Trigger wp_update_post to fire WordPress hooks (save_post, etc.) after all changes are complete.
+		// This ensures that other plugins and systems are notified of the translation updates.
+		$update_result = wp_update_post(
+			array(
+				'ID'          => $target_post_id,
+				'post_status' => get_post_status( $target_post_id ), // Preserve current status.
+			),
+			true
+		);
+
+		if ( is_wp_error( $update_result ) ) {
+			$result['errors'][] = $update_result->get_error_message();
+		}
+
 		// Consider success if:
 		// 1. Target post exists
 		// 2. Either some meta was translated, OR there were no critical errors in meta translation.

@@ -177,10 +177,10 @@ class Meta_Translation_Handler {
 				if ( is_wp_error( $handler_result ) ) {
 					// Some errors are just "handler can't process this field" messages.
 					// Only treat as critical errors if not a "skip" type error.
-					// Note: Most skip scenarios now copy values instead of returning errors.
 					$skip_error_codes = array(
-						'acf_not_available', // ACF not active - let other handlers try.
-						'not_acf_field',     // Not an ACF field - let other handlers try.
+						'acf_not_available',           // ACF not active - let other handlers try.
+						'not_acf_field',               // Not an ACF field - let other handlers try.
+						'field_type_not_translatable', // Field type not registered for translation - skip it.
 					);
 
 					if ( ! in_array( $handler_result->get_error_code(), $skip_error_codes, true ) ) {
@@ -410,11 +410,16 @@ class Meta_Translation_Handler {
 		}
 
 		// Check if field type is translatable.
+		// Only process field types registered in Field_Registry (text, textarea, wysiwyg).
+		// Non-translatable field types (image, file, relationship, etc.) are skipped during automatic translation.
 		$field_registry = Field_Registry::instance();
 		if ( ! $field_registry->is_field_type_registered( $field['type'] ) ) {
-			// Field type is not translatable - copy value as-is instead.
-			// Examples: image, file, relationship, taxonomy, user, etc.
-			return update_field( $field['key'], $meta_value, $target_post_id );
+			// Field type is not registered for translation - skip it.
+			// This ensures automatic translation only processes the same field types that have manual translation buttons.
+			return new WP_Error(
+				'field_type_not_translatable',
+				sprintf( 'Field type "%s" is not registered for translation', $field['type'] )
+			);
 		}
 
 		// Only translate string values.
