@@ -14,7 +14,6 @@
 namespace Multilingual_Bridge\Integrations\ACF;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
-use Multilingual_Bridge\Translation\Field_Registry;
 
 /**
  * Class ACF_Translation_Modal
@@ -24,17 +23,10 @@ use Multilingual_Bridge\Translation\Field_Registry;
 class ACF_Translation_Modal {
 
 	/**
-	 * Field Registry instance
-	 *
-	 * @var Field_Registry
-	 */
-	private Field_Registry $field_registry;
-
-	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->field_registry = Field_Registry::instance();
+		// No initialization needed - using static helper methods
 	}
 
 	/**
@@ -51,7 +43,7 @@ class ACF_Translation_Modal {
 	/**
 	 * Add field wrapper attributes for translatable fields
 	 *
-	 * Uses Field_Registry to determine which field types are translatable.
+	 * Uses ACF_Field_Helper to determine which field types are translatable.
 	 * Adds data attributes that JavaScript uses to inject translation UI.
 	 *
 	 * Only works with Classic Editor. Block Editor (Gutenberg) is not supported.
@@ -73,8 +65,8 @@ class ACF_Translation_Modal {
 			return $wrapper;
 		}
 
-		// Check if this field type is registered as translatable.
-		if ( ! $this->field_registry->is_field_type_registered( $field['type'] ) ) {
+		// Check if this field type is translatable.
+		if ( ! ACF_Field_Helper::is_translatable_field_type( $field['type'] ) ) {
 			return $wrapper;
 		}
 

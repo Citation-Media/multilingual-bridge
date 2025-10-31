@@ -20,7 +20,6 @@ use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 use Multilingual_Bridge\Translation\Translation_Manager;
-use Multilingual_Bridge\Translation\Field_Registry;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
 
 /**
@@ -84,7 +83,7 @@ class Multilingual_Bridge {
 	/**
 	 * Initialize the translation system
 	 *
-	 * Registers translation providers and field integrations.
+	 * Registers translation providers.
 	 * This is the central initialization point for the translation architecture.
 	 *
 	 * @since    1.4.0
@@ -106,21 +105,16 @@ class Multilingual_Bridge {
 			$translation_manager->set_default_provider( 'deepl' );
 		}
 
-		// Get Field Registry instance.
-		$field_registry = Field_Registry::instance();
-
 		/**
 		 * Fires after translation system is initialized
 		 *
 		 * Use this hook to:
 		 * - Register custom translation providers
-		 * - Register custom field types
-		 * - Register field integrations (ACF alternatives)
+		 * - Customize ACF field translation behavior
 		 *
 		 * @param Translation_Manager $translation_manager Translation Manager instance
-		 * @param Field_Registry      $field_registry      Field Registry instance
 		 */
-		do_action( 'multilingual_bridge_translation_system_init', $translation_manager, $field_registry );
+		do_action( 'multilingual_bridge_translation_system_init', $translation_manager );
 	}
 
 	/**

@@ -13,6 +13,7 @@
 namespace Multilingual_Bridge\Translation;
 
 use Multilingual_Bridge\Translation\Translation_Manager;
+use Multilingual_Bridge\Integrations\ACF\ACF_Field_Helper;
 use WP_Error;
 
 /**
@@ -152,7 +153,7 @@ class Meta_Translation_Handler {
 			// Check WPML translation preference for this field.
 			// Only translate fields explicitly marked as "translate" in WPML settings.
 			// WPML automatically handles "copy" and "don't translate" fields.
-			$wpml_preference = $this->get_wpml_field_translation_preference( $meta_key, $source_post_id );
+			$wpml_preference = ACF_Field_Helper::get_wpml_translation_preference( $meta_key, $source_post_id );
 			if ( 'translate' !== $wpml_preference ) {
 				// Skip - let WPML handle copy/ignore preferences automatically.
 				++$results['skipped'];
@@ -321,61 +322,6 @@ class Meta_Translation_Handler {
 	}
 
 	/**
-	 * Get WPML translation preference for a custom field
-	 *
-	 * Checks WPML's custom field translation settings to determine if a field
-	 * should be translated, copied, or ignored.
-	 *
-	 * @param string $meta_key      Meta key to check.
-	 * @param int    $source_post_id Source post ID (for post type context).
-	 * @return string Translation preference: 'translate', 'copy', or 'ignore'
-	 *
-	 * @phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-	 */
-	private function get_wpml_field_translation_preference( string $meta_key, int $source_post_id ): string {
-		// Get WPML custom fields translation settings.
-		$wpml_settings = get_option( 'icl_sitepress_settings', array() );
-
-		if ( empty( $wpml_settings ) || ! is_array( $wpml_settings ) ) {
-			// No WPML settings found - default to 'copy' (safe default).
-			return 'copy';
-		}
-
-		// Check if custom_fields_translation setting exists.
-		if ( ! isset( $wpml_settings['custom_fields_translation'] ) || ! is_array( $wpml_settings['custom_fields_translation'] ) ) {
-			// No custom fields settings - default to 'copy'.
-			return 'copy';
-		}
-
-		$custom_fields_settings = $wpml_settings['custom_fields_translation'];
-
-		// Check if this specific field has a translation preference set.
-		if ( ! isset( $custom_fields_settings[ $meta_key ] ) ) {
-			// Field not configured in WPML - default to 'copy'.
-			return 'copy';
-		}
-
-		// Get the preference value.
-		$preference = $custom_fields_settings[ $meta_key ];
-
-		// WPML uses numeric codes:
-		// 0 = "Don't translate" (ignore)
-		// 1 = "Copy" (copy as-is)
-		// 2 = "Translate" (translate the value)
-		// 3 = "Copy once" (copy on first translation, then don't update).
-		switch ( $preference ) {
-			case 2:
-				return 'translate';
-			case 1:
-			case 3: // Treat "copy once" as "copy" for our purposes.
-				return 'copy';
-			case 0:
-			default:
-				return 'ignore';
-		}
-	}
-
-	/**
 	 * Handle ACF field translation
 	 *
 	 * @param string $meta_key       Meta key.
@@ -410,10 +356,9 @@ class Meta_Translation_Handler {
 		}
 
 		// Check if field type is translatable.
-		// Only process field types registered in Field_Registry (text, textarea, wysiwyg).
+		// Only process translatable field types (text, textarea, wysiwyg).
 		// Non-translatable field types (image, file, relationship, etc.) are skipped during automatic translation.
-		$field_registry = Field_Registry::instance();
-		if ( ! $field_registry->is_field_type_registered( $field['type'] ) ) {
+		if ( ! ACF_Field_Helper::is_translatable_field_type( $field['type'] ) ) {
 			// Field type is not registered for translation - skip it.
 			// This ensures automatic translation only processes the same field types that have manual translation buttons.
 			return new WP_Error(
