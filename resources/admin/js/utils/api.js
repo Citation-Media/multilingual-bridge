@@ -130,6 +130,54 @@ function escapeCSSSelector(selector) {
 }
 
 /**
+ * Get current ACF field value from the DOM
+ *
+ * Reads the current value of an ACF field from the page.
+ * This is used to populate the translation field with existing content
+ * so users can edit existing translations instead of starting from scratch.
+ *
+ * Handles different field types:
+ * - text/textarea: Reads input.value
+ * - wysiwyg: Reads from TinyMCE iframe content
+ *
+ * @param {string} fieldKey  - ACF field key/name (with or without acf[] wrapper)
+ * @param {string} fieldType - Optional ACF field type (text, textarea, wysiwyg, etc.)
+ * @return {string} Current field value (empty string if not found)
+ */
+export function getCurrentFieldValue(fieldKey, fieldType = 'text') {
+	// Normalize field name to ACF format (acf[field_name])
+	const acfFieldName = fieldKey.startsWith('acf[')
+		? fieldKey
+		: `acf[${fieldKey}]`;
+
+	// Handle WYSIWYG fields (TinyMCE editor)
+	if (fieldType === 'wysiwyg') {
+		// TinyMCE creates an iframe with ID format: acf[field_name]_ifr
+		const iframeId = `${acfFieldName}_ifr`;
+		const iframe = document.getElementById(iframeId);
+
+		if (iframe && iframe.contentWindow) {
+			const doc = iframe.contentWindow.document;
+			if (doc.body) {
+				return doc.body.innerHTML || '';
+			}
+		}
+
+		// Fall through to textarea if iframe not found (visual editor disabled)
+	}
+
+	// Handle text, textarea, and other standard input fields
+	const escapedFieldKey = escapeCSSSelector(acfFieldName);
+	const input = document.querySelector(`[name="${escapedFieldKey}"]`);
+
+	if (input) {
+		return input.value || '';
+	}
+
+	return '';
+}
+
+/**
  * Update ACF field value in the DOM and trigger change events
  *
  * Finds the ACF input field by name, updates its value, and triggers both

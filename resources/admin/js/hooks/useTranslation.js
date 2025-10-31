@@ -15,7 +15,11 @@
 
 import { useState, useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { loadOriginalValue, translateText } from '../utils/api';
+import {
+	loadOriginalValue,
+	translateText,
+	getCurrentFieldValue,
+} from '../utils/api';
 
 /**
  * Translation modal state management hook
@@ -47,10 +51,14 @@ export function useTranslation(modalData) {
 	const memoizedModalData = useMemo(() => modalData, [modalData]);
 
 	/**
-	 * Load original value from default language post
+	 * Load values when modal opens
 	 *
 	 * Called automatically when modal opens (see TranslationModal useEffect).
-	 * Fetches the meta value from the original post to show translator the source text.
+	 * Loads two values:
+	 * 1. Original value: From the default language post (API call)
+	 * 2. Current value: From the current field in the DOM (local read)
+	 *
+	 * This allows users to see both the source text and any existing translation.
 	 */
 	const loadOriginal = useCallback(async () => {
 		if (!memoizedModalData) {
@@ -61,15 +69,23 @@ export function useTranslation(modalData) {
 			setIsLoading(true);
 			setErrorMessage('');
 
-			const value = await loadOriginalValue(
+			// Load original value from default language post via API
+			const loadedOriginalValue = await loadOriginalValue(
 				memoizedModalData.postId,
 				memoizedModalData.fieldKey
 			);
-			setOriginalValue(value);
+			setOriginalValue(loadedOriginalValue);
+
+			// Load current field value from DOM (existing translation if any)
+			const currentValue = getCurrentFieldValue(
+				memoizedModalData.fieldKey,
+				memoizedModalData.fieldType
+			);
+			setTranslatedValue(currentValue);
 		} catch (error) {
 			setErrorMessage(
 				error.message ||
-					__('Error loading original value', 'multilingual-bridge')
+					__('Error loading field values', 'multilingual-bridge')
 			);
 		} finally {
 			setIsLoading(false);

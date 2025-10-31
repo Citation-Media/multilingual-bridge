@@ -3,16 +3,20 @@
  *
  * Displays a modal dialog for translating ACF fields with:
  * - Original text from default language post (editable)
- * - Translation field (can be auto-filled via DeepL or manually entered)
+ * - Translation field pre-filled with current value (can be edited or auto-translated)
  * - Translate button (calls DeepL API)
  * - Use Translation button (saves to ACF field)
  *
  * Modal Flow:
  * 1. User clicks translate icon on ACF field
- * 2. Modal opens and loads original text from default language post
- * 3. User clicks "Translate" to auto-translate or manually enters translation
- * 4. User clicks "Use Translation" to insert text into ACF field
- * 5. Modal closes and field is populated
+ * 2. Modal opens and loads:
+ *    - Original text from default language post (left column)
+ *    - Current field value from DOM (right column - existing translation if any)
+ * 3. User can:
+ *    - Edit the translation manually
+ *    - Click "Translate" to auto-translate from original
+ * 4. User clicks "Use Translation" to save changes to ACF field
+ * 5. Modal closes and field is updated
  *
  * @package
  */
@@ -148,7 +152,7 @@ export const TranslationModal = ({ isOpen, onClose, modalData }) => {
 					})
 				),
 
-				// Right column: Translation (editable - allows manual translation)
+				// Right column: Translation (pre-filled with current value, editable)
 				createElement(
 					'div',
 					{ className: 'multilingual-bridge-modal-field' },
