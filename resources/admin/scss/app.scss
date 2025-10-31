@@ -321,3 +321,43 @@ $border-radius: 4px;
 	}
 }
 
+// =============================================================================
+// Translation Button Styles
+// =============================================================================
+
+.multilingual-bridge-translate-btn {
+	@include flex-center($spacing-xs);
+	margin-left: $spacing-sm;
+	vertical-align: middle;
+
+	.dashicons {
+		font-size: $font-size-icon;
+		width: 20px;
+		height: 20px;
+		color: $color-text-secondary;
+		transition: color 0.2s ease;
+
+		&:hover {
+			color: #000000;
+		}
+
+		&:active {
+			color: darken(#000000, 10%);
+		}
+	}
+
+	// Ensure spacing between icons
+	.dashicons-editor-paste-text {
+		margin-left: $spacing-xs;
+	}
+}
+
+// Only apply flexbox when translation buttons are present
+.acf-label {
+	// Only apply flex layout when label contains translation buttons
+	label:has(.multilingual-bridge-translate-btn) {
+		@include flex-center($spacing-xs);
+		flex-wrap: wrap;
+	}
+}
+
