@@ -10,6 +10,7 @@
 
 namespace Multilingual_Bridge\Translation;
 
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -230,7 +231,22 @@ class Translation_Manager {
 		 */
 		$text = apply_filters( 'multilingual_bridge_before_translate', $text, $target_lang, $source_lang, $provider );
 
-		$translation = $provider->translate( $text, $target_lang, $source_lang );
+		// Convert language codes to LanguageTag objects.
+		try {
+			$target_tag = LanguageTag::fromString( strtolower( $target_lang ) );
+			$source_tag = ! empty( $source_lang ) ? LanguageTag::fromString( strtolower( $source_lang ) ) : null;
+		} catch ( \PrinsFrank\Standards\InvalidArgumentException $e ) {
+			return new WP_Error(
+				'invalid_language_code',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Invalid language code: %s', 'multilingual-bridge' ),
+					$e->getMessage()
+				)
+			);
+		}
+
+		$translation = $provider->translate( $text, $target_tag, $source_tag );
 
 		if ( is_wp_error( $translation ) ) {
 			return $translation;
