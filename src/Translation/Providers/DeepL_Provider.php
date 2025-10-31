@@ -11,6 +11,7 @@ namespace Multilingual_Bridge\Translation\Providers;
 
 use Multilingual_Bridge\Helpers\Language_Code_Helper;
 use Multilingual_Bridge\Translation\Translation_Provider_Interface;
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -29,6 +30,87 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * API base URL for DeepL Premium API
 	 */
 	private const PREMIUM_API_BASE_URL = 'https://api.deepl.com/v2';
+
+	/**
+	 * Supported target languages by DeepL API
+	 * Based on DeepL documentation: https://developers.deepl.com/docs/resources/supported-languages
+	 *
+	 * @var array<string>
+	 */
+	private const SUPPORTED_TARGET_LANGUAGES = array(
+		'ar',    // Arabic.
+		'bg',    // Bulgarian.
+		'cs',    // Czech.
+		'da',    // Danish.
+		'de',    // German.
+		'el',    // Greek.
+		'en',    // English (unspecified variant for backward compatibility).
+		'en-gb', // English (British).
+		'en-us', // English (American).
+		'es',    // Spanish.
+		'et',    // Estonian.
+		'fi',    // Finnish.
+		'fr',    // French.
+		'hu',    // Hungarian.
+		'id',    // Indonesian.
+		'it',    // Italian.
+		'ja',    // Japanese.
+		'ko',    // Korean.
+		'lt',    // Lithuanian.
+		'lv',    // Latvian.
+		'nb',    // Norwegian (Bokmål).
+		'nl',    // Dutch.
+		'pl',    // Polish.
+		'pt',    // Portuguese (unspecified variant for backward compatibility).
+		'pt-br', // Portuguese (Brazilian).
+		'pt-pt', // Portuguese (European).
+		'ro',    // Romanian.
+		'ru',    // Russian.
+		'sk',    // Slovak.
+		'sl',    // Slovenian.
+		'sv',    // Swedish.
+		'tr',    // Turkish.
+		'uk',    // Ukrainian.
+		'zh',    // Chinese (simplified).
+	);
+
+	/**
+	 * Supported source languages by DeepL API
+	 *
+	 * @var array<string>
+	 */
+	private const SUPPORTED_SOURCE_LANGUAGES = array(
+		'ar',    // Arabic.
+		'bg',    // Bulgarian.
+		'cs',    // Czech.
+		'da',    // Danish.
+		'de',    // German.
+		'el',    // Greek.
+		'en',    // English.
+		'es',    // Spanish.
+		'et',    // Estonian.
+		'fi',    // Finnish.
+		'fr',    // French.
+		'hu',    // Hungarian.
+		'id',    // Indonesian.
+		'it',    // Italian.
+		'ja',    // Japanese.
+		'ko',    // Korean.
+		'lt',    // Lithuanian.
+		'lv',    // Latvian.
+		'nb',    // Norwegian (Bokmål).
+		'nl',    // Dutch.
+		'pl',    // Polish.
+		'pt',    // Portuguese.
+		'ro',    // Romanian.
+		'ru',    // Russian.
+		'sk',    // Slovak.
+		'sl',    // Slovenian.
+		'sv',    // Swedish.
+		'tr',    // Turkish.
+		'uk',    // Ukrainian.
+		'zh',    // Chinese.
+	);
 
 	/**
 	 * Get provider ID
@@ -63,7 +145,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return array<string> Array of supported language codes
 	 */
 	public function get_supported_target_languages(): array {
-		return DeepL_Target_Language::values();
+		return self::SUPPORTED_TARGET_LANGUAGES;
 	}
 
 	/**
@@ -72,7 +154,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return array<string> Array of supported language codes
 	 */
 	public function get_supported_source_languages(): array {
-		return DeepL_Source_Language::values();
+		return self::SUPPORTED_SOURCE_LANGUAGES;
 	}
 
 	/**
@@ -82,7 +164,8 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return bool True if supported, false otherwise
 	 */
 	public function is_target_language_supported( string $language_code ): bool {
-		return DeepL_Target_Language::is_supported( $language_code );
+		$normalized = Language_Code_Helper::normalize( $language_code );
+		return in_array( $normalized, self::SUPPORTED_TARGET_LANGUAGES, true );
 	}
 
 	/**
@@ -92,18 +175,19 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return bool True if supported, false otherwise
 	 */
 	public function is_source_language_supported( string $language_code ): bool {
-		return DeepL_Source_Language::is_supported( $language_code );
+		$normalized = Language_Code_Helper::normalize( $language_code );
+		return in_array( $normalized, self::SUPPORTED_SOURCE_LANGUAGES, true );
 	}
 
 	/**
 	 * Translate text using DeepL API
 	 *
-	 * @param string $text        Text to translate.
-	 * @param string $target_lang Target language code.
-	 * @param string $source_lang Source language code (optional).
+	 * @param string           $text        Text to translate.
+	 * @param LanguageTag      $target_lang Target language tag.
+	 * @param LanguageTag|null $source_lang Source language tag (optional).
 	 * @return string|WP_Error Translated text or error
 	 */
-	public function translate( string $text, string $target_lang, string $source_lang = '' ) {
+	public function translate( string $text, LanguageTag $target_lang, ?LanguageTag $source_lang = null ) {
 		$api_key = $this->get_api_key();
 
 		if ( ! $api_key ) {
@@ -117,26 +201,30 @@ class DeepL_Provider implements Translation_Provider_Interface {
 			return '';
 		}
 
+		// Convert LanguageTag to string for validation.
+		$target_lang_str = (string) $target_lang;
+
 		// Validate target language.
-		if ( ! $this->is_target_language_supported( $target_lang ) ) {
+		if ( ! $this->is_target_language_supported( $target_lang_str ) ) {
 			return new WP_Error(
 				'deepl_unsupported_target_language',
 				sprintf(
 					/* translators: %s: Language code */
 					__( 'Target language "%s" is not supported by DeepL', 'multilingual-bridge' ),
-					$target_lang
+					$target_lang_str
 				)
 			);
 		}
 
 		// Validate source language if provided.
-		if ( ! empty( $source_lang ) && ! $this->is_source_language_supported( $source_lang ) ) {
+		$source_lang_str = $source_lang ? (string) $source_lang : '';
+		if ( ! empty( $source_lang_str ) && ! $this->is_source_language_supported( $source_lang_str ) ) {
 			return new WP_Error(
 				'deepl_unsupported_source_language',
 				sprintf(
 					/* translators: %s: Language code */
 					__( 'Source language "%s" is not supported by DeepL', 'multilingual-bridge' ),
-					$source_lang
+					$source_lang_str
 				)
 			);
 		}
@@ -144,14 +232,14 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		$api_url = $this->get_api_url() . '/translate';
 
 		// Prepare request data with normalized and uppercase language codes for DeepL.
-		$deepl_target = Language_Code_Helper::to_deepl_format( $target_lang );
+		$deepl_target = Language_Code_Helper::to_deepl_format( $target_lang_str );
 		$data         = array(
 			'text'        => array( $text ),
 			'target_lang' => $deepl_target,
 		);
 
-		if ( ! empty( $source_lang ) ) {
-			$deepl_source        = Language_Code_Helper::to_deepl_format( $source_lang );
+		if ( ! empty( $source_lang_str ) ) {
+			$deepl_source        = Language_Code_Helper::to_deepl_format( $source_lang_str );
 			$data['source_lang'] = $deepl_source;
 		}
 

@@ -9,6 +9,7 @@
 
 namespace Multilingual_Bridge\Translation;
 
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -43,12 +44,12 @@ interface Translation_Provider_Interface {
 	/**
 	 * Translate text from source to target language
 	 *
-	 * @param string $text        Text to translate.
-	 * @param string $target_lang Target language code (ISO 639-1 or language tag like 'zh-hans').
-	 * @param string $source_lang Source language code (optional, auto-detect if empty).
+	 * @param string           $text        Text to translate.
+	 * @param LanguageTag      $target_lang Target language tag (e.g., 'en', 'zh-hans').
+	 * @param LanguageTag|null $source_lang Source language tag (optional, auto-detect if null).
 	 * @return string|WP_Error Translated text on success, WP_Error on failure.
 	 */
-	public function translate( string $text, string $target_lang, string $source_lang = '' );
+	public function translate( string $text, LanguageTag $target_lang, ?LanguageTag $source_lang = null );
 
 	/**
 	 * Get list of supported target languages
