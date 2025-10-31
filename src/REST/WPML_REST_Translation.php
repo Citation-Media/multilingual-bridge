@@ -13,6 +13,7 @@
 
 namespace Multilingual_Bridge\REST;
 
+use Multilingual_Bridge\Helpers\Language_Code_Helper;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
@@ -111,19 +112,21 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'maxLength'   => 50000,
 						),
 						'target_lang' => array(
-							'description' => __( 'Target language code (ISO 639-1)', 'multilingual-bridge' ),
-							'required'    => true,
-							'type'        => 'string',
-							'minLength'   => 2,
-							'maxLength'   => 5,
-							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
+							'description'       => __( 'Target language code (ISO 639-1 or language tag, e.g., "en", "zh-hans")', 'multilingual-bridge' ),
+							'required'          => true,
+							'type'              => 'string',
+							'minLength'         => 2,
+							'maxLength'         => 10,
+							'validate_callback' => array( $this, 'validate_language_code' ),
+							'sanitize_callback' => array( Language_Code_Helper::class, 'normalize' ),
 						),
 						'source_lang' => array(
-							'description' => __( 'Source language code (ISO 639-1), auto-detect if not provided', 'multilingual-bridge' ),
-							'type'        => 'string',
-							'minLength'   => 2,
-							'maxLength'   => 5,
-							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
+							'description'       => __( 'Source language code (ISO 639-1 or language tag), auto-detect if not provided', 'multilingual-bridge' ),
+							'type'              => 'string',
+							'minLength'         => 2,
+							'maxLength'         => 10,
+							'validate_callback' => array( $this, 'validate_language_code' ),
+							'sanitize_callback' => array( Language_Code_Helper::class, 'normalize' ),
 						),
 						'provider'    => array(
 							'description' => __( 'Translation provider ID (uses default if not specified)', 'multilingual-bridge' ),
@@ -166,14 +169,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'minimum'     => 1,
 						),
 						'target_languages' => array(
-							'description'       => __( 'Array of target language codes', 'multilingual-bridge' ),
+							'description'       => __( 'Array of target language codes (ISO 639-1 or language tags)', 'multilingual-bridge' ),
 							'required'          => true,
 							'type'              => 'array',
 							'items'             => array(
 								'type'      => 'string',
 								'minLength' => 2,
 								'maxLength' => 10,
-								'pattern'   => '^[a-z]{2}(-[a-z]{2,4})?$',
 							),
 							'minItems'          => 1,
 							'maxItems'          => 20,
@@ -195,11 +197,55 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	}
 
 	/**
+	 * Validate language code parameter
+	 *
+	 * @param mixed                                 $value   Language code to validate.
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @param string                                $param   Parameter name.
+	 * @return bool|WP_Error True if valid, WP_Error otherwise
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
+	 */
+	public function validate_language_code( $value, $request, $param ) {
+		// Allow empty for optional parameters like source_lang.
+		if ( empty( $value ) ) {
+			return true;
+		}
+
+		if ( ! is_string( $value ) ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				sprintf(
+					/* translators: %s: Parameter name */
+					__( '%s must be a string', 'multilingual-bridge' ),
+					$param
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! Language_Code_Helper::is_valid_language_code( $value ) ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				sprintf(
+					/* translators: 1: Parameter name, 2: Invalid language code */
+					__( '%1$s contains invalid language code: %2$s. Expected ISO 639-1 code or language tag (e.g., "en", "zh-hans")', 'multilingual-bridge' ),
+					$param,
+					$value
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Validate target languages array
 	 *
-	 * @param mixed                          $value   Array of language codes.
+	 * @param mixed                                 $value   Array of language codes.
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
-	 * @param string                         $param   Parameter name.
+	 * @param string                                $param   Parameter name.
 	 * @return bool|WP_Error True if valid, WP_Error otherwise
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
@@ -233,13 +279,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				);
 			}
 
-			// Check if language code format is valid (e.g., "en", "zh-hans").
-			if ( ! preg_match( '/^[a-z]{2}(-[a-z]{2,4})?$/', $lang_code ) ) {
+			// Use type-safe validation via Language_Code_Helper.
+			if ( ! Language_Code_Helper::is_valid_language_code( $lang_code ) ) {
 				return new WP_Error(
 					'rest_invalid_param',
 					sprintf(
 						/* translators: %s: Invalid language code */
-						__( 'Invalid language code format: %s', 'multilingual-bridge' ),
+						__( 'Invalid language code: %s. Expected ISO 639-1 code or language tag (e.g., "en", "zh-hans")', 'multilingual-bridge' ),
 						$lang_code
 					),
 					array( 'status' => 400 )
