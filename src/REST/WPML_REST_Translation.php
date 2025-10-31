@@ -166,17 +166,18 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'minimum'     => 1,
 						),
 						'target_languages' => array(
-							'description' => __( 'Array of target language codes', 'multilingual-bridge' ),
-							'required'    => true,
-							'type'        => 'array',
-							'items'       => array(
+							'description'       => __( 'Array of target language codes', 'multilingual-bridge' ),
+							'required'          => true,
+							'type'              => 'array',
+							'items'             => array(
 								'type'      => 'string',
 								'minLength' => 2,
-								'maxLength' => 5,
-								'pattern'   => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
+								'maxLength' => 10,
+								'pattern'   => '^[a-z]{2}(-[a-z]{2,4})?$',
 							),
-							'minItems'    => 1,
-							'maxItems'    => 20,
+							'minItems'          => 1,
+							'maxItems'          => 20,
+							'validate_callback' => array( $this, 'validate_target_languages' ),
 						),
 					),
 				),
@@ -191,6 +192,62 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 */
 	public function permissions_check(): bool {
 		return current_user_can( 'edit_posts' );
+	}
+
+	/**
+	 * Validate target languages array
+	 *
+	 * @param mixed                          $value   Array of language codes.
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @param string                         $param   Parameter name.
+	 * @return bool|WP_Error True if valid, WP_Error otherwise
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
+	 */
+	public function validate_target_languages( $value, $request, $param ) {
+		// Validate that value is an array.
+		if ( ! is_array( $value ) ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				__( 'target_languages must be an array', 'multilingual-bridge' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( empty( $value ) ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				__( 'target_languages cannot be empty', 'multilingual-bridge' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Validate each language code.
+		foreach ( $value as $lang_code ) {
+			// Ensure each item is a string.
+			if ( ! is_string( $lang_code ) ) {
+				return new WP_Error(
+					'rest_invalid_param',
+					__( 'All language codes must be strings', 'multilingual-bridge' ),
+					array( 'status' => 400 )
+				);
+			}
+
+			// Check if language code format is valid (e.g., "en", "zh-hans").
+			if ( ! preg_match( '/^[a-z]{2}(-[a-z]{2,4})?$/', $lang_code ) ) {
+				return new WP_Error(
+					'rest_invalid_param',
+					sprintf(
+						/* translators: %s: Invalid language code */
+						__( 'Invalid language code format: %s', 'multilingual-bridge' ),
+						$lang_code
+					),
+					array( 'status' => 400 )
+				);
+			}
+		}
+
+		return true;
 	}
 
 	/**
