@@ -44,9 +44,29 @@ interface Translation_Provider_Interface {
 	 * Translate text from source to target language
 	 *
 	 * @param string $text        Text to translate.
-	 * @param string $target_lang Target language code (ISO 639-1).
+	 * @param string $target_lang Target language code (ISO 639-1 or language tag like 'zh-hans').
 	 * @param string $source_lang Source language code (optional, auto-detect if empty).
 	 * @return string|WP_Error Translated text on success, WP_Error on failure.
 	 */
 	public function translate( string $text, string $target_lang, string $source_lang = '' );
+
+	/**
+	 * Get list of supported target languages
+	 *
+	 * Returns array of language codes that this provider can translate TO.
+	 * Language codes should be lowercase (e.g., 'en', 'de', 'zh', 'zh-hans').
+	 *
+	 * @return array<string> Array of supported target language codes
+	 */
+	public function get_supported_target_languages(): array;
+
+	/**
+	 * Get list of supported source languages
+	 *
+	 * Returns array of language codes that this provider can translate FROM.
+	 * Language codes should be lowercase (e.g., 'en', 'de', 'zh', 'zh-hans').
+	 *
+	 * @return array<string> Array of supported source language codes
+	 */
+	public function get_supported_source_languages(): array;
 }
