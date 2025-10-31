@@ -23,13 +23,6 @@ use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 class ACF_Translation_Modal {
 
 	/**
-	 * Constructor
-	 */
-	public function __construct() {
-		// No initialization needed - using static helper methods
-	}
-
-	/**
 	 * Initialize hooks
 	 */
 	public function register_hooks(): void {
@@ -65,8 +58,8 @@ class ACF_Translation_Modal {
 			return $wrapper;
 		}
 
-		// Check if this field type is translatable.
-		if ( ! ACF_Field_Helper::is_translatable_field_type( $field['type'] ) ) {
+		// Check if this field is translatable (both type and WPML preference).
+		if ( ! ACF_Field_Helper::is_translatable_field( $field['key'], $post->ID ) ) {
 			return $wrapper;
 		}
 

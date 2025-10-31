@@ -72,13 +72,10 @@ class ACF_Field_Helper {
 		// 0 = "Don't translate" (ignore)
 		// 1 = "Copy" (copy as-is)
 		// 2 = "Translate" (translate the value)
-		// 3 = "Copy once" (copy on first translation, then don't update).
 		switch ( $preference ) {
 			case 2:
 				return 'translate';
 			case 1:
-			case 3: // Treat "copy once" as "copy" for our purposes.
-				return 'copy';
 			case 0:
 				return 'ignore';
 			default:
@@ -88,7 +85,41 @@ class ACF_Field_Helper {
 	}
 
 	/**
-	 * Check if a field type is translatable
+	 * Check if a field is translatable
+	 *
+	 * Validates both:
+	 * 1. Field type is in the translatable types list
+	 * 2. WPML translation preference is set to "translate"
+	 *
+	 * @param string $meta_key  ACF field name/meta key.
+	 * @param int    $post_id   Post ID for context.
+	 * @return bool True if field is translatable
+	 */
+	public static function is_translatable_field( string $meta_key, int $post_id ): bool {
+		// Get ACF field object.
+		$field = self::get_field_object( $meta_key, $post_id );
+
+		// Not an ACF field.
+		if ( ! $field ) {
+			return false;
+		}
+
+		// Check if field type is in translatable types list.
+		if ( ! self::is_translatable_field_type( $field['type'] ) ) {
+			return false;
+		}
+
+		// Check WPML translation preference.
+		$preference = self::get_wpml_translation_preference( $meta_key, $post_id );
+
+		return 'translate' === $preference;
+	}
+
+	/**
+	 * Check if a field type is translatable (type check only)
+	 *
+	 * This method only checks if the field TYPE supports translation.
+	 * Use is_translatable_field() to check both type and WPML preference.
 	 *
 	 * @param string $field_type ACF field type.
 	 * @return bool True if field type is translatable

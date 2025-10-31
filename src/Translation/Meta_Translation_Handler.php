@@ -344,12 +344,11 @@ class Meta_Translation_Handler {
 			return true;
 		}
 
-		// Check if field type is translatable.
-		// Only process translatable field types (text, textarea, wysiwyg).
-		// Non-translatable field types (image, file, relationship, etc.) are skipped during automatic translation.
+		// The field type and WPML preference check is already done above (line 145).
+		// This handler only processes fields with WPML preference = 'translate'.
+		// Additional field type validation to ensure we only translate supported types.
 		if ( ! ACF_Field_Helper::is_translatable_field_type( $field['type'] ) ) {
 			// Field type is not registered for translation - skip it.
-			// This ensures automatic translation only processes the same field types that have manual translation buttons.
 			return new WP_Error(
 				'field_type_not_translatable',
 				sprintf( 'Field type "%s" is not registered for translation', $field['type'] )
