@@ -410,7 +410,7 @@ export const AutomaticTranslationWidget = ({
 				'p',
 				{ className: 'description' },
 				__(
-					'This will translate all translatable post meta (ACF fields, custom fields, etc.) to the selected languages.',
+					'This will translate all translatable ACF fields to the selected languages.',
 					'multilingual-bridge'
 				)
 			)
