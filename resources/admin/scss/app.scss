@@ -342,7 +342,7 @@ $border-radius: 4px;
 		}
 
 		&:active {
-			color: darken(#000000, 10%);
+			color: #1a1a1a; // Slightly lighter than pure black
 		}
 	}
 
@@ -358,6 +358,17 @@ $border-radius: 4px;
 	label:has(.multilingual-bridge-translate-btn) {
 		@include flex-center($spacing-xs);
 		flex-wrap: wrap;
+	}
+}
+
+// =============================================================================
+// Automatic Translation Widget - Language Checkboxes
+// =============================================================================
+
+.mlb-language-item {
+	// Override WordPress CheckboxControl margin-bottom
+	.components-base-control__field {
+		margin-bottom: 0 !important;
 	}
 }
 
