@@ -124,6 +124,38 @@
 	gap: 8px;
 }
 
+.mlb-result-overall .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.mlb-result-success .dashicons {
+	color: #00a32a;
+}
+
+.mlb-result-error .dashicons {
+	color: #d63638;
+}
+
+.mlb-result-language .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.mlb-lang-success .dashicons {
+	color: #00a32a;
+}
+
+.mlb-lang-error .dashicons {
+	color: #d63638;
+}
+
 #mlb-generate-translation .dashicons {
 	width: 20px;
 	height: 20px;
@@ -191,30 +223,14 @@
 	border-bottom: 1px solid #dcdcde;
 }
 
-.mlb-result-overall .dashicons {
-	width: 20px;
-	height: 20px;
-	font-size: 20px;
-	flex-shrink: 0;
-	margin-top: 1px;
-}
-
 .mlb-result-success {
 	background-color: #ecf7ed;
 	border-color: #68de7c;
 }
 
-.mlb-result-success .dashicons {
-	color: #00a32a;
-}
-
 .mlb-result-error {
 	background-color: #fcf0f1;
 	border-color: #f86368;
-}
-
-.mlb-result-error .dashicons {
-	color: #d63638;
 }
 
 .mlb-result-language {
@@ -224,22 +240,6 @@
 
 .mlb-result-language:last-child {
 	border-bottom: none;
-}
-
-.mlb-result-language .dashicons {
-	width: 18px;
-	height: 18px;
-	font-size: 18px;
-	flex-shrink: 0;
-	margin-top: 1px;
-}
-
-.mlb-lang-success .dashicons {
-	color: #00a32a;
-}
-
-.mlb-lang-error .dashicons {
-	color: #d63638;
 }
 
 .mlb-result-language strong {
@@ -275,7 +275,9 @@
 }
 
 /* Responsive adjustments */
+
 @media screen and (max-width: 782px) {
+
 	.mlb-language-item {
 		padding: 10px 0;
 	}
