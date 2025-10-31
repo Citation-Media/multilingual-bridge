@@ -31,87 +31,6 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	private const PREMIUM_API_BASE_URL = 'https://api.deepl.com/v2';
 
 	/**
-	 * Supported target languages by DeepL API
-	 * Based on DeepL documentation: https://developers.deepl.com/docs/resources/supported-languages
-	 *
-	 * @var array<string>
-	 */
-	private const SUPPORTED_TARGET_LANGUAGES = array(
-		'ar',    // Arabic.
-		'bg',    // Bulgarian.
-		'cs',    // Czech.
-		'da',    // Danish.
-		'de',    // German.
-		'el',    // Greek.
-		'en',    // English (unspecified variant for backward compatibility).
-		'en-gb', // English (British).
-		'en-us', // English (American).
-		'es',    // Spanish.
-		'et',    // Estonian.
-		'fi',    // Finnish.
-		'fr',    // French.
-		'hu',    // Hungarian.
-		'id',    // Indonesian.
-		'it',    // Italian.
-		'ja',    // Japanese.
-		'ko',    // Korean.
-		'lt',    // Lithuanian.
-		'lv',    // Latvian.
-		'nb',    // Norwegian (Bokmål).
-		'nl',    // Dutch.
-		'pl',    // Polish.
-		'pt',    // Portuguese (unspecified variant for backward compatibility).
-		'pt-br', // Portuguese (Brazilian).
-		'pt-pt', // Portuguese (European).
-		'ro',    // Romanian.
-		'ru',    // Russian.
-		'sk',    // Slovak.
-		'sl',    // Slovenian.
-		'sv',    // Swedish.
-		'tr',    // Turkish.
-		'uk',    // Ukrainian.
-		'zh',    // Chinese (simplified).
-	);
-
-	/**
-	 * Supported source languages by DeepL API
-	 *
-	 * @var array<string>
-	 */
-	private const SUPPORTED_SOURCE_LANGUAGES = array(
-		'ar',    // Arabic.
-		'bg',    // Bulgarian.
-		'cs',    // Czech.
-		'da',    // Danish.
-		'de',    // German.
-		'el',    // Greek.
-		'en',    // English.
-		'es',    // Spanish.
-		'et',    // Estonian.
-		'fi',    // Finnish.
-		'fr',    // French.
-		'hu',    // Hungarian.
-		'id',    // Indonesian.
-		'it',    // Italian.
-		'ja',    // Japanese.
-		'ko',    // Korean.
-		'lt',    // Lithuanian.
-		'lv',    // Latvian.
-		'nb',    // Norwegian (Bokmål).
-		'nl',    // Dutch.
-		'pl',    // Polish.
-		'pt',    // Portuguese.
-		'ro',    // Romanian.
-		'ru',    // Russian.
-		'sk',    // Slovak.
-		'sl',    // Slovenian.
-		'sv',    // Swedish.
-		'tr',    // Turkish.
-		'uk',    // Ukrainian.
-		'zh',    // Chinese.
-	);
-
-	/**
 	 * Get provider ID
 	 *
 	 * @return string
@@ -144,7 +63,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return array<string> Array of supported language codes
 	 */
 	public function get_supported_target_languages(): array {
-		return self::SUPPORTED_TARGET_LANGUAGES;
+		return DeepL_Target_Language::values();
 	}
 
 	/**
@@ -153,7 +72,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return array<string> Array of supported language codes
 	 */
 	public function get_supported_source_languages(): array {
-		return self::SUPPORTED_SOURCE_LANGUAGES;
+		return DeepL_Source_Language::values();
 	}
 
 	/**
@@ -163,8 +82,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return bool True if supported, false otherwise
 	 */
 	public function is_target_language_supported( string $language_code ): bool {
-		$normalized = Language_Code_Helper::normalize( $language_code );
-		return in_array( $normalized, self::SUPPORTED_TARGET_LANGUAGES, true );
+		return DeepL_Target_Language::is_supported( $language_code );
 	}
 
 	/**
@@ -174,8 +92,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return bool True if supported, false otherwise
 	 */
 	public function is_source_language_supported( string $language_code ): bool {
-		$normalized = Language_Code_Helper::normalize( $language_code );
-		return in_array( $normalized, self::SUPPORTED_SOURCE_LANGUAGES, true );
+		return DeepL_Source_Language::is_supported( $language_code );
 	}
 
 	/**
