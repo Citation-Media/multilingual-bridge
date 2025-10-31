@@ -14,7 +14,6 @@
 namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
-use Multilingual_Bridge\Admin\Meta_Bulk_Translation;
 use Multilingual_Bridge\Admin\Automatic_Translation_Widget;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
@@ -268,6 +267,10 @@ class Multilingual_Bridge {
 				$asset['version'],
 				true
 			);
+
+			// CRITICAL: Enqueue WordPress component styles for Classic Editor
+			// Classic Editor doesn't load these by default, but we need them for Modal
+			wp_enqueue_style( 'wp-components' );
 
 			// Potentially add localize data
 			if ( ! empty( $localize_data ) ) {
