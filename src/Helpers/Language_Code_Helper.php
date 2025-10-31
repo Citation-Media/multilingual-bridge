@@ -76,8 +76,9 @@ class Language_Code_Helper {
 	/**
 	 * Convert language code to format expected by DeepL API
 	 *
-	 * DeepL expects uppercase language codes (e.g., 'EN', 'DE', 'ZH')
-	 * For Chinese, it uses special format: 'ZH' for simplified, 'ZH' for traditional
+	 * DeepL expects uppercase language codes (e.g., 'EN', 'DE').
+	 * For Chinese, DeepL supports 'ZH' for simplified Chinese.
+	 * Traditional Chinese (ZH-HANT) is not currently supported by DeepL.
 	 *
 	 * @param string $language_code Language code to convert.
 	 * @return string|null Uppercase language code for DeepL or null if invalid
@@ -101,7 +102,10 @@ class Language_Code_Helper {
 	 */
 	public static function get_all_iso_639_1_codes(): array {
 		$cases = LanguageAlpha2::cases();
-		return array_map( fn( LanguageAlpha2 $enum_case ) => $enum_case->value, $cases );
+		return array_map(
+			fn( LanguageAlpha2 $enum_case ): string => $enum_case->value,
+			$cases
+		);
 	}
 
 	/**

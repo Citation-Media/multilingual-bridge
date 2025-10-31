@@ -94,6 +94,6 @@
     },
     "require": {
         "php": ">=8.1",
-        "prinsfrank/standards": "*"
+        "prinsfrank/standards": "^3.13"
     }
 }
