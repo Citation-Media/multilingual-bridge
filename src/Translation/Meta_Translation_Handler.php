@@ -33,7 +33,7 @@ class Meta_Translation_Handler {
 	/**
 	 * Registered meta handlers
 	 *
-	 * @var array<string, callable>
+	 * @var array<string, array{callback: callable, priority: int}>
 	 */
 	private array $handlers = array();
 
@@ -49,36 +49,25 @@ class Meta_Translation_Handler {
 	 * Register default meta handlers
 	 */
 	private function register_default_handlers(): void {
-		// ACF handler (highest priority).
-		$this->register_handler( 'acf', array( $this, 'handle_acf_meta' ), 10 );
-
-		// Regular post meta handler (lowest priority).
-		$this->register_handler( 'post_meta', array( $this, 'handle_post_meta' ), 100 );
-	}
-
-	/**
-	 * Register a meta translation handler
-	 *
-	 * @param string   $handler_id Unique handler identifier.
-	 * @param callable $callback   Handler callback function.
-	 * @param int      $priority   Handler priority (lower = earlier).
-	 * @return bool True on success
-	 */
-	public function register_handler( string $handler_id, callable $callback, int $priority = 50 ): bool {
-		$this->handlers[ $handler_id ] = array(
-			'callback' => $callback,
-			'priority' => $priority,
+		// ACF handler (highest priority - runs first).
+		$this->handlers['acf'] = array(
+			'callback' => array( $this, 'handle_acf_meta' ),
+			'priority' => 10,
 		);
 
-		// Sort by priority.
+		// Regular post meta handler (lowest priority - runs last).
+		$this->handlers['post_meta'] = array(
+			'callback' => array( $this, 'handle_post_meta' ),
+			'priority' => 100,
+		);
+
+		// Sort handlers by priority (lower number = higher priority).
 		uasort(
 			$this->handlers,
 			function ( $a, $b ) {
 				return $a['priority'] <=> $b['priority'];
 			}
 		);
-
-		return true;
 	}
 
 	/**

@@ -101,27 +101,6 @@ class Translation_Manager {
 	}
 
 	/**
-	 * Unregister a translation provider
-	 *
-	 * @param string $provider_id Provider ID to remove.
-	 * @return bool True on success, false if provider not found
-	 */
-	public function unregister_provider( string $provider_id ): bool {
-		if ( ! isset( $this->providers[ $provider_id ] ) ) {
-			return false;
-		}
-
-		unset( $this->providers[ $provider_id ] );
-
-		// Reset default if we removed it.
-		if ( $this->default_provider === $provider_id ) {
-			$this->default_provider = $this->get_first_available_provider_id();
-		}
-
-		return true;
-	}
-
-	/**
 	 * Get a specific provider by ID
 	 *
 	 * @param string $provider_id Provider ID.
@@ -267,20 +246,5 @@ class Translation_Manager {
 		 * @param Translation_Provider_Interface $provider    Provider instance
 		 */
 		return apply_filters( 'multilingual_bridge_after_translate', $translation, $text, $target_lang, $source_lang, $provider );
-	}
-
-	/**
-	 * Get first available provider ID
-	 *
-	 * @return string|null Provider ID or null if none available
-	 */
-	private function get_first_available_provider_id(): ?string {
-		foreach ( $this->providers as $provider_id => $provider ) {
-			if ( $provider->is_available() ) {
-				return $provider_id;
-			}
-		}
-
-		return null;
 	}
 }

@@ -449,17 +449,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	}
 
 	/**
-	 * Create a new translation post
+	 * Translate post content (title, content, excerpt)
 	 *
-	 * @param \WP_Post $source_post    Source post object.
-	 * @param int      $source_post_id Source post ID.
-	 * @param string   $target_lang    Target language code.
-	 * @return int|WP_Error Target post ID or error
+	 * @param \WP_Post $source_post Source post object.
+	 * @param string   $target_lang Target language code.
+	 * @param string   $source_lang Source language code.
+	 * @return array{title: string, content: string, excerpt: string}|WP_Error Translated content or error
 	 */
-	private function create_translation_post( \WP_Post $source_post, int $source_post_id, string $target_lang ) {
-		// Get source language for translation.
-		$source_lang = WPML_Post_Helper::get_language( $source_post_id );
-
+	private function translate_post_content( \WP_Post $source_post, string $target_lang, string $source_lang ) {
 		// Translate post title.
 		$translated_title = $this->translation_manager->translate(
 			$source_post->post_title,
@@ -499,11 +496,37 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			}
 		}
 
+		return array(
+			'title'   => $translated_title,
+			'content' => $translated_content,
+			'excerpt' => $translated_excerpt,
+		);
+	}
+
+	/**
+	 * Create a new translation post
+	 *
+	 * @param \WP_Post $source_post    Source post object.
+	 * @param int      $source_post_id Source post ID.
+	 * @param string   $target_lang    Target language code.
+	 * @return int|WP_Error Target post ID or error
+	 */
+	private function create_translation_post( \WP_Post $source_post, int $source_post_id, string $target_lang ) {
+		// Get source language for translation.
+		$source_lang = WPML_Post_Helper::get_language( $source_post_id );
+
+		// Translate post content.
+		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+
+		if ( is_wp_error( $translated ) ) {
+			return $translated;
+		}
+
 		// Create post data with translated content.
 		$post_data = array(
-			'post_title'   => $translated_title,
-			'post_content' => $translated_content,
-			'post_excerpt' => $translated_excerpt,
+			'post_title'   => $translated['title'],
+			'post_content' => $translated['content'],
+			'post_excerpt' => $translated['excerpt'],
 			'post_status'  => 'draft', // Create as draft for review.
 			'post_type'    => $source_post->post_type,
 			'post_author'  => (int) $source_post->post_author,
@@ -547,51 +570,19 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * @return int|WP_Error Target post ID or error
 	 */
 	private function update_translation_post( \WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang ) {
-		// Translate post title.
-		$translated_title = $this->translation_manager->translate(
-			$source_post->post_title,
-			$target_lang,
-			$source_lang
-		);
+		// Translate post content.
+		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
 
-		if ( is_wp_error( $translated_title ) ) {
-			return $translated_title;
-		}
-
-		// Translate post content (if not empty).
-		$translated_content = '';
-		if ( ! empty( $source_post->post_content ) ) {
-			$translated_content = $this->translation_manager->translate(
-				$source_post->post_content,
-				$target_lang,
-				$source_lang
-			);
-
-			if ( is_wp_error( $translated_content ) ) {
-				return $translated_content;
-			}
-		}
-
-		// Translate post excerpt (if not empty).
-		$translated_excerpt = '';
-		if ( ! empty( $source_post->post_excerpt ) ) {
-			$translated_excerpt = $this->translation_manager->translate(
-				$source_post->post_excerpt,
-				$target_lang,
-				$source_lang
-			);
-
-			if ( is_wp_error( $translated_excerpt ) ) {
-				return $translated_excerpt;
-			}
+		if ( is_wp_error( $translated ) ) {
+			return $translated;
 		}
 
 		// Update post data with translated content.
 		$post_data = array(
 			'ID'           => $target_post_id,
-			'post_title'   => $translated_title,
-			'post_content' => $translated_content,
-			'post_excerpt' => $translated_excerpt,
+			'post_title'   => $translated['title'],
+			'post_content' => $translated['content'],
+			'post_excerpt' => $translated['excerpt'],
 		);
 
 		// Update post.

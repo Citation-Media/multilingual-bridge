@@ -34,7 +34,7 @@ class ACF_Field_Helper {
 	 * @param int    $post_id  Post ID for context.
 	 * @return array<string, mixed>|null ACF field object or null if not found
 	 */
-	public static function get_field_object( string $meta_key, int $post_id ): ?array {
+	private static function get_field_object( string $meta_key, int $post_id ): ?array {
 		if ( ! function_exists( 'get_field_object' ) ) {
 			return null;
 		}
@@ -42,30 +42,6 @@ class ACF_Field_Helper {
 		$field = get_field_object( $meta_key, $post_id );
 
 		return is_array( $field ) ? $field : null;
-	}
-
-	/**
-	 * Check if a field is an ACF field
-	 *
-	 * @param string $meta_key Meta key to check.
-	 * @param int    $post_id  Post ID for context.
-	 * @return bool True if field is an ACF field
-	 */
-	public static function is_acf_field( string $meta_key, int $post_id ): bool {
-		return null !== self::get_field_object( $meta_key, $post_id );
-	}
-
-	/**
-	 * Get ACF field type
-	 *
-	 * @param string $meta_key Meta key.
-	 * @param int    $post_id  Post ID for context.
-	 * @return string|null Field type or null if not an ACF field
-	 */
-	public static function get_field_type( string $meta_key, int $post_id ): ?string {
-		$field = self::get_field_object( $meta_key, $post_id );
-
-		return $field['type'] ?? null;
 	}
 
 	/**
@@ -150,14 +126,5 @@ class ACF_Field_Helper {
 			'multilingual_bridge_acf_translatable_field_types',
 			self::DEFAULT_TRANSLATABLE_TYPES
 		);
-	}
-
-	/**
-	 * Check if ACF is available
-	 *
-	 * @return bool True if ACF is active and available
-	 */
-	public static function is_acf_available(): bool {
-		return function_exists( 'get_field_object' );
 	}
 }
