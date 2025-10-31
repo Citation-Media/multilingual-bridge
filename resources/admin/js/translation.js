@@ -190,12 +190,16 @@ document.addEventListener('DOMContentLoaded', function () {
 	 *
 	 * Listens for save event from modal. Updates the ACF field
 	 * value in the DOM and triggers change events.
+	 *
+	 * Handles different field types:
+	 * - text/textarea: Direct value update
+	 * - wysiwyg: Updates TinyMCE editor content
 	 */
 	document.addEventListener(
 		'multilingual-bridge:save-translation',
 		function (event) {
-			const { fieldKey, value } = event.detail;
-			updateACFField(fieldKey, value);
+			const { fieldKey, value, fieldType } = event.detail;
+			updateACFField(fieldKey, value, fieldType);
 		}
 	);
 });

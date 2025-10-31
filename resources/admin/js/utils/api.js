@@ -135,16 +135,69 @@ function escapeCSSSelector(selector) {
  * Finds the ACF input field by name, updates its value, and triggers both
  * native and ACF-specific change events to ensure proper state synchronization.
  *
+ * ACF fields use the naming format: acf[field_name]
+ * This function accepts either format:
+ * - Plain name: "my_field" → searches for acf[my_field]
+ * - Full ACF name: "acf[my_field]" → searches as-is
+ *
+ * Field type handling:
+ * - text/textarea: Direct value update
+ * - wysiwyg: Updates TinyMCE iframe content
+ * - Other types: Falls back to direct value update
+ *
  * Why trigger multiple events:
  * - Native 'change' event: For browser/framework listeners
  * - ACF.trigger(): For ACF's internal state management
  *
- * @param {string} fieldKey - ACF field key/name
- * @param {string} value    - New value to set
+ * @param {string} fieldKey  - ACF field key/name (with or without acf[] wrapper)
+ * @param {string} value     - New value to set
+ * @param {string} fieldType - Optional ACF field type (text, textarea, wysiwyg, etc.)
  * @return {boolean} True if field was updated, false if field not found
  */
-export function updateACFField(fieldKey, value) {
-	const escapedFieldKey = escapeCSSSelector(fieldKey);
+export function updateACFField(fieldKey, value, fieldType = 'text') {
+	// Normalize field name to ACF format (acf[field_name])
+	// If already in ACF format, use as-is; otherwise wrap it
+	const acfFieldName = fieldKey.startsWith('acf[')
+		? fieldKey
+		: `acf[${fieldKey}]`;
+
+	// Handle WYSIWYG fields (TinyMCE editor)
+	if (fieldType === 'wysiwyg') {
+		// TinyMCE creates an iframe with ID format: acf[field_name]_ifr
+		const iframeId = `${acfFieldName}_ifr`;
+		const iframe = document.getElementById(iframeId);
+
+		if (iframe && iframe.contentWindow) {
+			const doc = iframe.contentWindow.document;
+			if (doc.body) {
+				doc.body.innerHTML = value;
+
+				// Trigger change on the textarea that TinyMCE is bound to
+				const textarea = document.querySelector(
+					`[name="${escapeCSSSelector(acfFieldName)}"]`
+				);
+				if (textarea) {
+					textarea.value = value;
+					textarea.dispatchEvent(
+						new Event('change', { bubbles: true })
+					);
+
+					// eslint-disable-next-line no-undef
+					if (typeof acf !== 'undefined' && acf.trigger) {
+						// eslint-disable-next-line no-undef
+						acf.trigger('change', textarea);
+					}
+				}
+
+				return true;
+			}
+		}
+
+		// Fall through to regular input handling if iframe not found
+	}
+
+	// Handle text, textarea, and other standard input fields
+	const escapedFieldKey = escapeCSSSelector(acfFieldName);
 	const input = document.querySelector(`[name="${escapedFieldKey}"]`);
 
 	if (input) {
