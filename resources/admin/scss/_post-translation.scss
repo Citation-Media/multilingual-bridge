@@ -41,6 +41,10 @@
 	}
 }
 
+.mlb-widget-success {
+	margin: 0 0 12px !important;
+}
+
 .mlb-language-list {
 	margin: 0;
 }
@@ -110,6 +114,37 @@
 
 .mlb-no-translation .dashicons {
 	color: #dba617;
+}
+
+// Highlight newly created/updated translations
+.mlb-new-translation {
+	animation: mlb-success-pulse 0.6s ease-in-out;
+
+	.dashicons {
+		animation: mlb-icon-scale 0.4s ease-in-out;
+	}
+}
+
+@keyframes mlb-success-pulse {
+	0%,
+	100% {
+		background-color: transparent;
+	}
+
+	50% {
+		background-color: #ecf7ed;
+	}
+}
+
+@keyframes mlb-icon-scale {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.3);
+	}
 }
 
 .mlb-no-languages {

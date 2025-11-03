@@ -7,7 +7,12 @@
  * @package
  */
 
-import { createElement, Fragment, useState } from '@wordpress/element';
+import {
+	createElement,
+	Fragment,
+	useState,
+	useEffect,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, CheckboxControl, Notice } from '@wordpress/components';
 import { usePostTranslation } from '../hooks/usePostTranslation';
@@ -24,6 +29,7 @@ import { usePostTranslation } from '../hooks/usePostTranslation';
  * @param {boolean}  props.checked        - Checkbox checked state
  * @param {Function} props.onChange       - Checkbox change handler
  * @param {string}   props.editPostUrl    - URL template for editing posts
+ * @param {boolean}  props.isNewTranslation - Whether this is a newly created translation
  * @return {JSX.Element} Language checkbox item
  */
 const LanguageCheckboxItem = ({
@@ -33,6 +39,7 @@ const LanguageCheckboxItem = ({
 	checked,
 	onChange,
 	editPostUrl,
+	isNewTranslation,
 }) => {
 	const editUrl = editPostUrl.replace('POST_ID', translationId);
 
@@ -64,7 +71,7 @@ const LanguageCheckboxItem = ({
 			'span',
 			{
 				className: hasTranslation
-					? 'mlb-translation-status mlb-has-translation'
+					? `mlb-translation-status mlb-has-translation${isNewTranslation ? ' mlb-new-translation' : ''}`
 					: 'mlb-translation-status mlb-no-translation',
 				title: hasTranslation
 					? __('Translation exists', 'multilingual-bridge')
@@ -80,107 +87,63 @@ const LanguageCheckboxItem = ({
 };
 
 /**
- * Translation Results Component
+ * Translation Errors Component
  *
- * Displays the results of the post translation operation.
+ * Displays only errors from the post translation operation.
  *
- * @param {Object}   props             - Component props
- * @param {Object}   props.result      - Translation API result
- * @param {string[]} props.languages   - Selected language codes
- * @param {Object}   props.langNames   - Map of language codes to names
- * @param {string}   props.editPostUrl - URL template for editing posts
- * @return {JSX.Element} Results display
+ * @param {Object}   props           - Component props
+ * @param {Object}   props.result    - Translation API result
+ * @param {string[]} props.languages - Selected language codes
+ * @param {Object}   props.langNames - Map of language codes to names
+ * @return {JSX.Element|null} Errors display or null if no errors
  */
-const TranslationResults = ({ result, languages, langNames, editPostUrl }) => {
-	const overallClass = result.success
-		? 'mlb-result-success'
-		: 'mlb-result-error';
-	const overallMessage = result.success
-		? __('Translation completed successfully!', 'multilingual-bridge')
-		: __('Translation completed with some errors.', 'multilingual-bridge');
-	const overallIcon = result.success
-		? 'dashicons-yes-alt'
-		: 'dashicons-warning';
-
-	return createElement(
-		'div',
-		{ className: 'mlb-results-list' },
-
-		// Overall status
-		createElement(
-			'div',
-			{ className: `mlb-result-overall ${overallClass}` },
-			createElement('span', { className: `dashicons ${overallIcon}` }),
-			createElement('strong', null, overallMessage)
-		),
-
-		// Individual language results
-		...languages.map((langCode) => {
+const TranslationErrors = ({ result, languages, langNames }) => {
+	// Only show errors, not successful results
+	const errors = languages
+		.map((langCode) => {
 			const langResult = result.languages[langCode];
-			if (!langResult) {
+			if (!langResult || langResult.success) {
 				return null;
 			}
 
-			const statusClass = langResult.success
-				? 'mlb-lang-success'
-				: 'mlb-lang-error';
-			const statusIcon = langResult.success
-				? 'dashicons-yes-alt'
-				: 'dashicons-dismiss';
 			const langName = langNames[langCode] || langCode;
-
-			let statusContent = '';
-			if (langResult.success && langResult.target_post_id > 0) {
-				const editUrl = editPostUrl.replace(
-					'POST_ID',
-					langResult.target_post_id
-				);
-				const linkText = langResult.created_new
-					? __('New translation created.', 'multilingual-bridge')
-					: __('Translation updated.', 'multilingual-bridge');
-
-				return createElement(
-					'div',
-					{
-						className: `mlb-result-language ${statusClass}`,
-						key: langCode,
-					},
-					createElement('span', {
-						className: `dashicons ${statusIcon}`,
-					}),
-					createElement('strong', null, `${langName}: `),
-					createElement('span', null, linkText + ' '),
-					createElement(
-						'a',
-						{
-							href: editUrl,
-							target: '_blank',
-							rel: 'noopener noreferrer',
-							className: 'mlb-edit-link',
-						},
-						__('Edit Post', 'multilingual-bridge')
-					)
-				);
-			} else if (langResult.success) {
-				statusContent = __(
-					'Translation completed.',
-					'multilingual-bridge'
-				);
-			} else {
-				statusContent = langResult.errors.join(', ');
-			}
+			const statusContent = langResult.errors.join(', ');
 
 			return createElement(
 				'div',
 				{
-					className: `mlb-result-language ${statusClass}`,
+					className: 'mlb-result-language mlb-lang-error',
 					key: langCode,
 				},
-				createElement('span', { className: `dashicons ${statusIcon}` }),
+				createElement('span', {
+					className: 'dashicons dashicons-dismiss',
+				}),
 				createElement('strong', null, `${langName}: `),
 				createElement('span', null, statusContent)
 			);
 		})
+		.filter(Boolean);
+
+	// If no errors, don't render anything
+	if (errors.length === 0) {
+		return null;
+	}
+
+	// Show overall error message and individual errors
+	return createElement(
+		'div',
+		{ className: 'mlb-results-list' },
+		createElement(
+			'div',
+			{ className: 'mlb-result-overall mlb-result-error' },
+			createElement('span', { className: 'dashicons dashicons-warning' }),
+			createElement(
+				'strong',
+				null,
+				__('Translation completed with some errors.', 'multilingual-bridge')
+			)
+		),
+		...errors
 	);
 };
 
@@ -235,10 +198,14 @@ export const PostTranslationWidget = ({
 		result,
 		errorMessage,
 		translate,
+		updatedTranslations,
 	} = usePostTranslation(postId, targetLanguages, translations);
 
 	// Local validation error state
 	const [validationError, setValidationError] = useState(null);
+
+	// Track newly translated languages to highlight them
+	const [newlyTranslated, setNewlyTranslated] = useState({});
 
 	// Get language names for display
 	const langNames = Object.fromEntries(
@@ -259,10 +226,38 @@ export const PostTranslationWidget = ({
 			return;
 		}
 
-		// Clear any previous validation errors
+		// Clear any previous validation errors and highlights
 		setValidationError(null);
+		setNewlyTranslated({});
+		
+		// Execute translation (async handled in hook)
 		translate();
 	};
+
+	// Watch for translation results to update newly translated state
+	useEffect(() => {
+		if (result && !isTranslating) {
+			const newTranslations = {};
+			selectedLanguages.forEach((langCode) => {
+				const langResult = result.languages?.[langCode];
+				if (langResult && langResult.success) {
+					newTranslations[langCode] = true;
+				}
+			});
+
+			// Update newly translated state
+			if (Object.keys(newTranslations).length > 0) {
+				setNewlyTranslated(newTranslations);
+
+				// Clear the highlight after 3 seconds
+				const timer = setTimeout(() => {
+					setNewlyTranslated({});
+				}, 3000);
+
+				return () => clearTimeout(timer);
+			}
+		}
+	}, [result, isTranslating, selectedLanguages]);
 
 	return createElement(
 		'div',
@@ -295,6 +290,21 @@ export const PostTranslationWidget = ({
 						Fragment,
 						null,
 
+						// Success notification (shown after successful translation)
+						result &&
+							result.success &&
+							!isTranslating &&
+							Object.keys(newlyTranslated).length > 0 &&
+							createElement(
+								Notice,
+								{
+									status: 'success',
+									isDismissible: false,
+									className: 'mlb-widget-success',
+								},
+								__('Translation completed successfully!', 'multilingual-bridge')
+							),
+
 						// Language checkboxes
 						createElement(
 							'div',
@@ -302,10 +312,11 @@ export const PostTranslationWidget = ({
 							...Object.entries(targetLanguages).map(
 								([langCode, language]) => {
 									const hasTranslation =
-										translations[langCode] !== undefined;
+										updatedTranslations[langCode] !== undefined;
 									const translationId = hasTranslation
-										? translations[langCode]
+										? updatedTranslations[langCode]
 										: 0;
+									const isNewTranslation = newlyTranslated[langCode] === true;
 
 									return createElement(LanguageCheckboxItem, {
 										key: langCode,
@@ -320,6 +331,7 @@ export const PostTranslationWidget = ({
 										onChange: () =>
 											toggleLanguage(langCode),
 										editPostUrl,
+										isNewTranslation,
 									});
 								}
 							)
@@ -384,19 +396,19 @@ export const PostTranslationWidget = ({
 								errorMessage
 							),
 
-						// Results (only shown after translation completes)
+						// Translation errors only (successful translations shown in language list)
 						result &&
+							!result.success &&
 							createElement(
 								'div',
 								{
 									className: 'mlb-widget-results',
 									style: { display: 'block' },
 								},
-								createElement(TranslationResults, {
+								createElement(TranslationErrors, {
 									result,
 									languages: selectedLanguages,
 									langNames,
-									editPostUrl,
 								})
 							)
 					)
