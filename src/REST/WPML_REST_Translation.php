@@ -124,12 +124,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'maxLength'   => 5,
 							'pattern'     => '^[a-zA-Z]{2}(-[a-zA-Z]{2})?$',
 						),
-						'provider'    => array(
-							'description' => __( 'Translation provider ID (uses default if not specified)', 'multilingual-bridge' ),
-							'type'        => 'string',
-							'minLength'   => 1,
-							'maxLength'   => 50,
-						),
 					),
 				),
 			)
@@ -300,14 +294,12 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$text        = $request->get_param( 'text' );
 		$target_lang = $request->get_param( 'target_lang' );
 		$source_lang = $request->get_param( 'source_lang' ) ?? '';
-		$provider_id = $request->get_param( 'provider' );
 
-		// Use Translation Manager to translate.
+		// Use Translation Manager to translate (provider managed by Translation Manager).
 		$translation = $this->translation_manager->translate(
 			$text,
 			$target_lang,
-			$source_lang,
-			$provider_id
+			$source_lang
 		);
 
 		if ( is_wp_error( $translation ) ) {
@@ -317,7 +309,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		return new WP_REST_Response(
 			array(
 				'translation' => $translation,
-				'provider'    => $provider_id ?? $this->translation_manager->get_default_provider_id(),
+				'provider'    => $this->translation_manager->get_default_provider_id(),
 			),
 			200
 		);
