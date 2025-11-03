@@ -567,6 +567,17 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			return $relation_result;
 		}
 
+		// Copy custom fields marked as "Copy" in WPML settings.
+		// This ensures ACF fields and other custom fields configured as "Copy" mode
+		// are properly copied from the source post to the translation.
+		global $sitepress;
+		if ( $sitepress && method_exists( $sitepress, 'copy_custom_fields' ) ) {
+			$sitepress->copy_custom_fields( $source_post_id, $target_post_id );
+		}
+
+		// Trigger action for other plugins that may need to hook into field copying.
+		do_action( 'wpml_after_copy_custom_fields', $source_post_id, $target_post_id );
+
 		return $target_post_id;
 	}
 
@@ -601,6 +612,17 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
+
+		// Copy custom fields marked as "Copy" in WPML settings.
+		// This ensures ACF fields and other custom fields configured as "Copy" mode
+		// are properly synced when updating existing translations.
+		global $sitepress;
+		if ( $sitepress && method_exists( $sitepress, 'copy_custom_fields' ) ) {
+			$sitepress->copy_custom_fields( $source_post->ID, $target_post_id );
+		}
+
+		// Trigger action for other plugins that may need to hook into field copying.
+		do_action( 'wpml_after_copy_custom_fields', $source_post->ID, $target_post_id );
 
 		return $target_post_id;
 	}
