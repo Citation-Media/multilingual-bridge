@@ -136,12 +136,6 @@
 	justify-content: center;
 	gap: 8px;
 
-	.dashicons {
-		width: 20px;
-		height: 20px;
-		font-size: 20px;
-	}
-
 	&:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
@@ -203,6 +197,11 @@
 	display: flex;
 	align-items: flex-start;
 	gap: 8px;
+
+	.dashicons {
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
 }
 
 .mlb-result-overall {
@@ -213,8 +212,6 @@
 		width: 20px;
 		height: 20px;
 		font-size: 20px;
-		flex-shrink: 0;
-		margin-top: 1px;
 	}
 }
 
@@ -265,8 +262,6 @@
 		width: 18px;
 		height: 18px;
 		font-size: 18px;
-		flex-shrink: 0;
-		margin-top: 1px;
 	}
 }
 
@@ -276,6 +271,13 @@
 
 .mlb-lang-error .dashicons {
 	color: #d63638;
+}
+
+// More specific ID-based dashicon styles must come after class-based ones
+#mlb-generate-translation .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
 }
 
 // =============================================================================
@@ -301,6 +303,7 @@
 // =============================================================================
 
 @media screen and (max-width: 782px) {
+
 	.mlb-language-item {
 		padding: 10px 0;
 	}

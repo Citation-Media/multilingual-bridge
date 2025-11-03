@@ -183,9 +183,9 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Validate target languages array
 	 *
-	 * @param mixed                          $value   Array of language codes.
+	 * @param mixed                                 $value   Array of language codes.
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
-	 * @param string                         $param   Parameter name.
+	 * @param string                                $param   Parameter name.
 	 * @return bool|WP_Error True if valid, WP_Error otherwise
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint

@@ -326,6 +326,7 @@ $border-radius: 4px;
 // =============================================================================
 
 .multilingual-bridge-translate-btn {
+
 	@include flex-center($spacing-xs);
 	margin-left: $spacing-sm;
 	vertical-align: middle;
@@ -338,7 +339,7 @@ $border-radius: 4px;
 		transition: color 0.2s ease;
 
 		&:hover {
-			color: #000000;
+			color: #000;
 		}
 
 		&:active {
@@ -356,6 +357,7 @@ $border-radius: 4px;
 .acf-label {
 	// Only apply flex layout when label contains translation buttons
 	label:has(.multilingual-bridge-translate-btn) {
+
 		@include flex-center($spacing-xs);
 		flex-wrap: wrap;
 	}
