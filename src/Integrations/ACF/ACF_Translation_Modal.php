@@ -36,7 +36,7 @@ class ACF_Translation_Modal {
 	/**
 	 * Add field wrapper attributes for translatable fields
 	 *
-	 * Uses ACF_Field_Helper to determine which field types are translatable.
+	 * Uses ACF_Translation_Handler to determine which field types are translatable.
 	 * Adds data attributes that JavaScript uses to inject translation UI.
 	 *
 	 * Only works with Classic Editor. Block Editor (Gutenberg) is not supported.
@@ -59,7 +59,7 @@ class ACF_Translation_Modal {
 		}
 
 		// Check if this field is translatable (both type and WPML preference).
-		if ( ! ACF_Field_Helper::is_translatable_field( $field['key'], $post->ID ) ) {
+		if ( ! ACF_Translation_Handler::is_translatable_field( $field['key'], $post->ID ) ) {
 			return $wrapper;
 		}
 

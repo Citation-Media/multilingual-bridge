@@ -2,8 +2,13 @@
 /**
  * Meta Translation Handler
  *
- * Handles translation of post meta, automatically detecting and routing
- * to appropriate handlers (ACF, regular meta, etc.).
+ * Handles translation of regular post meta fields.
+ * Routes ACF fields to ACF_Translation_Handler for specialized processing.
+ *
+ * This class focuses on:
+ * - Regular WordPress post meta translation
+ * - Routing ACF fields to ACF_Translation_Handler
+ * - Managing translation workflow and results
  *
  * Extensible via hooks to support custom meta types.
  *
@@ -13,7 +18,7 @@
 namespace Multilingual_Bridge\Translation;
 
 use Multilingual_Bridge\Translation\Translation_Manager;
-use Multilingual_Bridge\Integrations\ACF\ACF_Field_Helper;
+use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
 use WP_Error;
 
 /**
@@ -31,6 +36,13 @@ class Meta_Translation_Handler {
 	private Translation_Manager $translation_manager;
 
 	/**
+	 * ACF Translation Handler instance
+	 *
+	 * @var ACF_Translation_Handler
+	 */
+	private ACF_Translation_Handler $acf_handler;
+
+	/**
 	 * Registered meta handlers
 	 *
 	 * @var array<string, array{callback: callable, priority: int}>
@@ -42,6 +54,7 @@ class Meta_Translation_Handler {
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
+		$this->acf_handler         = new ACF_Translation_Handler();
 		$this->register_default_handlers();
 	}
 
@@ -132,7 +145,7 @@ class Meta_Translation_Handler {
 
 			// Skip ACF field key references (e.g., _autoscout-id = "field_5ff8033f42629").
 			// These must be preserved exactly and never translated.
-			if ( $this->is_acf_field_key_reference( $meta_key, $meta_value ) ) {
+			if ( ACF_Translation_Handler::is_acf_field_key_reference( $meta_key, $meta_value ) ) {
 				// Copy the field key reference as-is to maintain ACF structure.
 				// update_post_meta( $target_post_id, $meta_key, $meta_value );
 				++$results['skipped'];
@@ -142,7 +155,7 @@ class Meta_Translation_Handler {
 			// Check WPML translation preference for this field.
 			// Only translate fields explicitly marked as "translate" in WPML settings.
 			// WPML automatically handles "copy" and "don't translate" fields.
-			$wpml_preference = ACF_Field_Helper::get_wpml_translation_preference( $meta_key, $source_post_id );
+			$wpml_preference = ACF_Translation_Handler::get_wpml_translation_preference( $meta_key, $source_post_id );
 			if ( 'translate' !== $wpml_preference ) {
 				// Skip - let WPML handle copy/ignore preferences automatically.
 				++$results['skipped'];
@@ -217,35 +230,6 @@ class Meta_Translation_Handler {
 	}
 
 	/**
-	 * Check if a value is truly empty (for ACF field syncing)
-	 *
-	 * We want to sync: null, '', [] (empty array)
-	 * We don't want to sync: 0, '0', false (valid values)
-	 *
-	 * @param mixed $value The value to check.
-	 * @return bool True if value is empty and should be synced as deleted
-	 */
-	private function is_empty_value( $value ): bool {
-		// Null is empty.
-		if ( null === $value ) {
-			return true;
-		}
-
-		// Empty string is empty.
-		if ( '' === $value ) {
-			return true;
-		}
-
-		// Empty array is empty.
-		if ( array() === $value ) {
-			return true;
-		}
-
-		// Everything else is not empty (including 0, '0', false).
-		return false;
-	}
-
-	/**
 	 * Check if meta key should be skipped
 	 *
 	 * @param string $meta_key Meta key to check.
@@ -276,42 +260,9 @@ class Meta_Translation_Handler {
 	}
 
 	/**
-	 * Check if a meta value is an ACF field key reference
-	 *
-	 * ACF stores field key references as meta with underscore prefix.
-	 * Example: _autoscout-id = "field_5ff8033f42629"
-	 * These should never be translated.
-	 *
-	 * @param string $meta_key   Meta key to check.
-	 * @param mixed  $meta_value Meta value to check.
-	 * @return bool True if this is an ACF field key reference
-	 */
-	private function is_acf_field_key_reference( string $meta_key, $meta_value ): bool {
-		// Must start with underscore (ACF pattern).
-		if ( ! str_starts_with( $meta_key, '_' ) ) {
-			return false;
-		}
-
-		// Value must be a string.
-		if ( ! is_string( $meta_value ) ) {
-			return false;
-		}
-
-		// Check if value looks like an ACF field key (starts with "field_").
-		if ( str_starts_with( $meta_value, 'field_' ) ) {
-			return true;
-		}
-
-		// Use ACF's function if available for more accurate detection.
-		if ( function_exists( 'acf_is_field_key' ) && acf_is_field_key( $meta_value ) ) {
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Handle ACF field translation
+	 *
+	 * Delegates to ACF_Translation_Handler for specialized ACF processing.
 	 *
 	 * @param string $meta_key       Meta key.
 	 * @param mixed  $meta_value     Meta value.
@@ -322,59 +273,15 @@ class Meta_Translation_Handler {
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
 	private function handle_acf_meta( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, string $target_language, string $source_language ) {
-		// Check if ACF is active.
-		if ( ! function_exists( 'get_field_object' ) ) {
-			return new WP_Error( 'acf_not_available', 'ACF is not available' );
-		}
-
-		// Get ACF field object.
-		$field = get_field_object( $meta_key, $source_post_id );
-
-		if ( ! $field ) {
-			return new WP_Error( 'not_acf_field', 'Not an ACF field' );
-		}
-
-		// Handle empty values by syncing them to translations (delete field).
-		if ( $this->is_empty_value( $meta_value ) ) {
-			// Delete the field from translation to sync empty state.
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
-			// Return success - empty field was synced.
-			return true;
-		}
-
-		// The field type and WPML preference check is already done above (line 145).
-		// This handler only processes fields with WPML preference = 'translate'.
-		// Additional field type validation to ensure we only translate supported types.
-		if ( ! ACF_Field_Helper::is_translatable_field_type( $field['type'] ) ) {
-			// Field type is not registered for translation - skip it.
-			return new WP_Error(
-				'field_type_not_translatable',
-				sprintf( 'Field type "%s" is not registered for translation', $field['type'] )
-			);
-		}
-
-		// Only translate string values.
-		if ( ! is_string( $meta_value ) ) {
-			// Non-string value for translatable field type - copy as-is.
-			// This handles cases like arrays or serialized data.
-			return update_field( $field['key'], $meta_value, $target_post_id );
-		}
-
-		// Translate the value.
-		$translated_value = $this->translation_manager->translate(
+		// Delegate to ACF Translation Handler.
+		return $this->acf_handler->translate_field(
+			$meta_key,
 			$meta_value,
+			$source_post_id,
+			$target_post_id,
 			$target_language,
 			$source_language
 		);
-
-		if ( is_wp_error( $translated_value ) ) {
-			return $translated_value;
-		}
-
-		// Update target post meta.
-		return update_field( $field['key'], $translated_value, $target_post_id );
 	}
 
 	/**
