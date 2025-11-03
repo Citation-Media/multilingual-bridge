@@ -22,13 +22,13 @@ import { usePostTranslation } from '../hooks/usePostTranslation';
  *
  * Renders a single language checkbox with translation status indicator.
  *
- * @param {Object}   props                - Component props
- * @param {string}   props.langName       - Language display name
- * @param {boolean}  props.hasTranslation - Whether translation exists
- * @param {number}   props.translationId  - Existing translation post ID
- * @param {boolean}  props.checked        - Checkbox checked state
- * @param {Function} props.onChange       - Checkbox change handler
- * @param {string}   props.editPostUrl    - URL template for editing posts
+ * @param {Object}   props                  - Component props
+ * @param {string}   props.langName         - Language display name
+ * @param {boolean}  props.hasTranslation   - Whether translation exists
+ * @param {number}   props.translationId    - Existing translation post ID
+ * @param {boolean}  props.checked          - Checkbox checked state
+ * @param {Function} props.onChange         - Checkbox change handler
+ * @param {string}   props.editPostUrl      - URL template for editing posts
  * @param {boolean}  props.isNewTranslation - Whether this is a newly created translation
  * @return {JSX.Element} Language checkbox item
  */
@@ -140,7 +140,10 @@ const TranslationErrors = ({ result, languages, langNames }) => {
 			createElement(
 				'strong',
 				null,
-				__('Translation completed with some errors.', 'multilingual-bridge')
+				__(
+					'Translation completed with some errors.',
+					'multilingual-bridge'
+				)
 			)
 		),
 		...errors
@@ -229,7 +232,7 @@ export const PostTranslationWidget = ({
 		// Clear any previous validation errors and highlights
 		setValidationError(null);
 		setNewlyTranslated({});
-		
+
 		// Execute translation (async handled in hook)
 		translate();
 	};
@@ -302,7 +305,10 @@ export const PostTranslationWidget = ({
 									isDismissible: false,
 									className: 'mlb-widget-success',
 								},
-								__('Translation completed successfully!', 'multilingual-bridge')
+								__(
+									'Translation completed successfully!',
+									'multilingual-bridge'
+								)
 							),
 
 						// Language checkboxes
@@ -312,11 +318,13 @@ export const PostTranslationWidget = ({
 							...Object.entries(targetLanguages).map(
 								([langCode, language]) => {
 									const hasTranslation =
-										updatedTranslations[langCode] !== undefined;
+										updatedTranslations[langCode] !==
+										undefined;
 									const translationId = hasTranslation
 										? updatedTranslations[langCode]
 										: 0;
-									const isNewTranslation = newlyTranslated[langCode] === true;
+									const isNewTranslation =
+										newlyTranslated[langCode] === true;
 
 									return createElement(LanguageCheckboxItem, {
 										key: langCode,

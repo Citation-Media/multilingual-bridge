@@ -19,11 +19,7 @@ import { __ } from '@wordpress/i18n';
  * @param {Object} translations    - Existing translations object
  * @return {Object} Translation state and methods
  */
-export const usePostTranslation = (
-	postId,
-	targetLanguages,
-	translations
-) => {
+export const usePostTranslation = (postId, targetLanguages, translations) => {
 	// Selected language codes for translation
 	const [selectedLanguages, setSelectedLanguages] = useState([]);
 
