@@ -6,7 +6,7 @@
  * - Fetching original field values from default language posts
  * - Translating text using configured translation provider
  * - Listing available translation providers
- * - Bulk translating post meta to multiple languages
+ * - One-time post translation to multiple languages (overwrites existing translations)
  *
  * @package Multilingual_Bridge
  */
@@ -149,14 +149,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			)
 		);
 
-		// Automatic translate post meta.
+		// One-time post translation (overwrites existing translations).
 		register_rest_route(
 			$this->namespace,
-			'/automatic-translate',
+			'/post-translate',
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'bulk_translate_post' ),
+					'callback'            => array( $this, 'post_translate' ),
 					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'post_id'          => array(
@@ -166,7 +166,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'minimum'     => 1,
 						),
 						'target_languages' => array(
-							'description'       => __( 'Array of target language codes', 'multilingual-bridge' ),
+							'description'       => __( 'Array of target language codes. This will overwrite existing translations.', 'multilingual-bridge' ),
 							'required'          => true,
 							'type'              => 'array',
 							'items'             => array(
@@ -363,14 +363,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	}
 
 	/**
-	 * Bulk translate post meta to multiple languages
+	 * Translate post and meta to multiple languages (one-time translation, overwrites existing translations)
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 * @return WP_REST_Response|WP_Error
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
-	public function bulk_translate_post( WP_REST_Request $request ) {
+	public function post_translate( WP_REST_Request $request ) {
 		$post_id          = (int) $request->get_param( 'post_id' );
 		$target_languages = $request->get_param( 'target_languages' );
 
