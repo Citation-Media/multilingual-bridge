@@ -1,19 +1,19 @@
 /**
- * Automatic Translation Widget Entry Point
+ * Post Translation Widget Entry Point
  *
- * Bootstraps the React-based automatic translation widget that allows
+ * Bootstraps the React-based post translation widget that allows
  * translating post meta to multiple target languages at once.
  *
  * Architecture:
  * 1. React App: Manages translation state, language selection, and API calls
- * 2. Custom Hook: useAutomaticTranslation handles translation logic
+ * 2. Custom Hook: usePostTranslation handles translation logic
  * 3. WordPress Components: Uses @wordpress/components for UI consistency
  *
  * @package
  */
 
 import { createElement, createRoot } from '@wordpress/element';
-import { AutomaticTranslationWidget } from './components/AutomaticTranslationWidget';
+import { PostTranslationWidget } from './components/PostTranslationWidget';
 
 /**
  * Bootstrap Application
@@ -23,7 +23,7 @@ import { AutomaticTranslationWidget } from './components/AutomaticTranslationWid
 document.addEventListener('DOMContentLoaded', function () {
 	// Find widget container in DOM
 	const widgetContainer = document.getElementById(
-		'multilingual-bridge-automatic-widget'
+		'multilingual-bridge-post-widget'
 	);
 
 	// Only initialize if widget exists on page
@@ -42,13 +42,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Get edit post URL from localized script
 	const editPostUrl =
-		window.multilingualBridgeAuto?.editPostUrl ||
+		window.multilingualBridgePost?.editPostUrl ||
 		'/wp-admin/post.php?post=POST_ID&action=edit';
 
 	// Render React widget
 	const root = createRoot(widgetContainer);
 	root.render(
-		createElement(AutomaticTranslationWidget, {
+		createElement(PostTranslationWidget, {
 			postId,
 			sourceLanguage,
 			targetLanguages,

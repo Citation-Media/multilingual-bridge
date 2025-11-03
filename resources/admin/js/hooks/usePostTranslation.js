@@ -1,7 +1,7 @@
 /**
- * useAutomaticTranslation Hook
+ * usePostTranslation Hook
  *
- * Custom React hook for managing automatic translation state and operations.
+ * Custom React hook for managing post translation state and operations.
  * Handles language selection, API calls, progress tracking, and results display.
  *
  * @package
@@ -12,14 +12,14 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
 /**
- * Custom hook for automatic translation functionality
+ * Custom hook for post translation functionality
  *
  * @param {number} postId          - Source post ID
  * @param {Object} targetLanguages - Available target languages object
  * @param {Object} translations    - Existing translations object
  * @return {Object} Translation state and methods
  */
-export const useAutomaticTranslation = (
+export const usePostTranslation = (
 	postId,
 	targetLanguages,
 	translations
@@ -70,14 +70,14 @@ export const useAutomaticTranslation = (
 	};
 
 	/**
-	 * Call automatic translate REST API
+	 * Call post translate REST API
 	 *
 	 * @return {Promise<Object>} API response
 	 */
 	const callTranslateAPI = async () => {
 		try {
 			const response = await apiFetch({
-				path: '/multilingual-bridge/v1/automatic-translate',
+				path: '/multilingual-bridge/v1/post-translate',
 				method: 'POST',
 				data: {
 					post_id: postId,

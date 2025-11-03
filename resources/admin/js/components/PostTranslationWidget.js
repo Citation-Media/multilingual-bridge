@@ -1,7 +1,7 @@
 /**
- * Automatic Translation Widget Component
+ * Post Translation Widget Component
  *
- * React component for the automatic translation sidebar widget that allows
+ * React component for the post translation sidebar widget that allows
  * translating post meta to multiple languages at once.
  *
  * @package
@@ -10,7 +10,7 @@
 import { createElement, Fragment, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, CheckboxControl, Notice } from '@wordpress/components';
-import { useAutomaticTranslation } from '../hooks/useAutomaticTranslation';
+import { usePostTranslation } from '../hooks/usePostTranslation';
 
 /**
  * Language Checkbox Item Component
@@ -82,7 +82,7 @@ const LanguageCheckboxItem = ({
 /**
  * Translation Results Component
  *
- * Displays the results of the automatic translation operation.
+ * Displays the results of the post translation operation.
  *
  * @param {Object}   props             - Component props
  * @param {Object}   props.result      - Translation API result
@@ -211,7 +211,7 @@ const ProgressBar = ({ percent, text }) => {
 };
 
 /**
- * Main Automatic Translation Widget Component
+ * Main Post Translation Widget Component
  *
  * @param {Object} props                 - Component props
  * @param {number} props.postId          - Source post ID
@@ -220,7 +220,7 @@ const ProgressBar = ({ percent, text }) => {
  * @param {string} props.editPostUrl     - URL template for editing posts
  * @return {JSX.Element} Widget component
  */
-export const AutomaticTranslationWidget = ({
+export const PostTranslationWidget = ({
 	postId,
 	targetLanguages,
 	translations,
@@ -235,7 +235,7 @@ export const AutomaticTranslationWidget = ({
 		result,
 		errorMessage,
 		translate,
-	} = useAutomaticTranslation(postId, targetLanguages, translations);
+	} = usePostTranslation(postId, targetLanguages, translations);
 
 	// Local validation error state
 	const [validationError, setValidationError] = useState(null);
@@ -266,7 +266,7 @@ export const AutomaticTranslationWidget = ({
 
 	return createElement(
 		'div',
-		{ id: 'multilingual-bridge-automatic-widget' },
+		{ id: 'multilingual-bridge-post-widget' },
 
 		// Language list
 		createElement(

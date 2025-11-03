@@ -134,7 +134,7 @@ class Meta_Translation_Handler {
 			// These must be preserved exactly and never translated.
 			if ( $this->is_acf_field_key_reference( $meta_key, $meta_value ) ) {
 				// Copy the field key reference as-is to maintain ACF structure.
-				update_post_meta( $target_post_id, $meta_key, $meta_value );
+				// update_post_meta( $target_post_id, $meta_key, $meta_value );
 				++$results['skipped'];
 				continue;
 			}

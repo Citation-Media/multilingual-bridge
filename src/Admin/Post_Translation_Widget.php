@@ -1,8 +1,8 @@
 <?php
 /**
- * Automatic Translation Widget for Post Edit Sidebar
+ * Post Translation Widget for Post Edit Sidebar
  *
- * Displays a meta box on source language posts that allows automatic translation
+ * Displays a meta box on source language posts that allows translation
  * of all post meta to selected target languages.
  *
  * @package Multilingual_Bridge
@@ -14,11 +14,11 @@ use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
 
 /**
- * Class Automatic_Translation_Widget
+ * Class Post_Translation_Widget
  *
- * Renders and manages the automatic translation sidebar widget
+ * Renders and manages the post translation sidebar widget
  */
-class Automatic_Translation_Widget {
+class Post_Translation_Widget {
 
 	/**
 	 * Initialize hooks
@@ -48,15 +48,15 @@ class Automatic_Translation_Widget {
 		}
 
 		/**
-		 * Filter post types to disable automatic translation
+		 * Filter post types to disable post translation
 		 *
-		 * By default, automatic translation is enabled for all post types.
+		 * By default, post translation is enabled for all post types.
 		 * Add post types to this array to disable the widget for those types.
 		 *
-		 * @param string[] $disabled_post_types Post types to disable automatic translation widget
+		 * @param string[] $disabled_post_types Post types to disable post translation widget
 		 */
 		$disabled_post_types = apply_filters(
-			'multilingual_bridge_disable_automatic_translation_post_types',
+			'multilingual_bridge_disable_post_translation_post_types',
 			array()
 		);
 
@@ -66,8 +66,8 @@ class Automatic_Translation_Widget {
 		}
 
 		add_meta_box(
-			'multilingual-bridge-automatic-translation',
-			__( 'Automatic Translation', 'multilingual-bridge' ),
+			'multilingual-bridge-post-translation',
+			__( 'Post Translation', 'multilingual-bridge' ),
 			array( $this, 'render_meta_box' ),
 			$post_type,
 			'side',
@@ -94,7 +94,7 @@ class Automatic_Translation_Widget {
 			ARRAY_FILTER_USE_KEY
 		);
 
-		wp_nonce_field( 'multilingual_bridge_automatic_translation', 'multilingual_bridge_automatic_translation_nonce' );
+		wp_nonce_field( 'multilingual_bridge_post_translation', 'multilingual_bridge_post_translation_nonce' );
 
 		// Prepare data for React app.
 		$widget_data = array(
@@ -119,25 +119,25 @@ class Automatic_Translation_Widget {
 			</p>
 		</div>
 
-		<div
-			id="multilingual-bridge-automatic-widget"
-			data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-			data-source-language="<?php echo esc_attr( $source_language ); ?>"
-			data-target-languages="<?php echo esc_attr( wp_json_encode( $target_languages ) ); ?>"
-			data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
-		>
-			<!-- React app will render here -->
-		</div>
+	<div
+		id="multilingual-bridge-post-widget"
+		data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
+		data-source-language="<?php echo esc_attr( $source_language ); ?>"
+		data-target-languages="<?php echo esc_attr( wp_json_encode( $target_languages ) ); ?>"
+		data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
+	>
+		<!-- React app will render here -->
+	</div>
 
 		<?php
 	}
 
 	/**
-	 * Enqueue localization data for automatic translation widget
+	 * Enqueue localization data for post translation widget
 	 *
 	 * Note: The main admin script is already enqueued by Multilingual_Bridge::define_admin_hooks()
 	 * at priority 100. This method runs at priority 200 to ensure the script is enqueued before
-	 * we try to localize it. This method only adds localization data for the automatic translation
+	 * we try to localize it. This method only adds localization data for the post translation
 	 * functionality.
 	 *
 	 * @param string $hook Current admin page hook.
@@ -154,12 +154,12 @@ class Automatic_Translation_Widget {
 			return;
 		}
 
-		// Localize script for the automatic translation functionality.
+		// Localize script for the post translation functionality.
 		// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
 		// Note: @wordpress/api-fetch handles authentication/nonce automatically
 		wp_localize_script(
 			'multilingual-bridge/multilingual-bridge-admin',
-			'multilingualBridgeAuto',
+			'multilingualBridgePost',
 			array(
 				'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
 				'strings'     => array(

@@ -6,7 +6,7 @@
  */
 
 import './translation';
-import './automatic-translation';
+import './post-translation';
 
 document.addEventListener('DOMContentLoaded', function () {
 	const debugForm = document.querySelector(
