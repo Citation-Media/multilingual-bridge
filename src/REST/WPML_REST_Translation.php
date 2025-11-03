@@ -5,7 +5,6 @@
  * Provides endpoints for:
  * - Fetching original field values from default language posts
  * - Translating text using configured translation provider
- * - Listing available translation providers
  * - One-time post translation to multiple languages (overwrites existing translations)
  *
  * @package Multilingual_Bridge
@@ -132,19 +131,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'maxLength'   => 50,
 						),
 					),
-				),
-			)
-		);
-
-		// List available translation providers.
-		register_rest_route(
-			$this->namespace,
-			'/providers',
-			array(
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_providers' ),
-					'permission_callback' => array( $this, 'permissions_check' ),
 				),
 			)
 		);
@@ -335,31 +321,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			),
 			200
 		);
-	}
-
-	/**
-	 * Get list of available translation providers
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function get_providers(): WP_REST_Response {
-		$providers = $this->translation_manager->get_providers( true );
-		$default   = $this->translation_manager->get_default_provider_id();
-
-		$response = array(
-			'providers' => array(),
-			'default'   => $default,
-		);
-
-		foreach ( $providers as $provider ) {
-			$response['providers'][] = array(
-				'id'        => $provider->get_id(),
-				'name'      => $provider->get_name(),
-				'available' => $provider->is_available(),
-			);
-		}
-
-		return new WP_REST_Response( $response, 200 );
 	}
 
 	/**

@@ -95,25 +95,6 @@ export async function translateText(
 }
 
 /**
- * Get available translation providers
- *
- * Fetches list of configured translation providers and the default provider.
- * This allows the UI to show provider selection if multiple providers are available.
- *
- * @return {Promise<{providers: Array<{id: string, name: string, available: boolean}>, default: string}>} Object containing array of provider configurations and default provider ID
- *
- * @throws {Error} If API request fails
- */
-export async function getProviders() {
-	const response = await apiFetch({
-		path: '/multilingual-bridge/v1/providers',
-		method: 'GET',
-	});
-
-	return response;
-}
-
-/**
  * Escape special characters in CSS selectors
  *
  * CSS selectors require special characters to be escaped with backslashes.
