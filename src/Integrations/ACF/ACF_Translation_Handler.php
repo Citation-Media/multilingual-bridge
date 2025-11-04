@@ -168,23 +168,6 @@ class ACF_Translation_Handler {
 	}
 
 	/**
-	 * Get all translatable field types
-	 *
-	 * @return string[] Array of translatable field type names
-	 */
-	public static function get_translatable_field_types(): array {
-		/**
-		 * Filter translatable field types
-		 *
-		 * @param string[] $types Default translatable field types
-		 */
-		return apply_filters(
-			'multilingual_bridge_acf_translatable_field_types',
-			self::DEFAULT_TRANSLATABLE_TYPES
-		);
-	}
-
-	/**
 	 * Translate ACF field value
 	 *
 	 * Main translation method for ACF fields. Handles:

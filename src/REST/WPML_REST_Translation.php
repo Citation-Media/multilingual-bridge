@@ -428,7 +428,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$result['created_new']    = false;
 		} else {
 			// Create new translation post.
-			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $target_lang_enum, $source_lang_enum );
+			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $source_lang_enum, $target_lang_enum );
 
 			if ( is_wp_error( $target_post_id ) ) {
 				$result['errors'][] = $target_post_id->get_error_message();
