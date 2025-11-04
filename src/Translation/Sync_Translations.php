@@ -218,13 +218,8 @@ class Sync_Translations {
 		}
 
 		// Get the source/original language post ID.
-		// If this post is already the original, use it. Otherwise get the original.
-		$original_post_id = WPML_Post_Helper::is_original_post( $post_id )
-			? $post_id
-			: WPML_Post_Helper::get_default_language_post_id( $post_id );
-
+		$original_post_id = $this->get_original_post_id( $post_id );
 		if ( ! $original_post_id ) {
-			// No original post found - skip.
 			return;
 		}
 
@@ -303,13 +298,8 @@ class Sync_Translations {
 		}
 
 		// Get the source/original language post ID.
-		// If this post is already the original, use it. Otherwise get the original.
-		$original_post_id = WPML_Post_Helper::is_original_post( $post_id )
-			? $post_id
-			: WPML_Post_Helper::get_default_language_post_id( $post_id );
-
+		$original_post_id = $this->get_original_post_id( $post_id );
 		if ( ! $original_post_id ) {
-			// No original post found - skip.
 			return;
 		}
 
@@ -343,6 +333,11 @@ class Sync_Translations {
 	 * Returns an array with boolean flags for content fields and nested meta fields.
 	 * Structure: {title: true, content: true, excerpt: true, meta: {field_name: true}}
 	 *
+	 * Public API method for querying sync status. Can be used by:
+	 * - REST API endpoints to show pending changes
+	 * - Admin UI to display sync status
+	 * - External integrations to check translation state
+	 *
 	 * @param int $post_id Post ID (should be original/source post).
 	 * @return array<string, bool|array<string, bool>> Array of pending updates
 	 */
@@ -358,6 +353,11 @@ class Sync_Translations {
 
 	/**
 	 * Check if post has pending updates
+	 *
+	 * Public API method for quick sync status checks. Useful for:
+	 * - Displaying sync indicators in admin UI
+	 * - Conditional logic in REST API responses
+	 * - Triggering automated sync processes
 	 *
 	 * @param int         $post_id Post ID.
 	 * @param string|null $type    Optional. Filter by type: 'content', 'meta', or null for all.
@@ -391,6 +391,9 @@ class Sync_Translations {
 	/**
 	 * Get pending content updates (title, content, excerpt)
 	 *
+	 * Public API method for retrieving specific content field changes.
+	 * Used to display which post fields need translation sync.
+	 *
 	 * @param int $post_id Post ID (should be original/source post).
 	 * @return string[] Array of content field names that need sync (e.g., ['title', 'content'])
 	 */
@@ -411,6 +414,9 @@ class Sync_Translations {
 	/**
 	 * Get pending meta updates
 	 *
+	 * Public API method for retrieving specific meta field changes.
+	 * Used to display which custom fields need translation sync.
+	 *
 	 * @param int $post_id Post ID (should be original/source post).
 	 * @return string[] Array of meta keys that need sync (e.g., ['field_123', 'custom_field'])
 	 */
@@ -428,7 +434,11 @@ class Sync_Translations {
 	/**
 	 * Clear pending updates for a post
 	 *
-	 * Call this after successfully syncing translations.
+	 * Public API method for marking sync operations as complete.
+	 * Call this after successfully syncing translations. Used by:
+	 * - Translation sync processes
+	 * - Manual sync operations from admin UI
+	 * - Automated sync workflows
 	 *
 	 * @param int         $post_id    Post ID.
 	 * @param string|null $field_name Optional. Clear only specific field (content or meta key). If null, clears all.
@@ -488,6 +498,9 @@ class Sync_Translations {
 	/**
 	 * Get last sync timestamp
 	 *
+	 * Public API method for querying when translations were last synced.
+	 * Useful for displaying sync status and scheduling automated syncs.
+	 *
 	 * @param int $post_id Post ID.
 	 * @return int|null Timestamp of last sync, or null if never synced
 	 */
@@ -516,6 +529,23 @@ class Sync_Translations {
 		// - Arrays are compared element by element
 		// - Objects are compared by reference (which is what we want for change detection)
 		return $old_value !== $new_value;
+	}
+
+	/**
+	 * Get the original/source language post ID
+	 *
+	 * Returns the original post ID if the given post is a translation,
+	 * or the given post ID itself if it's already the original.
+	 *
+	 * @param int $post_id Post ID to check.
+	 * @return int|null Original post ID, or null if not found
+	 */
+	private function get_original_post_id( int $post_id ): ?int {
+		if ( WPML_Post_Helper::is_original_post( $post_id ) ) {
+			return $post_id;
+		}
+
+		return WPML_Post_Helper::get_default_language_post_id( $post_id );
 	}
 
 	/**
