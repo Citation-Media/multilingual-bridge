@@ -18,7 +18,7 @@ Base Coding rules for WordPress. ALWAYS read this when working on a WordPress pr
 
 - Ensure code is **PHPCS compatible**
 - Use **Yoda Conditions** for all conditional expressions
-- Default to a **minimum PHP compatibility of 8.0** (unless another version is explicitly requested)
+- Default to a **minimum PHP compatibility of 8.1** (unless another version is explicitly requested)
 - **Strong typings**: Use PHPStan doc block notation (especially for array type hints)
 - **Object-Oriented Approach**: Write OOP code by default unless the user asks for procedural/non-OOP structure (e.g., `functions.php`)
 - **File Operations**: Use `WP_Filesystem` APIs instead of PHP native file functions whenever possible
