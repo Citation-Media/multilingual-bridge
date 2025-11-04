@@ -129,9 +129,17 @@ class Sync_Translations {
 	 * @return null|bool Null to continue with update, bool to short-circuit
 	 */
 	public function track_meta_update( $check, int $object_id, string $meta_key, $meta_value, $prev_value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
+		// Early validation: Skip non-translatable fields before any database queries.
+		// This avoids unnecessary function calls and checks for internal WordPress/plugin meta.
+		if ( $this->should_skip_meta( $meta_key ) ) {
+			return $check;
+		}
+
 		// Don't interfere with the update process - just track it.
-		// Get current value from database.
-		$current_value = get_post_meta( $object_id, $meta_key, true );
+		// Use $prev_value if available and meaningful, otherwise query the database.
+		$current_value = ( '' !== $prev_value && null !== $prev_value && ! ( is_array( $prev_value ) && empty( $prev_value ) ) )
+			? $prev_value
+			: get_post_meta( $object_id, $meta_key, true );
 
 		// Only flag if value actually changed.
 		if ( $this->has_value_changed( $current_value, $meta_value ) ) {
@@ -155,6 +163,12 @@ class Sync_Translations {
 	 * @return null|bool Null to continue with add, bool to short-circuit
 	 */
 	public function track_meta_add( $check, int $object_id, string $meta_key, $meta_value, bool $unique ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
+		// Early validation: Skip non-translatable fields before calling flag_field_for_sync().
+		// This avoids unnecessary function calls and checks for internal WordPress/plugin meta.
+		if ( $this->should_skip_meta( $meta_key ) ) {
+			return $check;
+		}
+
 		// Flag new fields for sync.
 		$this->flag_field_for_sync( $object_id, $meta_key );
 
@@ -175,6 +189,12 @@ class Sync_Translations {
 	 * @return null|bool Null to continue with delete, bool to short-circuit
 	 */
 	public function track_meta_delete( $check, int $object_id, string $meta_key, $meta_value, bool $delete_all ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
+		// Early validation: Skip non-translatable fields before calling flag_field_for_sync().
+		// This avoids unnecessary function calls and checks for internal WordPress/plugin meta.
+		if ( $this->should_skip_meta( $meta_key ) ) {
+			return $check;
+		}
+
 		// Flag deleted fields for sync (so translations can also delete them).
 		$this->flag_field_for_sync( $object_id, $meta_key );
 
@@ -261,9 +281,23 @@ class Sync_Translations {
 		}
 
 		// Check if field is translatable.
-		// Only track fields that are marked for translation in WPML/ACF settings.
+		// Priority: Check ACF settings first, then allow custom filter override.
 		$wpml_preference = ACF_Translation_Handler::get_wpml_translation_preference( $meta_key, $post_id );
-		if ( 'translate' !== $wpml_preference ) {
+		$is_translatable = ( 'translate' === $wpml_preference );
+
+		/**
+		 * Filter whether a meta field should be tracked for translation sync
+		 *
+		 * This allows non-ACF custom fields to be marked as translatable.
+		 * Return true to mark the field as translatable, false to skip tracking.
+		 *
+		 * @param bool   $is_translatable Whether field is translatable (ACF check result)
+		 * @param string $meta_key        Meta key being checked
+		 * @param int    $post_id         Post ID
+		 */
+		$is_translatable = apply_filters( 'multilingual_bridge_is_field_translatable', $is_translatable, $meta_key, $post_id );
+
+		if ( ! $is_translatable ) {
 			// Not marked for translation - skip.
 			return;
 		}
@@ -477,15 +511,11 @@ class Sync_Translations {
 	 * @return bool True if values are different
 	 */
 	private function has_value_changed( $old_value, $new_value ): bool {
-		// Use strict comparison for scalar values.
-		if ( is_scalar( $old_value ) && is_scalar( $new_value ) ) {
-			return $old_value !== $new_value;
-		}
-
-		// For arrays and objects, use wp_json_encode for deep comparison.
-		// This handles nested structures safely.
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Using JSON for safe comparison.
-		return wp_json_encode( $old_value ) !== wp_json_encode( $new_value );
+		// Use strict comparison for all types.
+		// PHP's !== operator handles arrays and objects correctly:
+		// - Arrays are compared element by element
+		// - Objects are compared by reference (which is what we want for change detection)
+		return $old_value !== $new_value;
 	}
 
 	/**
