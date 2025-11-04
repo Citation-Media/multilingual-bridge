@@ -31,6 +31,9 @@ class Post_Translation_Widget {
 		// Enqueue scripts and styles.
 		// Priority 200 ensures this runs AFTER main script is enqueued (priority 100)
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ), 200 );
+
+		// Add CSS class to ACF fields with pending updates (translated posts only).
+		add_filter( 'acf/field_wrapper_attributes', array( $this, 'add_pending_class_to_acf_fields' ), 10, 2 );
 	}
 
 	/**
@@ -177,20 +180,6 @@ class Post_Translation_Widget {
 			return;
 		}
 
-		$is_original = WPML_Post_Helper::is_original_post( $post->ID );
-
-		// For translated posts, highlight ACF fields with pending updates.
-		// Get the source/default language post ID to check for pending updates.
-		$pending_meta = array();
-		if ( ! $is_original ) {
-			$source_post_id = WPML_Post_Helper::get_default_language_post_id( $post->ID );
-			if ( $source_post_id ) {
-				$sync_translations = new Sync_Translations();
-				$pending_meta      = $sync_translations->get_pending_meta_updates( $source_post_id );
-			}
-		}
-
-		// Always localize the script (needed for both source posts and translated posts).
 		// Localize script for the post translation functionality.
 		// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
 		// Note: @wordpress/api-fetch handles authentication/nonce automatically
@@ -199,7 +188,6 @@ class Post_Translation_Widget {
 			'multilingualBridgePost',
 			array(
 				'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
-				'pendingMeta' => $pending_meta,
 				'strings'     => array(
 					'noLanguages'          => __( 'Please select at least one target language.', 'multilingual-bridge' ),
 					'translating'          => __( 'Translating...', 'multilingual-bridge' ),
@@ -219,5 +207,42 @@ class Post_Translation_Widget {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Add CSS class to ACF fields with pending translation updates
+	 *
+	 * This filter runs on translated posts only and adds 'mlb-field-pending-sync'
+	 * class to ACF field wrappers that have pending updates from the source post.
+	 *
+	 * @param array<string, mixed> $wrapper ACF field wrapper attributes.
+	 * @param array<string, mixed> $field   ACF field array.
+	 * @return array<string, mixed> Modified wrapper attributes
+	 */
+	public function add_pending_class_to_acf_fields( array $wrapper, array $field ): array {
+		global $post;
+
+		// Only run on translated posts (not source posts).
+		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
+			return $wrapper;
+		}
+
+		// Get pending meta updates from source post.
+		$source_post_id = WPML_Post_Helper::get_default_language_post_id( $post->ID );
+		if ( ! $source_post_id ) {
+			return $wrapper;
+		}
+
+		$sync_translations = new Sync_Translations();
+		$pending_meta      = $sync_translations->get_pending_meta_updates( $source_post_id );
+
+		// Check if this field has pending updates.
+		$field_name = $field['name'] ?? '';
+		if ( $field_name && in_array( $field_name, $pending_meta, true ) ) {
+			// Add pending sync class to field wrapper.
+			$wrapper['class'] = isset( $wrapper['class'] ) ? $wrapper['class'] . ' mlb-field-pending-sync' : 'mlb-field-pending-sync';
+		}
+
+		return $wrapper;
 	}
 }

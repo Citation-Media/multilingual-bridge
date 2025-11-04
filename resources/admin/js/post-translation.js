@@ -8,14 +8,12 @@
  * 1. React App: Manages translation state, language selection, and API calls
  * 2. Custom Hook: usePostTranslation handles translation logic
  * 3. WordPress Components: Uses @wordpress/components for UI consistency
- * 4. ACF Field Highlighter: Highlights fields with pending translation updates
  *
  * @package
  */
 
 import { createElement, createRoot } from '@wordpress/element';
 import { PostTranslationWidget } from './components/PostTranslationWidget';
-import { highlightPendingACFFields } from './utils/acf-field-highlighter';
 
 /**
  * Bootstrap Application
@@ -28,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		'multilingual-bridge-post-widget'
 	);
 
-	// Only initialize if widget exists on page
+	// Only initialize if widget exists on page (source posts only)
 	if (widgetContainer) {
 		// Get widget data from PHP (passed via data attributes)
 		const widgetData = widgetContainer.dataset;
@@ -47,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			window.multilingualBridgePost?.editPostUrl ||
 			'/wp-admin/post.php?post=POST_ID&action=edit';
 
-		// Render React widget (appears on source posts only)
+		// Render React widget
 		const root = createRoot(widgetContainer);
 		root.render(
 			createElement(PostTranslationWidget, {
@@ -59,11 +57,5 @@ document.addEventListener('DOMContentLoaded', function () {
 				editPostUrl,
 			})
 		);
-	}
-
-	// Highlight ACF fields with pending updates (on translated posts only)
-	const pendingMeta = window.multilingualBridgePost?.pendingMeta || [];
-	if (pendingMeta.length > 0) {
-		highlightPendingACFFields(pendingMeta);
 	}
 });
