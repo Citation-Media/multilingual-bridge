@@ -462,13 +462,12 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Translate post to a single target language
 	 *
-	 * @param int         $source_post_id Source post ID.
 	 * @param \WP_Post    $source_post    Source post object.
 	 * @param LanguageTag $source_lang    Source language tag.
 	 * @param LanguageTag $target_lang    Target language tag.
 	 * @return array<string, mixed> Translation result
 	 */
-	private function translate_to_language( int $source_post_id, \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang ): array {
+	private function translate_to_language( \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang ): array {
 		$result = array(
 			'success'         => false,
 			'target_post_id'  => 0,
@@ -479,7 +478,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		);
 
 		// Check if translation already exists.
-		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post_id, $target_lang );
+		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post->ID, $target_lang );
 
 		if ( $existing_translation ) {
 			// Update existing translation.
@@ -494,7 +493,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$result['created_new']    = false;
 		} else {
 			// Create new translation post.
-			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $source_lang, $target_lang );
+			$target_post_id = $this->create_translation_post( $source_post, $source_lang, $target_lang );
 
 			if ( is_wp_error( $target_post_id ) ) {
 				$result['errors'][] = $target_post_id->get_error_message();
@@ -507,7 +506,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		// Translate post meta.
 		$meta_results = $this->meta_handler->translate_post_meta(
-			$source_post_id,
+			$source_post->ID,
 			$target_post_id,
 			$target_lang,
 			$source_lang
@@ -603,12 +602,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * Create a new translation post
 	 *
 	 * @param \WP_Post    $source_post    Source post object.
-	 * @param int         $source_post_id Source post ID.
 	 * @param LanguageTag $source_lang    Source language tag.
 	 * @param LanguageTag $target_lang    Target language tag.
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function create_translation_post( \WP_Post $source_post, int $source_post_id, LanguageTag $source_lang, LanguageTag $target_lang ) {
+	private function create_translation_post( \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang ) {
 		// Translate post content.
 		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
 
@@ -645,7 +643,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		// Now relate the posts as translations.
 	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
-		$relation_result = WPML_Post_Helper::relate_posts_as_translations( $target_post_id, $source_post_id, $target_lang->primaryLanguageSubtag->value );
+		$relation_result = WPML_Post_Helper::relate_posts_as_translations( $target_post_id, $source_post->ID, $target_lang->primaryLanguageSubtag->value );
 
 		if ( is_wp_error( $relation_result ) ) {
 			// Clean up created post.
@@ -658,11 +656,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		// are properly copied from the source post to the translation.
 		global $sitepress;
 		if ( $sitepress && method_exists( $sitepress, 'copy_custom_fields' ) ) {
-			$sitepress->copy_custom_fields( $source_post_id, $target_post_id );
+			$sitepress->copy_custom_fields( $source_post->ID, $target_post_id );
 		}
 
 		// Trigger action for other plugins that may need to hook into field copying.
-		do_action( 'wpml_after_copy_custom_fields', $source_post_id, $target_post_id );
+		do_action( 'wpml_after_copy_custom_fields', $source_post->ID, $target_post_id );
 
 		return $target_post_id;
 	}
