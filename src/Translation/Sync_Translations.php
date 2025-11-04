@@ -2,12 +2,13 @@
 /**
  * Sync Translations Handler
  *
- * Tracks post meta changes and flags when translations need to be synced.
- * Monitors the update_post_metadata filter to detect when translatable fields
+ * Tracks post content and meta changes and flags when translations need to be synced.
+ * Monitors post updates and metadata changes to detect when translatable fields
  * are modified in the source language post, then marks those fields for sync
  * across all translation posts.
  *
  * Features:
+ * - Tracks post content changes (title, content, excerpt)
  * - Tracks meta field changes by comparing old vs new values
  * - Only tracks translatable fields (ACF fields marked for translation)
  * - Stores pending sync flags in source post meta
@@ -47,6 +48,13 @@ class Sync_Translations {
 	private const LAST_SYNC_META_KEY = '_mlb_last_sync';
 
 	/**
+	 * Post fields that should be tracked for changes
+	 *
+	 * @var array<string>
+	 */
+	private const TRACKED_POST_FIELDS = array( 'post_title', 'post_content', 'post_excerpt' );
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -57,6 +65,9 @@ class Sync_Translations {
 	 * Register hooks
 	 */
 	public function register_hooks(): void {
+		// Track post content updates (title, content, excerpt).
+		add_action( 'post_updated', array( $this, 'track_post_update' ), 10, 3 );
+
 		// Track post meta updates (before the update happens).
 		add_filter( 'update_post_metadata', array( $this, 'track_meta_update' ), 10, 5 );
 
@@ -65,6 +76,39 @@ class Sync_Translations {
 
 		// Track post meta deletions.
 		add_filter( 'delete_post_metadata', array( $this, 'track_meta_delete' ), 10, 5 );
+	}
+
+	/**
+	 * Track post content updates
+	 *
+	 * Fires after a post is updated. Compares the old and new post data
+	 * to determine which fields (title, content, excerpt) have changed.
+	 *
+	 * @param int      $post_id     Post ID.
+	 * @param \WP_Post $post_after  Post object after the update.
+	 * @param \WP_Post $post_before Post object before the update.
+	 */
+	public function track_post_update( int $post_id, \WP_Post $post_after, \WP_Post $post_before ): void {
+		// Skip if this is an autosave or revision.
+		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+
+		// Skip if post is not published or scheduled.
+		if ( ! in_array( $post_after->post_status, array( 'publish', 'future' ), true ) ) {
+			return;
+		}
+
+		// Check each tracked field for changes.
+		foreach ( self::TRACKED_POST_FIELDS as $field ) {
+			$old_value = $post_before->$field;
+			$new_value = $post_after->$field;
+
+			// Only flag if value actually changed.
+			if ( $this->has_value_changed( $old_value, $new_value ) ) {
+				$this->flag_content_field_for_sync( $post_id, $field, 'updated' );
+			}
+		}
 	}
 
 	/**
@@ -135,6 +179,57 @@ class Sync_Translations {
 	}
 
 	/**
+	 * Flag a post content field for sync across translations
+	 *
+	 * Adds the field to the list of fields that need to be synced to translations.
+	 * This is for core post fields (title, content, excerpt) that are always translatable.
+	 *
+	 * @param int    $post_id    Post ID where change occurred.
+	 * @param string $field_name Field name that changed (post_title, post_content, post_excerpt).
+	 * @param string $action     Action performed: 'added', 'updated', or 'deleted'.
+	 */
+	private function flag_content_field_for_sync( int $post_id, string $field_name, string $action ): void {
+		// Skip if this is not a valid post.
+		if ( ! get_post( $post_id ) ) {
+			return;
+		}
+
+		// Get the source/original language post ID.
+		// If this post is already the original, use it. Otherwise get the original.
+		$original_post_id = WPML_Post_Helper::is_original_post( $post_id )
+			? $post_id
+			: WPML_Post_Helper::get_default_language_post_id( $post_id );
+
+		if ( ! $original_post_id ) {
+			// No original post found - skip.
+			return;
+		}
+
+		// Get current pending updates.
+		$pending_updates = $this->get_pending_updates( $original_post_id );
+
+		// Add this field to pending updates with timestamp and action.
+		$pending_updates[ $field_name ] = array(
+			'action'    => $action,
+			'timestamp' => time(),
+			'type'      => 'content', // Mark as content field.
+		);
+
+		// Store updated pending list.
+		update_post_meta( $original_post_id, self::SYNC_FLAG_META_KEY, $pending_updates );
+
+		/**
+		 * Fires when a content field is flagged for translation sync
+		 *
+		 * @param int    $original_post_id Original post ID where flag was set
+		 * @param string $field_name       Field name that needs sync
+		 * @param string $action           Action: 'added', 'updated', or 'deleted'
+		 * @param int    $post_id          Post ID where change occurred (may be translation)
+		 */
+		do_action( 'multilingual_bridge_content_field_flagged_for_sync', $original_post_id, $field_name, $action, $post_id );
+	}
+
+	/**
 	 * Flag a field for sync across translations
 	 *
 	 * Adds the field to the list of fields that need to be synced to translations.
@@ -194,13 +289,14 @@ class Sync_Translations {
 		$pending_updates[ $meta_key ] = array(
 			'action'    => $action,
 			'timestamp' => time(),
+			'type'      => 'meta', // Mark as meta field.
 		);
 
 		// Store updated pending list.
 		update_post_meta( $original_post_id, self::SYNC_FLAG_META_KEY, $pending_updates );
 
 		/**
-		 * Fires when a field is flagged for translation sync
+		 * Fires when a meta field is flagged for translation sync
 		 *
 		 * @param int    $original_post_id Original post ID where flag was set
 		 * @param string $meta_key         Meta key that needs sync
@@ -214,9 +310,10 @@ class Sync_Translations {
 	 * Get pending updates for a post
 	 *
 	 * Returns an array of fields that need to be synced to translations.
+	 * Each field entry contains the action type, timestamp, and field type (content or meta).
 	 *
 	 * @param int $post_id Post ID (should be original/source post).
-	 * @return array<string, array{action: string, timestamp: int}> Array of pending updates
+	 * @return array<string, array{action: string, timestamp: int, type?: string}> Array of pending updates
 	 */
 	public function get_pending_updates( int $post_id ): array {
 		$pending = get_post_meta( $post_id, self::SYNC_FLAG_META_KEY, true );
@@ -231,12 +328,63 @@ class Sync_Translations {
 	/**
 	 * Check if post has pending updates
 	 *
-	 * @param int $post_id Post ID.
+	 * @param int         $post_id Post ID.
+	 * @param string|null $type    Optional. Filter by type: 'content', 'meta', or null for all.
 	 * @return bool True if post has fields pending sync
 	 */
-	public function has_pending_updates( int $post_id ): bool {
+	public function has_pending_updates( int $post_id, ?string $type = null ): bool {
 		$pending = $this->get_pending_updates( $post_id );
-		return ! empty( $pending );
+
+		if ( empty( $pending ) ) {
+			return false;
+		}
+
+		// If no type filter, return true if any pending updates exist.
+		if ( null === $type ) {
+			return true;
+		}
+
+		// Check if any pending updates match the specified type.
+		foreach ( $pending as $field_data ) {
+			$field_type = $field_data['type'] ?? 'meta'; // Default to 'meta' for backward compatibility.
+			if ( $field_type === $type ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get pending content updates (title, content, excerpt)
+	 *
+	 * @param int $post_id Post ID (should be original/source post).
+	 * @return array<string, array{action: string, timestamp: int, type?: string}> Array of pending content updates
+	 */
+	public function get_pending_content_updates( int $post_id ): array {
+		$all_pending = $this->get_pending_updates( $post_id );
+		return array_filter(
+			$all_pending,
+			function ( $field_data ) {
+				return ( $field_data['type'] ?? '' ) === 'content';
+			}
+		);
+	}
+
+	/**
+	 * Get pending meta updates
+	 *
+	 * @param int $post_id Post ID (should be original/source post).
+	 * @return array<string, array{action: string, timestamp: int, type?: string}> Array of pending meta updates
+	 */
+	public function get_pending_meta_updates( int $post_id ): array {
+		$all_pending = $this->get_pending_updates( $post_id );
+		return array_filter(
+			$all_pending,
+			function ( $field_data ) {
+				return ( $field_data['type'] ?? 'meta' ) === 'meta';
+			}
+		);
 	}
 
 	/**
