@@ -12,7 +12,6 @@
 
 namespace Multilingual_Bridge\REST;
 
-use Multilingual_Bridge\Helpers\Language_Code_Helper;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
@@ -112,17 +111,17 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'maxLength'   => 50000,
 						),
 						'target_lang' => array(
-							'description'       => __( 'Target language code (ISO 639-1)', 'multilingual-bridge' ),
+							'description'       => __( 'Target language code (BCP 47)', 'multilingual-bridge' ),
 							'required'          => true,
 							'type'              => 'string',
-							'enum'              => Language_Code_Helper::get_rest_enum(),
-							'validate_callback' => array( 'Multilingual_Bridge\Helpers\Language_Code_Helper', 'validate_rest_param' ),
+							'enum'              => $this->get_language_tag_enum(),
+							'validate_callback' => array( $this, 'validate_language_code' ),
 						),
 						'source_lang' => array(
-							'description'       => __( 'Source language code (ISO 639-1), auto-detect if not provided', 'multilingual-bridge' ),
+							'description'       => __( 'Source language code (BCP 47), auto-detect if not provided', 'multilingual-bridge' ),
 							'type'              => 'string',
-							'enum'              => Language_Code_Helper::get_rest_enum(),
-							'validate_callback' => array( 'Multilingual_Bridge\Helpers\Language_Code_Helper', 'validate_rest_param' ),
+							'enum'              => $this->get_language_tag_enum(),
+							'validate_callback' => array( $this, 'validate_language_code' ),
 						),
 					),
 				),
@@ -146,12 +145,12 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'minimum'     => 1,
 						),
 						'target_languages' => array(
-							'description'       => __( 'Array of target language codes. This will overwrite existing translations.', 'multilingual-bridge' ),
+							'description'       => __( 'Array of target language codes (BCP 47). This will overwrite existing translations.', 'multilingual-bridge' ),
 							'required'          => true,
 							'type'              => 'array',
 							'items'             => array(
 								'type' => 'string',
-								'enum' => Language_Code_Helper::get_rest_enum(),
+								'enum' => $this->get_language_tag_enum(),
 							),
 							'minItems'          => 1,
 							'maxItems'          => 20,
@@ -170,6 +169,61 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 */
 	public function permissions_check(): bool {
 		return current_user_can( 'edit_posts' );
+	}
+
+	/**
+	 * Get REST API enum values for LanguageAlpha2
+	 *
+	 * Returns all valid ISO 639-1 two-letter language codes for REST API validation
+	 *
+	 * @return string[]
+	 */
+	private function get_language_tag_enum(): array {
+		return array_map(
+			fn( LanguageAlpha2 $tag ) => $tag->value,
+			LanguageAlpha2::cases()
+		);
+	}
+
+	/**
+	 * Validate language code parameter
+	 *
+	 * @param mixed                                 $value   Language code string.
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @param string                                $param   Parameter name.
+	 * @return bool|WP_Error True if valid, WP_Error otherwise
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
+	 */
+	private function validate_language_code( $value, $request, $param ) {
+		if ( ! is_string( $value ) ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				sprintf(
+					/* translators: %s: parameter name */
+					__( '%s must be a string', 'multilingual-bridge' ),
+					$param
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		$language_tag = LanguageAlpha2::tryFrom( $value );
+
+		if ( null === $language_tag ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				sprintf(
+					/* translators: %1$s: parameter name, %2$s: invalid value */
+					__( 'Invalid language code "%2$s" for parameter %1$s', 'multilingual-bridge' ),
+					$param,
+					$value
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		return true;
 	}
 
 	/**
@@ -211,8 +265,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				);
 			}
 
-			// Validate using Language_Code_Helper.
-			$validation = Language_Code_Helper::validate_rest_param( $lang_code, $request, $param );
+			// Validate using LanguageAlpha2 enum.
+			$validation = $this->validate_language_code( $lang_code, $request, $param );
 			if ( is_wp_error( $validation ) ) {
 				return $validation;
 			}
@@ -287,16 +341,32 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$source_lang_code = $request->get_param( 'source_lang' );
 
 		// Convert string codes to enums.
-		$target_lang = Language_Code_Helper::from_string( $target_lang_code );
-		if ( is_wp_error( $target_lang ) ) {
-			return $target_lang;
+		$target_lang = LanguageAlpha2::tryFrom( $target_lang_code );
+		if ( null === $target_lang ) {
+			return new WP_Error(
+				'invalid_language',
+				sprintf(
+					/* translators: %s: language code */
+					__( 'Invalid target language code: %s', 'multilingual-bridge' ),
+					$target_lang_code
+				),
+				array( 'status' => 400 )
+			);
 		}
 
 		$source_lang = null;
 		if ( ! empty( $source_lang_code ) ) {
-			$source_lang = Language_Code_Helper::from_string( $source_lang_code );
-			if ( is_wp_error( $source_lang ) ) {
-				return $source_lang;
+			$source_lang = LanguageAlpha2::tryFrom( $source_lang_code );
+			if ( null === $source_lang ) {
+				return new WP_Error(
+					'invalid_language',
+					sprintf(
+						/* translators: %s: language code */
+						__( 'Invalid source language code: %s', 'multilingual-bridge' ),
+						$source_lang_code
+					),
+					array( 'status' => 400 )
+				);
 			}
 		}
 
@@ -389,18 +459,24 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 */
 	private function translate_to_language( int $source_post_id, \WP_Post $source_post, string $source_lang, string $target_lang ): array {
 		// Convert string codes to enums.
-		$source_lang_enum = Language_Code_Helper::from_string( $source_lang );
-		$target_lang_enum = Language_Code_Helper::from_string( $target_lang );
+		$source_lang_enum = LanguageAlpha2::tryFrom( $source_lang );
+		$target_lang_enum = LanguageAlpha2::tryFrom( $target_lang );
 
-		if ( is_wp_error( $source_lang_enum ) || is_wp_error( $target_lang_enum ) ) {
-			$error = is_wp_error( $source_lang_enum ) ? $source_lang_enum : $target_lang_enum;
+		if ( null === $source_lang_enum || null === $target_lang_enum ) {
+			$invalid_code = null === $source_lang_enum ? $source_lang : $target_lang;
 			return array(
 				'success'         => false,
 				'target_post_id'  => 0,
 				'created_new'     => false,
 				'meta_translated' => 0,
 				'meta_skipped'    => 0,
-				'errors'          => array( $error->get_error_message() ),
+				'errors'          => array(
+					sprintf(
+						/* translators: %s: language code */
+						__( 'Invalid language code: %s', 'multilingual-bridge' ),
+						$invalid_code
+					),
+				),
 			);
 		}
 		$result = array(

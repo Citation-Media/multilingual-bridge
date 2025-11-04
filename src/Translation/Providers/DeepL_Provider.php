@@ -10,7 +10,6 @@
 namespace Multilingual_Bridge\Translation\Providers;
 
 use Multilingual_Bridge\Translation\Translation_Provider_Interface;
-use Multilingual_Bridge\Helpers\Language_Code_Helper;
 use PrinsFrank\Standards\Language\LanguageAlpha2;
 use WP_Error;
 
@@ -64,7 +63,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return LanguageAlpha2[] Array of supported language enum instances
 	 */
 	public function get_supported_languages(): array {
-		// DeepL supports these languages.
+		// DeepL supports these languages (ISO 639-1 codes).
 		return array(
 			LanguageAlpha2::Bulgarian,
 			LanguageAlpha2::Czech,
@@ -125,11 +124,11 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		// Prepare request data.
 		$data = array(
 			'text'        => array( $text ),
-			'target_lang' => strtoupper( Language_Code_Helper::to_string( $target_lang ) ),
+			'target_lang' => strtoupper( $target_lang->value ),
 		);
 
 		if ( null !== $source_lang ) {
-			$data['source_lang'] = strtoupper( Language_Code_Helper::to_string( $source_lang ) );
+			$data['source_lang'] = strtoupper( $source_lang->value );
 		}
 
 		/**

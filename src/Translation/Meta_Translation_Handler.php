@@ -19,7 +19,6 @@ namespace Multilingual_Bridge\Translation;
 
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
-use Multilingual_Bridge\Helpers\Language_Code_Helper;
 use PrinsFrank\Standards\Language\LanguageAlpha2;
 use WP_Error;
 
