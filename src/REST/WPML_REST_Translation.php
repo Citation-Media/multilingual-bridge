@@ -202,18 +202,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
 	private function validate_language_code( $value, $request, $param ) {
-		if ( ! is_string( $value ) ) {
-			return new WP_Error(
-				'rest_invalid_param',
-				sprintf(
-					/* translators: %s: parameter name */
-					__( '%s must be a string', 'multilingual-bridge' ),
-					$param
-				),
-				array( 'status' => 400 )
-			);
-		}
-
 		try {
 			LanguageTag::fromString( $value );
 		} catch ( \Exception $e ) {
@@ -244,35 +232,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
 	public function validate_target_languages( $value, $request, $param ) {
-		// Validate that value is an array.
-		if ( ! is_array( $value ) ) {
-			return new WP_Error(
-				'rest_invalid_param',
-				__( 'target_languages must be an array', 'multilingual-bridge' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		if ( empty( $value ) ) {
-			return new WP_Error(
-				'rest_invalid_param',
-				__( 'target_languages cannot be empty', 'multilingual-bridge' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		// Validate each language code using type-safe enum validation.
+		// Validate each language code using LanguageTag format validation.
 		foreach ( $value as $lang_code ) {
-			// Ensure each item is a string.
-			if ( ! is_string( $lang_code ) ) {
-				return new WP_Error(
-					'rest_invalid_param',
-					__( 'All language codes must be strings', 'multilingual-bridge' ),
-					array( 'status' => 400 )
-				);
-			}
-
-			// Validate using LanguageTag class.
 			$validation = $this->validate_language_code( $lang_code, $request, $param );
 			if ( is_wp_error( $validation ) ) {
 				return $validation;
