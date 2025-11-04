@@ -9,6 +9,7 @@
 
 namespace Multilingual_Bridge\Translation;
 
+use PrinsFrank\Standards\Language\LanguageAlpha2;
 use WP_Error;
 
 /**
@@ -41,12 +42,19 @@ interface Translation_Provider_Interface {
 	public function is_available(): bool;
 
 	/**
+	 * Get array of supported language codes
+	 *
+	 * @return LanguageAlpha2[] Array of supported language enum instances
+	 */
+	public function get_supported_languages(): array;
+
+	/**
 	 * Translate text from source to target language
 	 *
-	 * @param string $text        Text to translate.
-	 * @param string $target_lang Target language code (ISO 639-1).
-	 * @param string $source_lang Source language code (optional, auto-detect if empty).
+	 * @param LanguageAlpha2      $target_lang Target language code enum.
+	 * @param string              $text        Text to translate.
+	 * @param LanguageAlpha2|null $source_lang Source language code enum (optional, auto-detect if null).
 	 * @return string|WP_Error Translated text on success, WP_Error on failure.
 	 */
-	public function translate( string $text, string $target_lang, string $source_lang = '' );
+	public function translate( LanguageAlpha2 $target_lang, string $text, ?LanguageAlpha2 $source_lang = null );
 }

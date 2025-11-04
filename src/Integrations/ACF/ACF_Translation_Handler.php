@@ -17,6 +17,8 @@
 namespace Multilingual_Bridge\Integrations\ACF;
 
 use Multilingual_Bridge\Translation\Translation_Manager;
+use Multilingual_Bridge\Helpers\Language_Code_Helper;
+use PrinsFrank\Standards\Language\LanguageAlpha2;
 use WP_Error;
 
 /**
@@ -190,15 +192,15 @@ class ACF_Translation_Handler {
 	 * - Field type validation (only translates supported types)
 	 * - String translation via Translation Manager
 	 *
-	 * @param string $meta_key       Meta key (ACF field name).
-	 * @param mixed  $meta_value     Meta value to translate.
-	 * @param int    $source_post_id Source post ID.
-	 * @param int    $target_post_id Target post ID.
-	 * @param string $target_language Target language code.
-	 * @param string $source_language Source language code.
+	 * @param string         $meta_key       Meta key (ACF field name).
+	 * @param mixed          $meta_value     Meta value to translate.
+	 * @param int            $source_post_id Source post ID.
+	 * @param int            $target_post_id Target post ID.
+	 * @param LanguageAlpha2 $target_language Target language code.
+	 * @param LanguageAlpha2 $source_language Source language code.
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
-	public function translate_field( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, string $target_language, string $source_language ) {
+	public function translate_field( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, LanguageAlpha2 $target_language, LanguageAlpha2 $source_language ) {
 		// Check if ACF is active.
 		if ( ! function_exists( 'get_field_object' ) ) {
 			return new WP_Error( 'acf_not_available', 'ACF is not available' );
@@ -239,8 +241,8 @@ class ACF_Translation_Handler {
 
 		// Translate the value.
 		$translated_value = $this->translation_manager->translate(
-			$meta_value,
 			$target_language,
+			$meta_value,
 			$source_language
 		);
 

@@ -19,6 +19,8 @@ namespace Multilingual_Bridge\Translation;
 
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
+use Multilingual_Bridge\Helpers\Language_Code_Helper;
+use PrinsFrank\Standards\Language\LanguageAlpha2;
 use WP_Error;
 
 /**
@@ -86,13 +88,13 @@ class Meta_Translation_Handler {
 	/**
 	 * Translate all post meta from source to target post
 	 *
-	 * @param int    $source_post_id Source post ID.
-	 * @param int    $target_post_id Target post ID.
-	 * @param string $target_language Target language code.
-	 * @param string $source_language Source language code.
+	 * @param int            $source_post_id Source post ID.
+	 * @param int            $target_post_id Target post ID.
+	 * @param LanguageAlpha2 $target_language Target language code.
+	 * @param LanguageAlpha2 $source_language Source language code.
 	 * @return array<string, mixed> Translation results
 	 */
-	public function translate_post_meta( int $source_post_id, int $target_post_id, string $target_language, string $source_language ): array {
+	public function translate_post_meta( int $source_post_id, int $target_post_id, LanguageAlpha2 $target_language, LanguageAlpha2 $source_language ): array {
 		$results = array(
 			'success'     => true,
 			'translated'  => 0,
@@ -116,8 +118,8 @@ class Meta_Translation_Handler {
 		 * @param array<string, mixed> $all_meta        All post meta
 		 * @param int                  $source_post_id  Source post ID
 		 * @param int                  $target_post_id  Target post ID
-		 * @param string               $target_language Target language code
-		 * @param string               $source_language Source language code
+		 * @param LanguageAlpha2       $target_language Target language code
+		 * @param LanguageAlpha2       $source_language Source language code
 		 */
 		$all_meta = apply_filters(
 			'multilingual_bridge_pre_translate_meta',
@@ -214,8 +216,8 @@ class Meta_Translation_Handler {
 		 * @param array<string, mixed> $results         Translation results
 		 * @param int                  $source_post_id  Source post ID
 		 * @param int                  $target_post_id  Target post ID
-		 * @param string               $target_language Target language code
-		 * @param string               $source_language Source language code
+		 * @param LanguageAlpha2       $target_language Target language code
+		 * @param LanguageAlpha2       $source_language Source language code
 		 */
 		do_action(
 			'multilingual_bridge_after_translate_meta',
@@ -264,15 +266,15 @@ class Meta_Translation_Handler {
 	 *
 	 * Delegates to ACF_Translation_Handler for specialized ACF processing.
 	 *
-	 * @param string $meta_key       Meta key.
-	 * @param mixed  $meta_value     Meta value.
-	 * @param int    $source_post_id Source post ID.
-	 * @param int    $target_post_id Target post ID.
-	 * @param string $target_language Target language code.
-	 * @param string $source_language Source language code.
+	 * @param string         $meta_key       Meta key.
+	 * @param mixed          $meta_value     Meta value.
+	 * @param int            $source_post_id Source post ID.
+	 * @param int            $target_post_id Target post ID.
+	 * @param LanguageAlpha2 $target_language Target language code.
+	 * @param LanguageAlpha2 $source_language Source language code.
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
-	private function handle_acf_meta( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, string $target_language, string $source_language ) {
+	private function handle_acf_meta( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, LanguageAlpha2 $target_language, LanguageAlpha2 $source_language ) {
 		// Delegate to ACF Translation Handler.
 		return $this->acf_handler->translate_field(
 			$meta_key,
@@ -287,15 +289,15 @@ class Meta_Translation_Handler {
 	/**
 	 * Handle regular post meta translation
 	 *
-	 * @param string $meta_key       Meta key.
-	 * @param mixed  $meta_value     Meta value.
-	 * @param int    $source_post_id Source post ID.
-	 * @param int    $target_post_id Target post ID.
-	 * @param string $target_language Target language code.
-	 * @param string $source_language Source language code.
+	 * @param string         $meta_key       Meta key.
+	 * @param mixed          $meta_value     Meta value.
+	 * @param int            $source_post_id Source post ID.
+	 * @param int            $target_post_id Target post ID.
+	 * @param LanguageAlpha2 $target_language Target language code.
+	 * @param LanguageAlpha2 $source_language Source language code.
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
-	private function handle_post_meta( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, string $target_language, string $source_language ) {
+	private function handle_post_meta( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, LanguageAlpha2 $target_language, LanguageAlpha2 $source_language ) {
 		// Handle non-string values by copying them directly.
 		if ( ! is_string( $meta_value ) ) {
 			// Copy non-string values (arrays, objects, numbers, etc.) as-is.
@@ -335,8 +337,8 @@ class Meta_Translation_Handler {
 
 		// Translate the value.
 		$translated_value = $this->translation_manager->translate(
-			$meta_value,
 			$target_language,
+			$meta_value,
 			$source_language
 		);
 
