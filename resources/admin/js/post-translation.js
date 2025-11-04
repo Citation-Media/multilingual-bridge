@@ -38,7 +38,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		const sourceLanguage = widgetData.sourceLanguage;
 		const targetLanguages = JSON.parse(widgetData.targetLanguages || '{}');
 		const translations = JSON.parse(widgetData.translations || '{}');
-		const translationsPending = JSON.parse(widgetData.translationsPending || '{}');
+		const translationsPending = JSON.parse(
+			widgetData.translationsPending || '{}'
+		);
 
 		// Get edit post URL from localized script
 		const editPostUrl =

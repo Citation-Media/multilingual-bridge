@@ -7,6 +7,8 @@
  * @package
  */
 
+/* global MutationObserver */
+
 /**
  * Highlight ACF fields with pending updates
  *
@@ -42,7 +44,12 @@ export const highlightPendingACFFields = (pendingMetaKeys) => {
 					}
 
 					// Add pending sync class
-					if (fieldWrapper && !fieldWrapper.classList.contains('mlb-field-pending-sync')) {
+					if (
+						fieldWrapper &&
+						!fieldWrapper.classList.contains(
+							'mlb-field-pending-sync'
+						)
+					) {
 						fieldWrapper.classList.add('mlb-field-pending-sync');
 					}
 				});
@@ -105,7 +112,9 @@ export const clearPendingHighlight = (metaKey) => {
  * Clear all pending highlights
  */
 export const clearAllPendingHighlights = () => {
-	const highlightedFields = document.querySelectorAll('.mlb-field-pending-sync');
+	const highlightedFields = document.querySelectorAll(
+		'.mlb-field-pending-sync'
+	);
 
 	highlightedFields.forEach((field) => {
 		field.classList.remove('mlb-field-pending-sync');

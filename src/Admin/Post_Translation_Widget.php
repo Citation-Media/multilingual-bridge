@@ -191,35 +191,33 @@ class Post_Translation_Widget {
 		}
 
 		// Always localize the script (needed for both source posts and translated posts).
-		if ( true ) {
-			// Localize script for the post translation functionality.
-			// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
-			// Note: @wordpress/api-fetch handles authentication/nonce automatically
-			wp_localize_script(
-				'multilingual-bridge/multilingual-bridge-admin',
-				'multilingualBridgePost',
-				array(
-					'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
-					'pendingMeta' => $pending_meta,
-					'strings'     => array(
-						'noLanguages'          => __( 'Please select at least one target language.', 'multilingual-bridge' ),
-						'translating'          => __( 'Translating...', 'multilingual-bridge' ),
-						'success'              => __( 'Translation completed successfully!', 'multilingual-bridge' ),
-						'error'                => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
-						'partial'              => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
-						'editTranslation'      => __( 'Edit translation', 'multilingual-bridge' ),
-						'editPost'             => __( 'Edit Post', 'multilingual-bridge' ),
-						'newTranslation'       => __( 'New translation created.', 'multilingual-bridge' ),
-						'updatedTranslation'   => __( 'Translation updated.', 'multilingual-bridge' ),
-						'translationCompleted' => __( 'Translation completed.', 'multilingual-bridge' ),
-						/* translators: %s: language name */
-						'processing'           => __( 'Processing language: %s', 'multilingual-bridge' ),
-						'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
-						'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
-						'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
-					),
-				)
-			);
-		}
+		// Localize script for the post translation functionality.
+		// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
+		// Note: @wordpress/api-fetch handles authentication/nonce automatically
+		wp_localize_script(
+			'multilingual-bridge/multilingual-bridge-admin',
+			'multilingualBridgePost',
+			array(
+				'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
+				'pendingMeta' => $pending_meta,
+				'strings'     => array(
+					'noLanguages'          => __( 'Please select at least one target language.', 'multilingual-bridge' ),
+					'translating'          => __( 'Translating...', 'multilingual-bridge' ),
+					'success'              => __( 'Translation completed successfully!', 'multilingual-bridge' ),
+					'error'                => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
+					'partial'              => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
+					'editTranslation'      => __( 'Edit translation', 'multilingual-bridge' ),
+					'editPost'             => __( 'Edit Post', 'multilingual-bridge' ),
+					'newTranslation'       => __( 'New translation created.', 'multilingual-bridge' ),
+					'updatedTranslation'   => __( 'Translation updated.', 'multilingual-bridge' ),
+					'translationCompleted' => __( 'Translation completed.', 'multilingual-bridge' ),
+					/* translators: %s: language name */
+					'processing'           => __( 'Processing language: %s', 'multilingual-bridge' ),
+					'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
+					'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
+					'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
+				),
+			)
+		);
 	}
 }

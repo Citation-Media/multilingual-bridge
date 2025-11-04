@@ -220,7 +220,12 @@ export const PostTranslationWidget = ({
 		translate,
 		updatedTranslations,
 		pendingUpdates,
-	} = usePostTranslation(postId, targetLanguages, translations, translationsPending);
+	} = usePostTranslation(
+		postId,
+		targetLanguages,
+		translations,
+		translationsPending
+	);
 
 	// Local validation error state
 	const [validationError, setValidationError] = useState(null);

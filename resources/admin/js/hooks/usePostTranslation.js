@@ -20,7 +20,12 @@ import { __ } from '@wordpress/i18n';
  * @param {Object} translationsPending - Pending updates for each translation language
  * @return {Object} Translation state and methods
  */
-export const usePostTranslation = (postId, targetLanguages, translations, translationsPending = {}) => {
+export const usePostTranslation = (
+	postId,
+	targetLanguages,
+	translations,
+	translationsPending = {}
+) => {
 	// Selected language codes for translation
 	const [selectedLanguages, setSelectedLanguages] = useState([]);
 
