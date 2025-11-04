@@ -131,33 +131,12 @@ class Translation_Manager {
 	}
 
 	/**
-	 * Set default provider
-	 *
-	 * @param string $provider_id Provider ID to set as default.
-	 * @return bool True on success, false if provider doesn't exist
-	 */
-	public function set_default_provider( string $provider_id ): bool {
-		if ( ! isset( $this->providers[ $provider_id ] ) ) {
-			return false;
-		}
-
-		$this->default_provider = $provider_id;
-		return true;
-	}
-
-	/**
 	 * Get default provider ID
 	 *
 	 * @return string|null Default provider ID or null if none set
 	 */
-	public function get_default_provider_id(): ?string {
-		/**
-		 * Filter the default translation provider ID
-		 *
-		 * @param string|null         $default_provider Default provider ID
-		 * @param Translation_Manager $manager          Manager instance
-		 */
-		return apply_filters( 'multilingual_bridge_default_provider', $this->default_provider, $this );
+	private function get_default_provider_id(): ?string {
+		return $this->default_provider;
 	}
 
 	/**
@@ -176,19 +155,15 @@ class Translation_Manager {
 	}
 
 	/**
-	 * Translate text using specified or default provider
+	 * Translate text using the default provider
 	 *
 	 * @param LanguageTag      $target_lang Target language tag.
 	 * @param string           $text        Text to translate.
 	 * @param LanguageTag|null $source_lang Source language tag (optional).
-	 * @param string|null      $provider_id Specific provider ID (uses default if null).
 	 * @return string|WP_Error Translated text or error
 	 */
-	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null, ?string $provider_id = null ) {
-		// Use default provider if none specified.
-		if ( null === $provider_id ) {
-			$provider_id = $this->get_default_provider_id();
-		}
+	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null ) {
+		$provider_id = $this->get_default_provider_id();
 
 		if ( null === $provider_id ) {
 			return new WP_Error(

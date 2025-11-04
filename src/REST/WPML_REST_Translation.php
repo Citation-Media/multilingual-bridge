@@ -390,7 +390,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		return new WP_REST_Response(
 			array(
 				'translation' => $translation,
-				'provider'    => $this->translation_manager->get_default_provider_id(),
 			),
 			200
 		);

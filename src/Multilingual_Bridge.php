@@ -97,13 +97,9 @@ class Multilingual_Bridge {
 		do_action( 'multilingual_bridge_register_translation_providers', $translation_manager );
 
 		// Register default DeepL provider.
+		// The first available provider is automatically set as default.
 		$deepl_provider = new DeepL_Provider();
 		$translation_manager->register_provider( $deepl_provider );
-
-		// Set DeepL as default provider if available.
-		if ( $deepl_provider->is_available() ) {
-			$translation_manager->set_default_provider( 'deepl' );
-		}
 
 		// Register translation sync tracking.
 		$sync_translations = new Sync_Translations();
