@@ -14,12 +14,13 @@ import { __ } from '@wordpress/i18n';
 /**
  * Custom hook for post translation functionality
  *
- * @param {number} postId          - Source post ID
- * @param {Object} targetLanguages - Available target languages object
- * @param {Object} translations    - Existing translations object
+ * @param {number} postId              - Source post ID
+ * @param {Object} targetLanguages     - Available target languages object
+ * @param {Object} translations        - Existing translations object
+ * @param {Object} translationsPending - Pending updates for each translation language
  * @return {Object} Translation state and methods
  */
-export const usePostTranslation = (postId, targetLanguages, translations) => {
+export const usePostTranslation = (postId, targetLanguages, translations, translationsPending = {}) => {
 	// Selected language codes for translation
 	const [selectedLanguages, setSelectedLanguages] = useState([]);
 
@@ -39,6 +40,9 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 	// Track updated translations to update UI
 	const [updatedTranslations, setUpdatedTranslations] =
 		useState(translations);
+
+	// Track pending updates for translations
+	const [pendingUpdates, setPendingUpdates] = useState(translationsPending);
 
 	/**
 	 * Toggle language selection
@@ -117,14 +121,26 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 
 			// Update translations state for UI updates
 			const newTranslations = { ...updatedTranslations };
+			const newPendingUpdates = { ...pendingUpdates };
+
 			Object.entries(response.languages || {}).forEach(
 				([langCode, langResult]) => {
 					if (langResult.success && langResult.target_post_id > 0) {
 						newTranslations[langCode] = langResult.target_post_id;
+
+						// Clear pending updates for successfully translated language
+						if (newPendingUpdates[langCode]) {
+							newPendingUpdates[langCode] = {
+								hasPending: false,
+								content: [],
+								meta: [],
+							};
+						}
 					}
 				}
 			);
 			setUpdatedTranslations(newTranslations);
+			setPendingUpdates(newPendingUpdates);
 
 			// Clear error
 			setErrorMessage('');
@@ -161,5 +177,6 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 		translate,
 		reset,
 		updatedTranslations,
+		pendingUpdates,
 	};
 };

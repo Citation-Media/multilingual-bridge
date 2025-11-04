@@ -15,6 +15,7 @@ namespace Multilingual_Bridge\REST;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
+use Multilingual_Bridge\Translation\Sync_Translations;
 use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Request;
@@ -50,11 +51,19 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	private Meta_Translation_Handler $meta_handler;
 
 	/**
+	 * Sync Translations instance
+	 *
+	 * @var Sync_Translations
+	 */
+	private Sync_Translations $sync_handler;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
 		$this->meta_handler        = new Meta_Translation_Handler();
+		$this->sync_handler        = new Sync_Translations();
 	}
 
 	/**
@@ -158,6 +167,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'minItems'          => 1,
 							'maxItems'          => 20,
 							'validate_callback' => array( $this, 'validate_target_languages' ),
+						),
+						'pending_fields'   => array(
+							'description' => __( 'Optional object mapping language codes to arrays of field names that need translation. If provided, only these fields will be translated.', 'multilingual-bridge' ),
+							'type'        => 'object',
+							'required'    => false,
 						),
 					),
 				),
@@ -326,6 +340,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	public function post_translate( WP_REST_Request $request ) {
 		$post_id          = (int) $request->get_param( 'post_id' );
 		$target_languages = $request->get_param( 'target_languages' );
+		$pending_fields   = $request->get_param( 'pending_fields' );
 
 		// Verify post exists.
 		$source_post = get_post( $post_id );
@@ -355,11 +370,18 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		// Process each target language.
 		foreach ( $target_languages as $target_lang ) {
+			// Get pending fields for this language if provided.
+			$lang_pending_fields = null;
+			if ( is_array( $pending_fields ) && isset( $pending_fields[ $target_lang ] ) ) {
+				$lang_pending_fields = $pending_fields[ $target_lang ];
+			}
+
 			$language_result = $this->translate_to_language(
 				$post_id,
 				$source_post,
 				$source_language,
-				$target_lang
+				$target_lang,
+				$lang_pending_fields
 			);
 
 			$results['languages'][ $target_lang ] = $language_result;
@@ -367,6 +389,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			// Mark overall success as false if any language fails.
 			if ( ! $language_result['success'] ) {
 				$results['success'] = false;
+			}
+
+			// Clear pending updates for this language if translation was successful.
+			if ( $language_result['success'] ) {
+				$this->sync_handler->clear_pending_updates( $post_id );
 			}
 		}
 
@@ -376,13 +403,14 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Translate post to a single target language
 	 *
-	 * @param int      $source_post_id Source post ID.
-	 * @param \WP_Post $source_post    Source post object.
-	 * @param string   $source_lang    Source language code.
-	 * @param string   $target_lang    Target language code.
+	 * @param int                $source_post_id    Source post ID.
+	 * @param \WP_Post           $source_post       Source post object.
+	 * @param string             $source_lang       Source language code.
+	 * @param string             $target_lang       Target language code.
+	 * @param array<string>|null $pending_fields    Optional array of field names to translate (selective translation).
 	 * @return array<string, mixed> Translation result
 	 */
-	private function translate_to_language( int $source_post_id, \WP_Post $source_post, string $source_lang, string $target_lang ): array {
+	private function translate_to_language( int $source_post_id, \WP_Post $source_post, string $source_lang, string $target_lang, ?array $pending_fields = null ): array {
 		$result = array(
 			'success'         => false,
 			'target_post_id'  => 0,
@@ -397,7 +425,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		if ( $existing_translation ) {
 			// Update existing translation.
-			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang, $target_lang );
+			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang, $target_lang, $pending_fields );
 
 			if ( is_wp_error( $target_post_id ) ) {
 				$result['errors'][] = $target_post_id->get_error_message();
@@ -408,7 +436,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$result['created_new']    = false;
 		} else {
 			// Create new translation post.
-			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $target_lang );
+			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $target_lang, $pending_fields );
 
 			if ( is_wp_error( $target_post_id ) ) {
 				$result['errors'][] = $target_post_id->get_error_message();
@@ -419,12 +447,21 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$result['created_new']    = true;
 		}
 
-		// Translate post meta.
+		// Translate post meta - only translate pending meta fields if specified.
+		$pending_meta_fields = null;
+		if ( is_array( $pending_fields ) ) {
+			// Filter out content fields (title, content, excerpt) to get only meta field keys.
+			$content_fields      = array( 'title', 'content', 'excerpt' );
+			$pending_meta_fields = array_diff( $pending_fields, $content_fields );
+			$pending_meta_fields = ! empty( $pending_meta_fields ) ? array_values( $pending_meta_fields ) : null;
+		}
+
 		$meta_results = $this->meta_handler->translate_post_meta(
 			$source_post_id,
 			$target_post_id,
 			$target_lang,
-			$source_lang
+			$source_lang,
+			$pending_meta_fields
 		);
 
 		$result['meta_translated'] = $meta_results['translated'];
@@ -461,26 +498,35 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Translate post content (title, content, excerpt)
 	 *
-	 * @param \WP_Post $source_post Source post object.
-	 * @param string   $target_lang Target language code.
-	 * @param string   $source_lang Source language code.
+	 * @param \WP_Post           $source_post    Source post object.
+	 * @param string             $target_lang    Target language code.
+	 * @param string             $source_lang    Source language code.
+	 * @param array<string>|null $pending_fields Optional array of field names to translate (selective translation).
 	 * @return array{title: string, content: string, excerpt: string}|WP_Error Translated content or error
 	 */
-	private function translate_post_content( \WP_Post $source_post, string $target_lang, string $source_lang ) {
-		// Translate post title.
-		$translated_title = $this->translation_manager->translate(
-			$source_post->post_title,
-			$target_lang,
-			$source_lang
-		);
+	private function translate_post_content( \WP_Post $source_post, string $target_lang, string $source_lang, ?array $pending_fields = null ) {
+		// Determine which fields need translation.
+		$translate_title   = is_null( $pending_fields ) || in_array( 'title', $pending_fields, true );
+		$translate_content = is_null( $pending_fields ) || in_array( 'content', $pending_fields, true );
+		$translate_excerpt = is_null( $pending_fields ) || in_array( 'excerpt', $pending_fields, true );
 
-		if ( is_wp_error( $translated_title ) ) {
-			return $translated_title;
+		// Translate post title.
+		$translated_title = $source_post->post_title;
+		if ( $translate_title ) {
+			$translated_title = $this->translation_manager->translate(
+				$source_post->post_title,
+				$target_lang,
+				$source_lang
+			);
+
+			if ( is_wp_error( $translated_title ) ) {
+				return $translated_title;
+			}
 		}
 
 		// Translate post content (if not empty).
-		$translated_content = '';
-		if ( ! empty( $source_post->post_content ) ) {
+		$translated_content = $source_post->post_content;
+		if ( $translate_content && ! empty( $source_post->post_content ) ) {
 			$translated_content = $this->translation_manager->translate(
 				$source_post->post_content,
 				$target_lang,
@@ -493,8 +539,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		}
 
 		// Translate post excerpt (if not empty).
-		$translated_excerpt = '';
-		if ( ! empty( $source_post->post_excerpt ) ) {
+		$translated_excerpt = $source_post->post_excerpt;
+		if ( $translate_excerpt && ! empty( $source_post->post_excerpt ) ) {
 			$translated_excerpt = $this->translation_manager->translate(
 				$source_post->post_excerpt,
 				$target_lang,
@@ -516,17 +562,18 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Create a new translation post
 	 *
-	 * @param \WP_Post $source_post    Source post object.
-	 * @param int      $source_post_id Source post ID.
-	 * @param string   $target_lang    Target language code.
+	 * @param \WP_Post           $source_post     Source post object.
+	 * @param int                $source_post_id  Source post ID.
+	 * @param string             $target_lang     Target language code.
+	 * @param array<string>|null $pending_fields  Optional array of field names to translate (selective translation).
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function create_translation_post( \WP_Post $source_post, int $source_post_id, string $target_lang ) {
+	private function create_translation_post( \WP_Post $source_post, int $source_post_id, string $target_lang, ?array $pending_fields = null ) {
 		// Get source language for translation.
 		$source_lang = WPML_Post_Helper::get_language( $source_post_id );
 
 		// Translate post content.
-		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang, $pending_fields );
 
 		if ( is_wp_error( $translated ) ) {
 			return $translated;
@@ -584,15 +631,16 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Update an existing translation post with fresh translations
 	 *
-	 * @param \WP_Post $source_post        Source post object.
-	 * @param int      $target_post_id     Existing translation post ID.
-	 * @param string   $source_lang        Source language code.
-	 * @param string   $target_lang        Target language code.
+	 * @param \WP_Post           $source_post     Source post object.
+	 * @param int                $target_post_id  Existing translation post ID.
+	 * @param string             $source_lang     Source language code.
+	 * @param string             $target_lang     Target language code.
+	 * @param array<string>|null $pending_fields  Optional array of field names to translate (selective translation).
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function update_translation_post( \WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang ) {
+	private function update_translation_post( \WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang, ?array $pending_fields = null ) {
 		// Translate post content.
-		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang, $pending_fields );
 
 		if ( is_wp_error( $translated ) ) {
 			return $translated;

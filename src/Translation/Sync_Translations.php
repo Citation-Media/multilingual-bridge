@@ -515,6 +515,39 @@ class Sync_Translations {
 	}
 
 	/**
+	 * Check if a specific field has pending updates
+	 *
+	 * Public API method for checking if a specific field needs sync.
+	 * Useful for:
+	 * - Highlighting specific ACF fields in the UI
+	 * - Selective translation operations
+	 * - Field-level sync indicators
+	 *
+	 * @param int    $post_id    Post ID (should be original/source post).
+	 * @param string $field_name Field name (content field like 'title' or meta key).
+	 * @return bool True if field has pending updates
+	 */
+	public function has_pending_field_update( int $post_id, string $field_name ): bool {
+		$pending = $this->get_pending_updates( $post_id );
+
+		if ( empty( $pending ) ) {
+			return false;
+		}
+
+		// Check if it's a content field (title, content, excerpt).
+		if ( in_array( $field_name, array( 'title', 'content', 'excerpt' ), true ) ) {
+			return ! empty( $pending[ $field_name ] );
+		}
+
+		// Check if it's a meta field.
+		if ( isset( $pending['meta'][ $field_name ] ) ) {
+			return (bool) $pending['meta'][ $field_name ];
+		}
+
+		return false;
+	}
+
+	/**
 	 * Compare two values to determine if they've changed
 	 *
 	 * Handles different data types appropriately.

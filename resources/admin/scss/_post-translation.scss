@@ -116,6 +116,11 @@
 	color: #dba617;
 }
 
+// Translation with pending sync updates - just show warning icon
+.mlb-translation-pending .dashicons {
+	color: #f0b849;
+}
+
 // Highlight newly created/updated translations
 .mlb-new-translation {
 	animation: mlb-success-pulse 0.6s ease-in-out;
@@ -336,6 +341,18 @@
 }
 
 // =============================================================================
+// ACF Field Highlighting (Pending Sync)
+// =============================================================================
+
+// Highlight ACF fields that have pending translation updates
+// Only show subtle yellow border, no background
+.mlb-field-pending-sync {
+	border: 1px solid #f0b849 !important;
+	border-radius: 4px;
+	transition: border-color 0.2s ease;
+}
+
+// =============================================================================
 // Responsive Adjustments
 // =============================================================================
 
@@ -347,5 +364,11 @@
 
 	#mlb-generate-translation {
 		padding: 12px 16px;
+	}
+
+	.mlb-field-pending-sync::before {
+		top: 4px;
+		right: 4px;
+		font-size: 16px;
 	}
 }

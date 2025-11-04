@@ -12,6 +12,7 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
+use Multilingual_Bridge\Translation\Sync_Translations;
 
 /**
  * Class Post_Translation_Widget
@@ -94,14 +95,36 @@ class Post_Translation_Widget {
 			ARRAY_FILTER_USE_KEY
 		);
 
+		// Get pending updates for this post (sync translations feature).
+		$sync_translations = new Sync_Translations();
+		$pending_updates   = $sync_translations->get_pending_updates( $post->ID );
+
+		// Build pending updates data for each translation language.
+		$translations_pending = array();
+		foreach ( array_keys( $translations ) as $lang_code ) {
+			// Skip source language.
+			if ( $lang_code === $source_language ) {
+				continue;
+			}
+
+			// Check if any field has pending updates.
+			$has_pending                        = $sync_translations->has_pending_updates( $post->ID );
+			$translations_pending[ $lang_code ] = array(
+				'hasPending' => $has_pending,
+				'content'    => $sync_translations->get_pending_content_updates( $post->ID ),
+				'meta'       => $sync_translations->get_pending_meta_updates( $post->ID ),
+			);
+		}
+
 		wp_nonce_field( 'multilingual_bridge_post_translation', 'multilingual_bridge_post_translation_nonce' );
 
 		// Prepare data for React app.
 		$widget_data = array(
-			'postId'          => $post->ID,
-			'sourceLanguage'  => $source_language,
-			'targetLanguages' => $target_languages,
-			'translations'    => $translations,
+			'postId'              => $post->ID,
+			'sourceLanguage'      => $source_language,
+			'targetLanguages'     => $target_languages,
+			'translations'        => $translations,
+			'translationsPending' => $translations_pending,
 		);
 		?>
 
@@ -125,6 +148,7 @@ class Post_Translation_Widget {
 		data-source-language="<?php echo esc_attr( $source_language ); ?>"
 		data-target-languages="<?php echo esc_attr( wp_json_encode( $target_languages ) ); ?>"
 		data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
+		data-translations-pending="<?php echo esc_attr( wp_json_encode( $translations_pending ) ); ?>"
 	>
 		<!-- React app will render here -->
 	</div>
@@ -137,8 +161,7 @@ class Post_Translation_Widget {
 	 *
 	 * Note: The main admin script is already enqueued by Multilingual_Bridge::define_admin_hooks()
 	 * at priority 100. This method runs at priority 200 to ensure the script is enqueued before
-	 * we try to localize it. This method only adds localization data for the post translation
-	 * functionality.
+	 * we try to localize it. This method adds localization data for both source and translated posts.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -150,36 +173,53 @@ class Post_Translation_Widget {
 
 		global $post;
 
-		if ( ! $post || ! WPML_Post_Helper::is_original_post( $post->ID ) ) {
+		if ( ! $post ) {
 			return;
 		}
 
-		// Localize script for the post translation functionality.
-		// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
-		// Note: @wordpress/api-fetch handles authentication/nonce automatically
-		wp_localize_script(
-			'multilingual-bridge/multilingual-bridge-admin',
-			'multilingualBridgePost',
-			array(
-				'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
-				'strings'     => array(
-					'noLanguages'          => __( 'Please select at least one target language.', 'multilingual-bridge' ),
-					'translating'          => __( 'Translating...', 'multilingual-bridge' ),
-					'success'              => __( 'Translation completed successfully!', 'multilingual-bridge' ),
-					'error'                => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
-					'partial'              => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
-					'editTranslation'      => __( 'Edit translation', 'multilingual-bridge' ),
-					'editPost'             => __( 'Edit Post', 'multilingual-bridge' ),
-					'newTranslation'       => __( 'New translation created.', 'multilingual-bridge' ),
-					'updatedTranslation'   => __( 'Translation updated.', 'multilingual-bridge' ),
-					'translationCompleted' => __( 'Translation completed.', 'multilingual-bridge' ),
-					/* translators: %s: language name */
-					'processing'           => __( 'Processing language: %s', 'multilingual-bridge' ),
-					'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
-					'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
-					'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
-				),
-			)
-		);
+		$is_original = WPML_Post_Helper::is_original_post( $post->ID );
+
+		// For translated posts, highlight ACF fields with pending updates.
+		// Get the source/default language post ID to check for pending updates.
+		$pending_meta = array();
+		if ( ! $is_original ) {
+			$source_post_id = WPML_Post_Helper::get_default_language_post_id( $post->ID );
+			if ( $source_post_id ) {
+				$sync_translations = new Sync_Translations();
+				$pending_meta      = $sync_translations->get_pending_meta_updates( $source_post_id );
+			}
+		}
+
+		// Always localize the script (needed for both source posts and translated posts).
+		if ( true ) {
+			// Localize script for the post translation functionality.
+			// Script is already enqueued by Multilingual_Bridge::define_admin_hooks()
+			// Note: @wordpress/api-fetch handles authentication/nonce automatically
+			wp_localize_script(
+				'multilingual-bridge/multilingual-bridge-admin',
+				'multilingualBridgePost',
+				array(
+					'editPostUrl' => admin_url( 'post.php?post=POST_ID&action=edit' ),
+					'pendingMeta' => $pending_meta,
+					'strings'     => array(
+						'noLanguages'          => __( 'Please select at least one target language.', 'multilingual-bridge' ),
+						'translating'          => __( 'Translating...', 'multilingual-bridge' ),
+						'success'              => __( 'Translation completed successfully!', 'multilingual-bridge' ),
+						'error'                => __( 'Translation failed. Please try again.', 'multilingual-bridge' ),
+						'partial'              => __( 'Translation completed with some errors.', 'multilingual-bridge' ),
+						'editTranslation'      => __( 'Edit translation', 'multilingual-bridge' ),
+						'editPost'             => __( 'Edit Post', 'multilingual-bridge' ),
+						'newTranslation'       => __( 'New translation created.', 'multilingual-bridge' ),
+						'updatedTranslation'   => __( 'Translation updated.', 'multilingual-bridge' ),
+						'translationCompleted' => __( 'Translation completed.', 'multilingual-bridge' ),
+						/* translators: %s: language name */
+						'processing'           => __( 'Processing language: %s', 'multilingual-bridge' ),
+						'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
+						'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
+						'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
+					),
+				)
+			);
+		}
 	}
 }

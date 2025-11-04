@@ -86,13 +86,14 @@ class Meta_Translation_Handler {
 	/**
 	 * Translate all post meta from source to target post
 	 *
-	 * @param int    $source_post_id Source post ID.
-	 * @param int    $target_post_id Target post ID.
-	 * @param string $target_language Target language code.
-	 * @param string $source_language Source language code.
+	 * @param int                $source_post_id   Source post ID.
+	 * @param int                $target_post_id   Target post ID.
+	 * @param string             $target_language  Target language code.
+	 * @param string             $source_language  Source language code.
+	 * @param array<string>|null $allowed_fields   Optional array of meta keys to translate (selective translation). If null, all fields are processed.
 	 * @return array<string, mixed> Translation results
 	 */
-	public function translate_post_meta( int $source_post_id, int $target_post_id, string $target_language, string $source_language ): array {
+	public function translate_post_meta( int $source_post_id, int $target_post_id, string $target_language, string $source_language, ?array $allowed_fields = null ): array {
 		$results = array(
 			'success'     => true,
 			'translated'  => 0,
@@ -129,6 +130,12 @@ class Meta_Translation_Handler {
 		);
 
 		foreach ( $all_meta as $meta_key => $meta_values ) {
+			// Skip fields not in allowed list (selective translation).
+			if ( is_array( $allowed_fields ) && ! in_array( $meta_key, $allowed_fields, true ) ) {
+				++$results['skipped'];
+				continue;
+			}
+
 			// Skip internal WordPress meta.
 			if ( $this->should_skip_meta( $meta_key ) ) {
 				++$results['skipped'];
