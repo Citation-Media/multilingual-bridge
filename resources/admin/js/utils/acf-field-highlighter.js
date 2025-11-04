@@ -2,12 +2,14 @@
  * ACF Field Highlighter
  *
  * Highlights ACF fields that have pending translation updates.
- * Adds a yellow border and warning icon to fields that need re-translation.
+ * Adds a yellow border to fields that need re-translation.
+ *
+ * Note: This runs once on page load. Pending fields are determined server-side
+ * and only change when the source post is modified. A page refresh is required
+ * to see updated pending fields after source post changes.
  *
  * @package
  */
-
-/* global MutationObserver */
 
 /**
  * Highlight ACF fields with pending updates
@@ -19,67 +21,38 @@ export const highlightPendingACFFields = (pendingMetaKeys) => {
 		return;
 	}
 
-	// Wait for ACF to render fields (ACF loads dynamically)
-	const highlightFields = () => {
-		pendingMetaKeys.forEach((metaKey) => {
-			// Find ACF field by name attribute
-			// ACF fields have format: acf[field_xxxxx] or just field_xxxxx
-			const fieldSelectors = [
-				`[data-name="${metaKey}"]`, // ACF field wrapper
-				`[data-key="${metaKey}"]`, // ACF field wrapper (alternative)
-				`[name="acf[${metaKey}]"]`, // ACF input field
-				`[name="${metaKey}"]`, // Regular meta field
-			];
+	pendingMetaKeys.forEach((metaKey) => {
+		// Find ACF field by name attribute
+		// ACF fields have format: acf[field_xxxxx] or just field_xxxxx
+		const fieldSelectors = [
+			`[data-name="${metaKey}"]`, // ACF field wrapper
+			`[data-key="${metaKey}"]`, // ACF field wrapper (alternative)
+			`[name="acf[${metaKey}]"]`, // ACF input field
+			`[name="${metaKey}"]`, // Regular meta field
+		];
 
-			fieldSelectors.forEach((selector) => {
-				const elements = document.querySelectorAll(selector);
+		fieldSelectors.forEach((selector) => {
+			const elements = document.querySelectorAll(selector);
 
-				elements.forEach((element) => {
-					// Find the closest ACF field wrapper
-					let fieldWrapper = element.closest('.acf-field');
+			elements.forEach((element) => {
+				// Find the closest ACF field wrapper
+				let fieldWrapper = element.closest('.acf-field');
 
-					// If no ACF wrapper, use the element itself
-					if (!fieldWrapper) {
-						fieldWrapper = element.closest('.postbox') || element;
-					}
+				// If no ACF wrapper, use the element itself
+				if (!fieldWrapper) {
+					fieldWrapper = element.closest('.postbox') || element;
+				}
 
-					// Add pending sync class
-					if (
-						fieldWrapper &&
-						!fieldWrapper.classList.contains(
-							'mlb-field-pending-sync'
-						)
-					) {
-						fieldWrapper.classList.add('mlb-field-pending-sync');
-					}
-				});
+				// Add pending sync class
+				if (
+					fieldWrapper &&
+					!fieldWrapper.classList.contains('mlb-field-pending-sync')
+				) {
+					fieldWrapper.classList.add('mlb-field-pending-sync');
+				}
 			});
 		});
-	};
-
-	// Run immediately
-	highlightFields();
-
-	// Run again after a delay (for dynamically loaded fields)
-	setTimeout(highlightFields, 500);
-	setTimeout(highlightFields, 1000);
-
-	// Watch for DOM changes (ACF repeater fields, flexible content, etc.)
-	if (window.MutationObserver) {
-		const observer = new MutationObserver(() => {
-			highlightFields();
-		});
-
-		observer.observe(document.body, {
-			childList: true,
-			subtree: true,
-		});
-
-		// Stop observing after 5 seconds to avoid performance issues
-		setTimeout(() => {
-			observer.disconnect();
-		}, 5000);
-	}
+	});
 };
 
 /**
