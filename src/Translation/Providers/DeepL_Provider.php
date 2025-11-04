@@ -64,7 +64,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 * @return LanguageAlpha2[] Array of supported language enum instances
 	 */
 	public function get_supported_languages(): array {
-		// DeepL supports these languages as of 2024.
+		// DeepL supports these languages.
 		return array(
 			LanguageAlpha2::Bulgarian,
 			LanguageAlpha2::Czech,
