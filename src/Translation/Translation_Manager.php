@@ -10,7 +10,7 @@
 
 namespace Multilingual_Bridge\Translation;
 
-use PrinsFrank\Standards\Language\LanguageAlpha2;
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -178,13 +178,13 @@ class Translation_Manager {
 	/**
 	 * Translate text using specified or default provider
 	 *
-	 * @param LanguageAlpha2      $target_lang Target language code enum.
-	 * @param string              $text        Text to translate.
-	 * @param LanguageAlpha2|null $source_lang Source language code enum (optional).
-	 * @param string|null         $provider_id Specific provider ID (uses default if null).
+	 * @param LanguageTag      $target_lang Target language tag.
+	 * @param string           $text        Text to translate.
+	 * @param LanguageTag|null $source_lang Source language tag (optional).
+	 * @param string|null      $provider_id Specific provider ID (uses default if null).
 	 * @return string|WP_Error Translated text or error
 	 */
-	public function translate( LanguageAlpha2 $target_lang, string $text, ?LanguageAlpha2 $source_lang = null, ?string $provider_id = null ) {
+	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null, ?string $provider_id = null ) {
 		// Use default provider if none specified.
 		if ( null === $provider_id ) {
 			$provider_id = $this->get_default_provider_id();
@@ -225,8 +225,8 @@ class Translation_Manager {
 		 * Filter text before translation
 		 *
 		 * @param string                         $text        Text to translate
-		 * @param LanguageAlpha2                 $target_lang Target language
-		 * @param LanguageAlpha2|null            $source_lang Source language
+		 * @param LanguageTag                    $target_lang Target language
+		 * @param LanguageTag|null               $source_lang Source language
 		 * @param Translation_Provider_Interface $provider    Provider instance
 		 */
 		$text = apply_filters( 'multilingual_bridge_before_translate', $text, $target_lang, $source_lang, $provider );
@@ -242,8 +242,8 @@ class Translation_Manager {
 		 *
 		 * @param string                         $translation Translated text
 		 * @param string                         $text        Original text
-		 * @param LanguageAlpha2                 $target_lang Target language
-		 * @param LanguageAlpha2|null            $source_lang Source language
+		 * @param LanguageTag                    $target_lang Target language
+		 * @param LanguageTag|null               $source_lang Source language
 		 * @param Translation_Provider_Interface $provider    Provider instance
 		 */
 		return apply_filters( 'multilingual_bridge_after_translate', $translation, $text, $target_lang, $source_lang, $provider );

@@ -10,7 +10,7 @@
 namespace Multilingual_Bridge\Translation\Providers;
 
 use Multilingual_Bridge\Translation\Translation_Provider_Interface;
-use PrinsFrank\Standards\Language\LanguageAlpha2;
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -60,52 +60,52 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	/**
 	 * Get supported languages for DeepL
 	 *
-	 * @return LanguageAlpha2[] Array of supported language enum instances
+	 * @return LanguageTag[] Array of supported language tag instances
 	 */
 	public function get_supported_languages(): array {
 		// DeepL supports these languages (ISO 639-1 codes).
 		return array(
-			LanguageAlpha2::Bulgarian,
-			LanguageAlpha2::Czech,
-			LanguageAlpha2::Danish,
-			LanguageAlpha2::German,
-			LanguageAlpha2::Greek_Modern_1453,
-			LanguageAlpha2::English,
-			LanguageAlpha2::Spanish_Castilian,
-			LanguageAlpha2::Estonian,
-			LanguageAlpha2::Finnish,
-			LanguageAlpha2::French,
-			LanguageAlpha2::Hungarian,
-			LanguageAlpha2::Indonesian,
-			LanguageAlpha2::Italian,
-			LanguageAlpha2::Japanese,
-			LanguageAlpha2::Korean,
-			LanguageAlpha2::Lithuanian,
-			LanguageAlpha2::Latvian,
-			LanguageAlpha2::Bokmal_Norwegian_Norwegian_Bokmal,
-			LanguageAlpha2::Dutch_Flemish,
-			LanguageAlpha2::Polish,
-			LanguageAlpha2::Portuguese,
-			LanguageAlpha2::Romanian_Moldavian_Moldovan,
-			LanguageAlpha2::Russian,
-			LanguageAlpha2::Slovak,
-			LanguageAlpha2::Slovenian,
-			LanguageAlpha2::Swedish,
-			LanguageAlpha2::Turkish,
-			LanguageAlpha2::Ukrainian,
-			LanguageAlpha2::Chinese,
+			LanguageTag::fromString( 'bg' ),
+			LanguageTag::fromString( 'cs' ),
+			LanguageTag::fromString( 'da' ),
+			LanguageTag::fromString( 'de' ),
+			LanguageTag::fromString( 'el' ),
+			LanguageTag::fromString( 'en' ),
+			LanguageTag::fromString( 'es' ),
+			LanguageTag::fromString( 'et' ),
+			LanguageTag::fromString( 'fi' ),
+			LanguageTag::fromString( 'fr' ),
+			LanguageTag::fromString( 'hu' ),
+			LanguageTag::fromString( 'id' ),
+			LanguageTag::fromString( 'it' ),
+			LanguageTag::fromString( 'ja' ),
+			LanguageTag::fromString( 'ko' ),
+			LanguageTag::fromString( 'lt' ),
+			LanguageTag::fromString( 'lv' ),
+			LanguageTag::fromString( 'nb' ),
+			LanguageTag::fromString( 'nl' ),
+			LanguageTag::fromString( 'pl' ),
+			LanguageTag::fromString( 'pt' ),
+			LanguageTag::fromString( 'ro' ),
+			LanguageTag::fromString( 'ru' ),
+			LanguageTag::fromString( 'sk' ),
+			LanguageTag::fromString( 'sl' ),
+			LanguageTag::fromString( 'sv' ),
+			LanguageTag::fromString( 'tr' ),
+			LanguageTag::fromString( 'uk' ),
+			LanguageTag::fromString( 'zh' ),
 		);
 	}
 
 	/**
 	 * Translate text using DeepL API
 	 *
-	 * @param LanguageAlpha2      $target_lang Target language code enum.
-	 * @param string              $text        Text to translate.
-	 * @param LanguageAlpha2|null $source_lang Source language code enum (optional, auto-detect if null).
+	 * @param LanguageTag      $target_lang Target language tag.
+	 * @param string           $text        Text to translate.
+	 * @param LanguageTag|null $source_lang Source language tag (optional, auto-detect if null).
 	 * @return string|WP_Error Translated text or error
 	 */
-	public function translate( LanguageAlpha2 $target_lang, string $text, ?LanguageAlpha2 $source_lang = null ) {
+	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null ) {
 		$api_key = $this->get_api_key();
 
 		if ( ! $api_key ) {
@@ -124,11 +124,13 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		// Prepare request data.
 		$data = array(
 			'text'        => array( $text ),
-			'target_lang' => strtoupper( $target_lang->value ),
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
+			'target_lang' => strtoupper( $target_lang->primaryLanguageSubtag->value ),
 		);
 
 		if ( null !== $source_lang ) {
-			$data['source_lang'] = strtoupper( $source_lang->value );
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
+			$data['source_lang'] = strtoupper( $source_lang->primaryLanguageSubtag->value );
 		}
 
 		/**

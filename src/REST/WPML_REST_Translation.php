@@ -15,7 +15,7 @@ namespace Multilingual_Bridge\REST;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
-use PrinsFrank\Standards\Language\LanguageAlpha2;
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Request;
@@ -172,17 +172,23 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	}
 
 	/**
-	 * Get REST API enum values for LanguageAlpha2
+	 * Get REST API enum values for LanguageTag
 	 *
-	 * Returns all valid ISO 639-1 two-letter language codes for REST API validation
+	 * Returns valid BCP 47 language tags for REST API validation
+	 * Uses WPML's active languages to generate available tags
 	 *
 	 * @return string[]
 	 */
 	private function get_language_tag_enum(): array {
-		return array_map(
-			fn( LanguageAlpha2 $tag ) => $tag->value,
-			LanguageAlpha2::cases()
-		);
+		// Get active WPML languages
+		$active_languages = apply_filters( 'wpml_active_languages', array() );
+
+		if ( empty( $active_languages ) ) {
+			// Fallback to common language codes if WPML not available
+			return array( 'en', 'de', 'fr', 'es', 'it', 'pt', 'nl', 'pl', 'ru', 'ja', 'zh' );
+		}
+
+		return array_keys( $active_languages );
 	}
 
 	/**
@@ -208,7 +214,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			);
 		}
 
-		$language_tag = LanguageAlpha2::tryFrom( $value );
+		$language_tag = LanguageTag::tryFromString( $value );
 
 		if ( null === $language_tag ) {
 			return new WP_Error(
@@ -265,7 +271,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				);
 			}
 
-			// Validate using LanguageAlpha2 enum.
+			// Validate using LanguageTag class.
 			$validation = $this->validate_language_code( $lang_code, $request, $param );
 			if ( is_wp_error( $validation ) ) {
 				return $validation;
@@ -340,8 +346,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$target_lang_code = $request->get_param( 'target_lang' );
 		$source_lang_code = $request->get_param( 'source_lang' );
 
-		// Convert string codes to enums.
-		$target_lang = LanguageAlpha2::tryFrom( $target_lang_code );
+		// Convert string codes to LanguageTag instances.
+		$target_lang = LanguageTag::tryFromString( $target_lang_code );
 		if ( null === $target_lang ) {
 			return new WP_Error(
 				'invalid_language',
@@ -356,7 +362,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		$source_lang = null;
 		if ( ! empty( $source_lang_code ) ) {
-			$source_lang = LanguageAlpha2::tryFrom( $source_lang_code );
+			$source_lang = LanguageTag::tryFromString( $source_lang_code );
 			if ( null === $source_lang ) {
 				return new WP_Error(
 					'invalid_language',
@@ -458,12 +464,12 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * @return array<string, mixed> Translation result
 	 */
 	private function translate_to_language( int $source_post_id, \WP_Post $source_post, string $source_lang, string $target_lang ): array {
-		// Convert string codes to enums.
-		$source_lang_enum = LanguageAlpha2::tryFrom( $source_lang );
-		$target_lang_enum = LanguageAlpha2::tryFrom( $target_lang );
+		// Convert string codes to LanguageTag instances.
+		$source_lang_tag = LanguageTag::tryFromString( $source_lang );
+		$target_lang_tag = LanguageTag::tryFromString( $target_lang );
 
-		if ( null === $source_lang_enum || null === $target_lang_enum ) {
-			$invalid_code = null === $source_lang_enum ? $source_lang : $target_lang;
+		if ( null === $source_lang_tag || null === $target_lang_tag ) {
+			$invalid_code = null === $source_lang_tag ? $source_lang : $target_lang;
 			return array(
 				'success'         => false,
 				'target_post_id'  => 0,
@@ -493,7 +499,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		if ( $existing_translation ) {
 			// Update existing translation.
-			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang_enum, $target_lang_enum );
+			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang_tag, $target_lang_tag );
 
 			if ( is_wp_error( $target_post_id ) ) {
 				$result['errors'][] = $target_post_id->get_error_message();
@@ -504,7 +510,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$result['created_new']    = false;
 		} else {
 			// Create new translation post.
-			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $source_lang_enum, $target_lang_enum );
+			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $source_lang_tag, $target_lang_tag );
 
 			if ( is_wp_error( $target_post_id ) ) {
 				$result['errors'][] = $target_post_id->get_error_message();
@@ -519,8 +525,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$meta_results = $this->meta_handler->translate_post_meta(
 			$source_post_id,
 			$target_post_id,
-			$target_lang_enum,
-			$source_lang_enum
+			$target_lang_tag,
+			$source_lang_tag
 		);
 
 		$result['meta_translated'] = $meta_results['translated'];
@@ -557,12 +563,12 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Translate post content (title, content, excerpt)
 	 *
-	 * @param \WP_Post       $source_post Source post object.
-	 * @param LanguageAlpha2 $target_lang Target language code enum.
-	 * @param LanguageAlpha2 $source_lang Source language code enum.
+	 * @param \WP_Post    $source_post Source post object.
+	 * @param LanguageTag $target_lang Target language tag.
+	 * @param LanguageTag $source_lang Source language tag.
 	 * @return array{title: string, content: string, excerpt: string}|WP_Error Translated content or error
 	 */
-	private function translate_post_content( \WP_Post $source_post, LanguageAlpha2 $target_lang, LanguageAlpha2 $source_lang ) {
+	private function translate_post_content( \WP_Post $source_post, LanguageTag $target_lang, LanguageTag $source_lang ) {
 		// Translate post title.
 		$translated_title = $this->translation_manager->translate(
 			$target_lang,
@@ -612,13 +618,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Create a new translation post
 	 *
-	 * @param \WP_Post       $source_post    Source post object.
-	 * @param int            $source_post_id Source post ID.
-	 * @param LanguageAlpha2 $target_lang    Target language code enum.
-	 * @param LanguageAlpha2 $source_lang    Source language code enum.
+	 * @param \WP_Post    $source_post    Source post object.
+	 * @param int         $source_post_id Source post ID.
+	 * @param LanguageTag $target_lang    Target language tag.
+	 * @param LanguageTag $source_lang    Source language tag.
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function create_translation_post( \WP_Post $source_post, int $source_post_id, LanguageAlpha2 $target_lang, LanguageAlpha2 $source_lang ) {
+	private function create_translation_post( \WP_Post $source_post, int $source_post_id, LanguageTag $target_lang, LanguageTag $source_lang ) {
 		// Translate post content.
 		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
 
@@ -644,7 +650,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		}
 
 		// Set language for new post.
-		$wpml_result = WPML_Post_Helper::set_language( $target_post_id, $target_lang->value );
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
+		$wpml_result = WPML_Post_Helper::set_language( $target_post_id, $target_lang->primaryLanguageSubtag->value );
 
 		if ( is_wp_error( $wpml_result ) ) {
 			// Clean up created post.
@@ -653,7 +660,8 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		}
 
 		// Now relate the posts as translations.
-		$relation_result = WPML_Post_Helper::relate_posts_as_translations( $target_post_id, $source_post_id, $target_lang->value );
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
+		$relation_result = WPML_Post_Helper::relate_posts_as_translations( $target_post_id, $source_post_id, $target_lang->primaryLanguageSubtag->value );
 
 		if ( is_wp_error( $relation_result ) ) {
 			// Clean up created post.
@@ -678,13 +686,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Update an existing translation post with fresh translations
 	 *
-	 * @param \WP_Post       $source_post    Source post object.
-	 * @param int            $target_post_id Existing translation post ID.
-	 * @param LanguageAlpha2 $source_lang    Source language code enum.
-	 * @param LanguageAlpha2 $target_lang    Target language code enum.
+	 * @param \WP_Post    $source_post    Source post object.
+	 * @param int         $target_post_id Existing translation post ID.
+	 * @param LanguageTag $source_lang    Source language tag.
+	 * @param LanguageTag $target_lang    Target language tag.
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function update_translation_post( \WP_Post $source_post, int $target_post_id, LanguageAlpha2 $source_lang, LanguageAlpha2 $target_lang ) {
+	private function update_translation_post( \WP_Post $source_post, int $target_post_id, LanguageTag $source_lang, LanguageTag $target_lang ) {
 		// Translate post content.
 		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
 
