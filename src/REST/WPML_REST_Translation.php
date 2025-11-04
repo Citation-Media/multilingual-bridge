@@ -214,16 +214,17 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			);
 		}
 
-		$language_tag = LanguageTag::tryFromString( $value );
-
-		if ( null === $language_tag ) {
+		try {
+			LanguageTag::fromString( $value );
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'rest_invalid_param',
 				sprintf(
-					/* translators: %1$s: parameter name, %2$s: invalid value */
-					__( 'Invalid language code "%2$s" for parameter %1$s', 'multilingual-bridge' ),
+					/* translators: %1$s: parameter name, %2$s: invalid value, %3$s: error message */
+					__( 'Invalid language code "%2$s" for parameter %1$s: %3$s', 'multilingual-bridge' ),
 					$param,
-					$value
+					$value,
+					$e->getMessage()
 				),
 				array( 'status' => 400 )
 			);
@@ -347,14 +348,16 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$source_lang_code = $request->get_param( 'source_lang' );
 
 		// Convert string codes to LanguageTag instances.
-		$target_lang = LanguageTag::tryFromString( $target_lang_code );
-		if ( null === $target_lang ) {
+		try {
+			$target_lang = LanguageTag::fromString( $target_lang_code );
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_language',
 				sprintf(
-					/* translators: %s: language code */
-					__( 'Invalid target language code: %s', 'multilingual-bridge' ),
-					$target_lang_code
+					/* translators: %1$s: language code, %2$s: error message */
+					__( 'Invalid target language code: %1$s (%2$s)', 'multilingual-bridge' ),
+					$target_lang_code,
+					$e->getMessage()
 				),
 				array( 'status' => 400 )
 			);
@@ -362,14 +365,16 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		$source_lang = null;
 		if ( ! empty( $source_lang_code ) ) {
-			$source_lang = LanguageTag::tryFromString( $source_lang_code );
-			if ( null === $source_lang ) {
+			try {
+				$source_lang = LanguageTag::fromString( $source_lang_code );
+			} catch ( \Exception $e ) {
 				return new WP_Error(
 					'invalid_language',
 					sprintf(
-						/* translators: %s: language code */
-						__( 'Invalid source language code: %s', 'multilingual-bridge' ),
-						$source_lang_code
+						/* translators: %1$s: language code, %2$s: error message */
+						__( 'Invalid source language code: %1$s (%2$s)', 'multilingual-bridge' ),
+						$source_lang_code,
+						$e->getMessage()
 					),
 					array( 'status' => 400 )
 				);
@@ -429,14 +434,16 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		$source_language = WPML_Post_Helper::get_language( $post_id );
 
 		// Convert source language string to LanguageTag.
-		$source_lang_tag = LanguageTag::tryFromString( $source_language );
-		if ( null === $source_lang_tag ) {
+		try {
+			$source_lang_tag = LanguageTag::fromString( $source_language );
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_language',
 				sprintf(
-					/* translators: %s: language code */
-					__( 'Invalid source language code: %s', 'multilingual-bridge' ),
-					$source_language
+					/* translators: %1$s: language code, %2$s: error message */
+					__( 'Invalid source language code: %1$s (%2$s)', 'multilingual-bridge' ),
+					$source_language,
+					$e->getMessage()
 				),
 				array( 'status' => 400 )
 			);
@@ -451,8 +458,9 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		// Process each target language.
 		foreach ( $target_languages as $target_lang_code ) {
 			// Convert target language string to LanguageTag.
-			$target_lang_tag = LanguageTag::tryFromString( $target_lang_code );
-			if ( null === $target_lang_tag ) {
+			try {
+				$target_lang_tag = LanguageTag::fromString( $target_lang_code );
+			} catch ( \Exception $e ) {
 				$results['languages'][ $target_lang_code ] = array(
 					'success'         => false,
 					'target_post_id'  => 0,
@@ -461,9 +469,10 @@ class WPML_REST_Translation extends WP_REST_Controller {
 					'meta_skipped'    => 0,
 					'errors'          => array(
 						sprintf(
-							/* translators: %s: language code */
-							__( 'Invalid target language code: %s', 'multilingual-bridge' ),
-							$target_lang_code
+							/* translators: %1$s: language code, %2$s: error message */
+							__( 'Invalid target language code: %1$s (%2$s)', 'multilingual-bridge' ),
+							$target_lang_code,
+							$e->getMessage()
 						),
 					),
 				);
