@@ -20,7 +20,6 @@ use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
-use Multilingual_Bridge\Translation\Sync_Translations;
 
 /**
  * The core plugin class.
@@ -83,7 +82,7 @@ class Multilingual_Bridge {
 	/**
 	 * Initialize the translation system
 	 *
-	 * Registers translation providers and sync tracking.
+	 * Registers translation providers.
 	 * This is the central initialization point for the translation architecture.
 	 *
 	 * @since    1.4.0
@@ -104,10 +103,6 @@ class Multilingual_Bridge {
 		if ( $deepl_provider->is_available() ) {
 			$translation_manager->set_default_provider( 'deepl' );
 		}
-
-		// Register translation sync tracking.
-		$sync_translations = new Sync_Translations();
-		$sync_translations->register_hooks();
 
 		/**
 		 * Fires after translation system is initialized
