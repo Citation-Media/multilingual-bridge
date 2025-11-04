@@ -392,7 +392,6 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			}
 
 			$language_result = $this->translate_to_language(
-				$post_id,
 				$source_post,
 				$source_lang_tag,
 				$target_lang_tag
