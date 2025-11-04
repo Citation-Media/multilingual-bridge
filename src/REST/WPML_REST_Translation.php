@@ -12,6 +12,7 @@
 
 namespace Multilingual_Bridge\REST;
 
+use Multilingual_Bridge\Helpers\WPML_Language_Helper;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
@@ -115,13 +116,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 							'required'          => true,
 							'type'              => 'string',
 							'enum'              => $this->get_language_tag_enum(),
-							'validate_callback' => array( $this, 'validate_language_code' ),
 						),
 						'source_lang' => array(
 							'description'       => __( 'Source language code (BCP 47), auto-detect if not provided', 'multilingual-bridge' ),
 							'type'              => 'string',
 							'enum'              => $this->get_language_tag_enum(),
-							'validate_callback' => array( $this, 'validate_language_code' ),
 						),
 					),
 				),
@@ -153,8 +152,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 								'enum' => $this->get_language_tag_enum(),
 							),
 							'minItems'          => 1,
-							'maxItems'          => 20,
-							'validate_callback' => array( $this, 'validate_target_languages' ),
+							'maxItems'          => 20
 						),
 					),
 				),
@@ -181,66 +179,18 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 */
 	private function get_language_tag_enum(): array {
 		// Get active WPML languages
-		$active_languages = apply_filters( 'wpml_active_languages', array() );
-
-		if ( empty( $active_languages ) ) {
-			// Fallback to common language codes if WPML not available
-			return array( 'en', 'de', 'fr', 'es', 'it', 'pt', 'nl', 'pl', 'ru', 'ja', 'zh' );
-		}
-
-		return array_keys( $active_languages );
-	}
-
-	/**
-	 * Validate language code parameter
-	 *
-	 * @param mixed                                 $value   Language code string.
-	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
-	 * @param string                                $param   Parameter name.
-	 * @return bool|WP_Error True if valid, WP_Error otherwise
-	 *
-	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
-	 */
-	private function validate_language_code( $value, $request, $param ) {
-		try {
-			LanguageTag::fromString( $value );
-		} catch ( \Exception $e ) {
-			return new WP_Error(
-				'rest_invalid_param',
-				sprintf(
-					/* translators: %1$s: parameter name, %2$s: invalid value, %3$s: error message */
-					__( 'Invalid language code "%2$s" for parameter %1$s: %3$s', 'multilingual-bridge' ),
-					$param,
-					$value,
-					$e->getMessage()
-				),
-				array( 'status' => 400 )
-			);
-		}
-
-		return true;
-	}
-
-	/**
-	 * Validate target languages array
-	 *
-	 * @param mixed                                 $value   Array of language codes.
-	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
-	 * @param string                                $param   Parameter name.
-	 * @return bool|WP_Error True if valid, WP_Error otherwise
-	 *
-	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
-	 */
-	public function validate_target_languages( $value, $request, $param ) {
-		// Validate each language code using LanguageTag format validation.
-		foreach ( $value as $lang_code ) {
-			$validation = $this->validate_language_code( $lang_code, $request, $param );
-			if ( is_wp_error( $validation ) ) {
-				return $validation;
+		$active_languages = WPML_Language_Helper::get_active_language_codes();
+		$active_languages = array_map(function(string $language) {
+			try {
+				$lang_tag = LanguageTag::fromString( $language );
+				return $lang_tag->toString();
+			} catch ( \Exception $e ) {
+				return null;
 			}
-		}
+		}, $active_languages);
 
-		return true;
+		// Filter out the null values
+		return array_filter( $active_languages );
 	}
 
 	/**
