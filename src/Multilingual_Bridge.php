@@ -18,6 +18,7 @@ use Multilingual_Bridge\Admin\Post_Translation_Widget;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
+use Multilingual_Bridge\Translation\Sync_Translations;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
 
