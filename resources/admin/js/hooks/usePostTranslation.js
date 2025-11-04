@@ -137,8 +137,6 @@ export const usePostTranslation = (
 						if (newPendingUpdates[langCode]) {
 							newPendingUpdates[langCode] = {
 								hasPending: false,
-								content: [],
-								meta: [],
 							};
 						}
 					}
