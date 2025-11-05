@@ -60,40 +60,58 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	/**
 	 * Get supported languages for DeepL
 	 *
+	 * Returns all source and target languages supported by DeepL API.
+	 * Includes both base language codes and regional variants.
+	 *
+	 * @see https://developers.deepl.com/docs/getting-started/supported-languages
 	 * @return LanguageTag[] Array of supported language tag instances
 	 */
 	public function get_supported_languages(): array {
-		// DeepL supports these languages (ISO 639-1 codes).
+		// DeepL supported languages (includes source and target languages).
 		return array(
-			LanguageTag::fromString( 'bg' ),
-			LanguageTag::fromString( 'cs' ),
-			LanguageTag::fromString( 'da' ),
-			LanguageTag::fromString( 'de' ),
-			LanguageTag::fromString( 'el' ),
-			LanguageTag::fromString( 'en' ),
-			LanguageTag::fromString( 'es' ),
-			LanguageTag::fromString( 'et' ),
-			LanguageTag::fromString( 'fi' ),
-			LanguageTag::fromString( 'fr' ),
-			LanguageTag::fromString( 'hu' ),
-			LanguageTag::fromString( 'id' ),
-			LanguageTag::fromString( 'it' ),
-			LanguageTag::fromString( 'ja' ),
-			LanguageTag::fromString( 'ko' ),
-			LanguageTag::fromString( 'lt' ),
-			LanguageTag::fromString( 'lv' ),
-			LanguageTag::fromString( 'nb' ),
-			LanguageTag::fromString( 'nl' ),
-			LanguageTag::fromString( 'pl' ),
-			LanguageTag::fromString( 'pt' ),
-			LanguageTag::fromString( 'ro' ),
-			LanguageTag::fromString( 'ru' ),
-			LanguageTag::fromString( 'sk' ),
-			LanguageTag::fromString( 'sl' ),
-			LanguageTag::fromString( 'sv' ),
-			LanguageTag::fromString( 'tr' ),
-			LanguageTag::fromString( 'uk' ),
-			LanguageTag::fromString( 'zh' ),
+			// Source & Target: Core languages.
+			LanguageTag::fromString( 'ar' ),    // Arabic.
+			LanguageTag::fromString( 'bg' ),    // Bulgarian.
+			LanguageTag::fromString( 'cs' ),    // Czech.
+			LanguageTag::fromString( 'da' ),    // Danish.
+			LanguageTag::fromString( 'de' ),    // German.
+			LanguageTag::fromString( 'el' ),    // Greek.
+			LanguageTag::fromString( 'en' ),    // English (generic).
+			LanguageTag::fromString( 'es' ),    // Spanish.
+			LanguageTag::fromString( 'et' ),    // Estonian.
+			LanguageTag::fromString( 'fi' ),    // Finnish.
+			LanguageTag::fromString( 'fr' ),    // French.
+			LanguageTag::fromString( 'he' ),    // Hebrew (next-gen only).
+			LanguageTag::fromString( 'hu' ),    // Hungarian.
+			LanguageTag::fromString( 'id' ),    // Indonesian.
+			LanguageTag::fromString( 'it' ),    // Italian.
+			LanguageTag::fromString( 'ja' ),    // Japanese.
+			LanguageTag::fromString( 'ko' ),    // Korean.
+			LanguageTag::fromString( 'lt' ),    // Lithuanian.
+			LanguageTag::fromString( 'lv' ),    // Latvian.
+			LanguageTag::fromString( 'nb' ),    // Norwegian Bokmål.
+			LanguageTag::fromString( 'nl' ),    // Dutch.
+			LanguageTag::fromString( 'pl' ),    // Polish.
+			LanguageTag::fromString( 'pt' ),    // Portuguese (generic).
+			LanguageTag::fromString( 'ro' ),    // Romanian.
+			LanguageTag::fromString( 'ru' ),    // Russian.
+			LanguageTag::fromString( 'sk' ),    // Slovak.
+			LanguageTag::fromString( 'sl' ),    // Slovenian.
+			LanguageTag::fromString( 'sv' ),    // Swedish.
+			LanguageTag::fromString( 'th' ),    // Thai (next-gen only).
+			LanguageTag::fromString( 'tr' ),    // Turkish.
+			LanguageTag::fromString( 'uk' ),    // Ukrainian.
+			LanguageTag::fromString( 'vi' ),    // Vietnamese (next-gen only).
+			LanguageTag::fromString( 'zh' ),    // Chinese (generic).
+
+			// Target only: Regional variants.
+			LanguageTag::fromString( 'en-gb' ),    // English (British).
+			LanguageTag::fromString( 'en-us' ),    // English (American).
+			LanguageTag::fromString( 'es-419' ),   // Spanish (Latin American).
+			LanguageTag::fromString( 'pt-br' ),    // Portuguese (Brazilian).
+			LanguageTag::fromString( 'pt-pt' ),    // Portuguese (European).
+			LanguageTag::fromString( 'zh-hans' ),  // Chinese (Simplified).
+			LanguageTag::fromString( 'zh-hant' ),  // Chinese (Traditional).
 		);
 	}
 
@@ -121,7 +139,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 
 		$api_url = $this->get_api_url() . '/translate';
 		// Convert target language to DeepL format.
-		$target_lang_code = strtoupper($target_lang->toString());;
+		$target_lang_code = strtoupper( $target_lang->toString() );
 
 		// Prepare request data.
 		$data = array(
@@ -130,7 +148,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		);
 
 		if ( null !== $source_lang ) {
-			$source_lang_code    =  strtoupper($source_lang->toString());
+			$source_lang_code    = strtoupper( $source_lang->toString() );
 			$data['source_lang'] = $source_lang_code;
 		}
 

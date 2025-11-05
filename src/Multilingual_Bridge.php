@@ -101,10 +101,6 @@ class Multilingual_Bridge {
 		$deepl_provider = new DeepL_Provider();
 		$translation_manager->register_provider( $deepl_provider );
 
-		// Register translation sync tracking.
-		$sync_translations = new Sync_Translations();
-		$sync_translations->register_hooks();
-
 		/**
 		 * Fires after translation system is initialized
 		 *
