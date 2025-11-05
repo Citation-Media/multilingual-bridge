@@ -10,6 +10,7 @@
 
 namespace Multilingual_Bridge\Translation;
 
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -130,33 +131,12 @@ class Translation_Manager {
 	}
 
 	/**
-	 * Set default provider
-	 *
-	 * @param string $provider_id Provider ID to set as default.
-	 * @return bool True on success, false if provider doesn't exist
-	 */
-	public function set_default_provider( string $provider_id ): bool {
-		if ( ! isset( $this->providers[ $provider_id ] ) ) {
-			return false;
-		}
-
-		$this->default_provider = $provider_id;
-		return true;
-	}
-
-	/**
 	 * Get default provider ID
 	 *
 	 * @return string|null Default provider ID or null if none set
 	 */
-	public function get_default_provider_id(): ?string {
-		/**
-		 * Filter the default translation provider ID
-		 *
-		 * @param string|null         $default_provider Default provider ID
-		 * @param Translation_Manager $manager          Manager instance
-		 */
-		return apply_filters( 'multilingual_bridge_default_provider', $this->default_provider, $this );
+	private function get_default_provider_id(): ?string {
+		return $this->default_provider;
 	}
 
 	/**
@@ -175,19 +155,37 @@ class Translation_Manager {
 	}
 
 	/**
-	 * Translate text using specified or default provider
+	 * Check if a language is supported by a provider
 	 *
-	 * @param string      $text        Text to translate.
-	 * @param string      $target_lang Target language code.
-	 * @param string      $source_lang Source language code (optional).
-	 * @param string|null $provider_id Specific provider ID (uses default if null).
+	 * @param Translation_Provider_Interface $provider Provider to check.
+	 * @param LanguageTag                    $language Language to check.
+	 * @return bool True if language is supported, false otherwise.
+	 */
+	private function is_language_supported( Translation_Provider_Interface $provider, LanguageTag $language ): bool {
+		$supported_languages = $provider->get_supported_languages();
+
+		// Convert all supported languages to lowercase strings.
+		$supported_codes = array_map(
+			function ( LanguageTag $lang ) {
+				return strtolower( $lang->toString() );
+			},
+			$supported_languages
+		);
+
+		// Check if requested language exists in supported list (case-insensitive).
+		return in_array( strtolower( $language->toString() ), $supported_codes, true );
+	}
+
+	/**
+	 * Translate text using the default provider
+	 *
+	 * @param LanguageTag      $target_lang Target language tag.
+	 * @param string           $text        Text to translate.
+	 * @param LanguageTag|null $source_lang Source language tag (optional).
 	 * @return string|WP_Error Translated text or error
 	 */
-	public function translate( string $text, string $target_lang, string $source_lang = '', ?string $provider_id = null ) {
-		// Use default provider if none specified.
-		if ( null === $provider_id ) {
-			$provider_id = $this->get_default_provider_id();
-		}
+	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null ) {
+		$provider_id = $this->get_default_provider_id();
 
 		if ( null === $provider_id ) {
 			return new WP_Error(
@@ -220,17 +218,43 @@ class Translation_Manager {
 			);
 		}
 
+		// Validate target language is supported by provider.
+		if ( ! $this->is_language_supported( $provider, $target_lang ) ) {
+			return new WP_Error(
+				'unsupported_target_language',
+				sprintf(
+					/* translators: 1: language code, 2: provider name */
+					__( 'Target language "%1$s" is not supported by %2$s.', 'multilingual-bridge' ),
+					$target_lang->toString(),
+					$provider->get_name()
+				)
+			);
+		}
+
+		// Validate source language is supported if provided.
+		if ( null !== $source_lang && ! $this->is_language_supported( $provider, $source_lang ) ) {
+			return new WP_Error(
+				'unsupported_source_language',
+				sprintf(
+					/* translators: 1: language code, 2: provider name */
+					__( 'Source language "%1$s" is not supported by %2$s.', 'multilingual-bridge' ),
+					$source_lang->toString(),
+					$provider->get_name()
+				)
+			);
+		}
+
 		/**
 		 * Filter text before translation
 		 *
 		 * @param string                         $text        Text to translate
-		 * @param string                         $target_lang Target language
-		 * @param string                         $source_lang Source language
+		 * @param LanguageTag                    $target_lang Target language
+		 * @param LanguageTag|null               $source_lang Source language
 		 * @param Translation_Provider_Interface $provider    Provider instance
 		 */
 		$text = apply_filters( 'multilingual_bridge_before_translate', $text, $target_lang, $source_lang, $provider );
 
-		$translation = $provider->translate( $text, $target_lang, $source_lang );
+		$translation = $provider->translate( $target_lang, $text, $source_lang );
 
 		if ( is_wp_error( $translation ) ) {
 			return $translation;
@@ -241,8 +265,8 @@ class Translation_Manager {
 		 *
 		 * @param string                         $translation Translated text
 		 * @param string                         $text        Original text
-		 * @param string                         $target_lang Target language
-		 * @param string                         $source_lang Source language
+		 * @param LanguageTag                    $target_lang Target language
+		 * @param LanguageTag|null               $source_lang Source language
 		 * @param Translation_Provider_Interface $provider    Provider instance
 		 */
 		return apply_filters( 'multilingual_bridge_after_translate', $translation, $text, $target_lang, $source_lang, $provider );

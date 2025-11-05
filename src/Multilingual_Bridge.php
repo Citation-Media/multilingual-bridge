@@ -18,6 +18,7 @@ use Multilingual_Bridge\Admin\Post_Translation_Widget;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
+use Multilingual_Bridge\Translation\Sync_Translations;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
 
@@ -96,13 +97,9 @@ class Multilingual_Bridge {
 		do_action( 'multilingual_bridge_register_translation_providers', $translation_manager );
 
 		// Register default DeepL provider.
+		// The first available provider is automatically set as default.
 		$deepl_provider = new DeepL_Provider();
 		$translation_manager->register_provider( $deepl_provider );
-
-		// Set DeepL as default provider if available.
-		if ( $deepl_provider->is_available() ) {
-			$translation_manager->set_default_provider( 'deepl' );
-		}
 
 		/**
 		 * Fires after translation system is initialized
