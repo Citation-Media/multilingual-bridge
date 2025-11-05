@@ -157,9 +157,6 @@ class Translation_Manager {
 	/**
 	 * Check if a language is supported by a provider
 	 *
-	 * Compares the language tag against the provider's supported languages.
-	 * Uses case-insensitive comparison to handle variations in language codes.
-	 *
 	 * @param Translation_Provider_Interface $provider Provider to check.
 	 * @param LanguageTag                    $language Language to check.
 	 * @return bool True if language is supported, false otherwise.
@@ -167,33 +164,16 @@ class Translation_Manager {
 	private function is_language_supported( Translation_Provider_Interface $provider, LanguageTag $language ): bool {
 		$supported_languages = $provider->get_supported_languages();
 
-		// Convert requested language to lowercase for comparison.
-		$requested_lang = strtolower( $language->toString() );
+		// Convert all supported languages to lowercase strings.
+		$supported_codes = array_map(
+			function ( LanguageTag $lang ) {
+				return strtolower( $lang->toString() );
+			},
+			$supported_languages
+		);
 
-		foreach ( $supported_languages as $supported_lang ) {
-			$supported_lang_str = strtolower( $supported_lang->toString() );
-
-			// Check for exact match.
-			if ( $requested_lang === $supported_lang_str ) {
-				return true;
-			}
-
-			// Check if base language matches (e.g., 'en' matches 'en-US', 'en-GB').
-			// This allows fallback to generic language codes.
-			// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			if ( null !== $language->primaryLanguageSubtag && null !== $supported_lang->primaryLanguageSubtag ) {
-				$requested_base = strtolower( $language->primaryLanguageSubtag->value );
-				$supported_base = strtolower( $supported_lang->primaryLanguageSubtag->value );
-				// phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-
-				// If requested is base language (e.g., 'en') and supported has same base (e.g., 'en-US').
-				if ( $requested_base === $requested_lang && $requested_base === $supported_base ) {
-					return true;
-				}
-			}
-		}
-
-		return false;
+		// Check if requested language exists in supported list (case-insensitive).
+		return in_array( strtolower( $language->toString() ), $supported_codes, true );
 	}
 
 	/**
