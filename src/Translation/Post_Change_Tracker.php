@@ -1,6 +1,6 @@
 <?php
 /**
- * Sync Translations Handler
+ * Post Change Tracker
  *
  * Tracks post content and meta changes and flags when translations need to be synced.
  * Monitors post updates and metadata changes to detect when translatable fields
@@ -24,11 +24,11 @@ use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 
 /**
- * Class Sync_Translations
+ * Class Post_Change_Tracker
  *
- * Handles translation sync tracking and flagging
+ * Handles translation sync tracking and flagging by monitoring post content and metadata changes
  */
-class Sync_Translations {
+class Post_Change_Tracker {
 
 	/**
 	 * Meta key for storing fields that need translation sync

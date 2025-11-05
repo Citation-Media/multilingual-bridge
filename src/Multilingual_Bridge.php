@@ -20,7 +20,7 @@ use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\WPML_REST_Translation;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
-use Multilingual_Bridge\Translation\Sync_Translations;
+use Multilingual_Bridge\Translation\Post_Change_Tracker;
 
 /**
  * The core plugin class.
@@ -105,9 +105,9 @@ class Multilingual_Bridge {
 			$translation_manager->set_default_provider( 'deepl' );
 		}
 
-		// Register translation sync tracking.
-		$sync_translations = new Sync_Translations();
-		$sync_translations->register_hooks();
+		// Register post change tracking for translation sync.
+		$post_change_tracker = new Post_Change_Tracker();
+		$post_change_tracker->register_hooks();
 
 		/**
 		 * Fires after translation system is initialized

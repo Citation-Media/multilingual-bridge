@@ -12,7 +12,7 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
-use Multilingual_Bridge\Translation\Sync_Translations;
+use Multilingual_Bridge\Translation\Post_Change_Tracker;
 
 /**
  * Class Post_Translation_Widget
@@ -95,9 +95,9 @@ class Post_Translation_Widget {
 			ARRAY_FILTER_USE_KEY
 		);
 
-		// Get pending updates for this post (sync translations feature).
-		$sync_translations = new Sync_Translations();
-		$has_pending       = $sync_translations->has_pending_updates( $post->ID );
+		// Get pending updates for this post (post change tracking feature).
+		$post_change_tracker = new Post_Change_Tracker();
+		$has_pending         = $post_change_tracker->has_pending_updates( $post->ID );
 
 		// Build pending updates data for each translation language.
 		$translations_pending = array();

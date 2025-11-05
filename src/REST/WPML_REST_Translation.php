@@ -15,7 +15,7 @@ namespace Multilingual_Bridge\REST;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
-use Multilingual_Bridge\Translation\Sync_Translations;
+use Multilingual_Bridge\Translation\Post_Change_Tracker;
 use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Request;
@@ -51,11 +51,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	private Meta_Translation_Handler $meta_handler;
 
 	/**
-	 * Sync Translations instance
+	 * Post Change Tracker instance
 	 *
-	 * @var Sync_Translations
+	 * @var Post_Change_Tracker
 	 */
-	private Sync_Translations $sync_handler;
+	private Post_Change_Tracker $sync_handler;
 
 	/**
 	 * Constructor
@@ -63,7 +63,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
 		$this->meta_handler        = new Meta_Translation_Handler();
-		$this->sync_handler        = new Sync_Translations();
+		$this->sync_handler        = new Post_Change_Tracker();
 	}
 
 	/**
