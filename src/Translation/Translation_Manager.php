@@ -155,6 +155,48 @@ class Translation_Manager {
 	}
 
 	/**
+	 * Check if a language is supported by a provider
+	 *
+	 * Compares the language tag against the provider's supported languages.
+	 * Uses case-insensitive comparison to handle variations in language codes.
+	 *
+	 * @param Translation_Provider_Interface $provider Provider to check.
+	 * @param LanguageTag                    $language Language to check.
+	 * @return bool True if language is supported, false otherwise.
+	 */
+	private function is_language_supported( Translation_Provider_Interface $provider, LanguageTag $language ): bool {
+		$supported_languages = $provider->get_supported_languages();
+
+		// Convert requested language to lowercase for comparison.
+		$requested_lang = strtolower( $language->toString() );
+
+		foreach ( $supported_languages as $supported_lang ) {
+			$supported_lang_str = strtolower( $supported_lang->toString() );
+
+			// Check for exact match.
+			if ( $requested_lang === $supported_lang_str ) {
+				return true;
+			}
+
+			// Check if base language matches (e.g., 'en' matches 'en-US', 'en-GB').
+			// This allows fallback to generic language codes.
+			// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			if ( null !== $language->primaryLanguageSubtag && null !== $supported_lang->primaryLanguageSubtag ) {
+				$requested_base = strtolower( $language->primaryLanguageSubtag->value );
+				$supported_base = strtolower( $supported_lang->primaryLanguageSubtag->value );
+				// phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+				// If requested is base language (e.g., 'en') and supported has same base (e.g., 'en-US').
+				if ( $requested_base === $requested_lang && $requested_base === $supported_base ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Translate text using the default provider
 	 *
 	 * @param LanguageTag      $target_lang Target language tag.
@@ -191,6 +233,32 @@ class Translation_Manager {
 				sprintf(
 					/* translators: %s: provider name */
 					__( 'Translation provider "%s" is not properly configured.', 'multilingual-bridge' ),
+					$provider->get_name()
+				)
+			);
+		}
+
+		// Validate target language is supported by provider.
+		if ( ! $this->is_language_supported( $provider, $target_lang ) ) {
+			return new WP_Error(
+				'unsupported_target_language',
+				sprintf(
+					/* translators: 1: language code, 2: provider name */
+					__( 'Target language "%1$s" is not supported by %2$s.', 'multilingual-bridge' ),
+					$target_lang->toString(),
+					$provider->get_name()
+				)
+			);
+		}
+
+		// Validate source language is supported if provided.
+		if ( null !== $source_lang && ! $this->is_language_supported( $provider, $source_lang ) ) {
+			return new WP_Error(
+				'unsupported_source_language',
+				sprintf(
+					/* translators: 1: language code, 2: provider name */
+					__( 'Source language "%1$s" is not supported by %2$s.', 'multilingual-bridge' ),
+					$source_lang->toString(),
 					$provider->get_name()
 				)
 			);
