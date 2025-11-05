@@ -196,16 +196,24 @@ class Post_Translation_Handler {
 			return $translated_title;
 		}
 
-		// Translate post content (if not empty).
-		$translated_content = $this->translate_field( $source_post->post_content, $target_lang, $source_lang );
-		if ( is_wp_error( $translated_content ) ) {
-			return $translated_content;
+		// Translate post content (skip if empty to avoid unnecessary API calls).
+		if ( '' === trim( $source_post->post_content ) ) {
+			$translated_content = '';
+		} else {
+			$translated_content = $this->translate_field( $source_post->post_content, $target_lang, $source_lang );
+			if ( is_wp_error( $translated_content ) ) {
+				return $translated_content;
+			}
 		}
 
-		// Translate post excerpt (if not empty).
-		$translated_excerpt = $this->translate_field( $source_post->post_excerpt, $target_lang, $source_lang );
-		if ( is_wp_error( $translated_excerpt ) ) {
-			return $translated_excerpt;
+		// Translate post excerpt (skip if empty to avoid unnecessary API calls).
+		if ( '' === trim( $source_post->post_excerpt ) ) {
+			$translated_excerpt = '';
+		} else {
+			$translated_excerpt = $this->translate_field( $source_post->post_excerpt, $target_lang, $source_lang );
+			if ( is_wp_error( $translated_excerpt ) ) {
+				return $translated_excerpt;
+			}
 		}
 
 		return array(
@@ -223,7 +231,7 @@ class Post_Translation_Handler {
 	 * @param string $source_lang Source language code.
 	 * @return string|WP_Error Translated value or error
 	 */
-	private function translate_field( string $field_value, string $target_lang, string $source_lang ) {
+	private function translate_field( string $field_value, string $target_lang, string $source_lang ): string|WP_Error {
 		if ( empty( $field_value ) ) {
 			return '';
 		}
@@ -246,7 +254,7 @@ class Post_Translation_Handler {
 	 * @param int|null $target_post_id Target post ID (null for new posts).
 	 * @return array<string, mixed>|WP_Error Post data array or error
 	 */
-	private function translate_and_build_post_data( WP_Post $source_post, string $target_lang, string $source_lang, ?int $target_post_id = null ) {
+	private function translate_and_build_post_data( WP_Post $source_post, string $target_lang, string $source_lang, ?int $target_post_id = null ): array|WP_Error {
 		// Translate post content.
 		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
 
