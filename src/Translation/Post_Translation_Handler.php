@@ -189,7 +189,7 @@ class Post_Translation_Handler {
 	 * @param string  $source_lang Source language code.
 	 * @return array{title: string, content: string, excerpt: string}|WP_Error Translated content or error
 	 */
-	private function translate_post_content( WP_Post $source_post, string $target_lang, string $source_lang ) {
+	private function translate_post_content( WP_Post $source_post, string $target_lang, string $source_lang ): array|WP_Error {
 		// Translate post title (always required).
 		$translated_title = $this->translate_field( $source_post->post_title, $target_lang, $source_lang );
 		if ( is_wp_error( $translated_title ) ) {
@@ -303,7 +303,7 @@ class Post_Translation_Handler {
 	 * @param string  $target_lang    Target language code.
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function create_translation_post( WP_Post $source_post, int $source_post_id, string $target_lang ) {
+	private function create_translation_post( WP_Post $source_post, int $source_post_id, string $target_lang ): int|WP_Error {
 		// Get source language for translation.
 		$source_lang = WPML_Post_Helper::get_language( $source_post_id );
 
@@ -354,7 +354,7 @@ class Post_Translation_Handler {
 	 * @param string  $target_lang    Target language code.
 	 * @return int|WP_Error Target post ID or error
 	 */
-	private function update_translation_post( WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang ) {
+	private function update_translation_post( WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang ): int|WP_Error {
 		// Translate and build post data.
 		$post_data = $this->translate_and_build_post_data( $source_post, $target_lang, $source_lang, $target_post_id );
 

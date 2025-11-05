@@ -333,7 +333,7 @@ class Translation_API extends WP_REST_Controller {
 
 		// Handle validation errors from handler.
 		if ( isset( $results['error'] ) ) {
-			$error_code = isset( $results['error_code'] ) ? $results['error_code'] : 'translation_error';
+			$error_code = $results['error_code'] ?? 'translation_error';
 			$status     = 'post_not_found' === $error_code ? 404 : 400;
 
 			return new WP_Error(
