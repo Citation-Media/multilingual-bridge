@@ -149,8 +149,8 @@ class Translation_API extends WP_REST_Controller {
 							'required'    => true,
 							'type'        => 'array',
 							'items'       => array(
-								'type'      => 'string',
-								'enum'      => $this->get_language_tag_enum()
+								'type' => 'string',
+								'enum' => $this->get_language_tag_enum(),
 							),
 							'minItems'    => 1,
 							'maxItems'    => 20,
@@ -158,6 +158,26 @@ class Translation_API extends WP_REST_Controller {
 					),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Normalize language code to BCP 47 format
+	 *
+	 * Converts WPML-style language codes (e.g., zh-hans) to proper BCP 47 format (e.g., zh-Hans).
+	 * This is necessary because WPML uses lowercase for script subtags, while BCP 47 requires
+	 * title case (first letter uppercase, rest lowercase).
+	 *
+	 * @param string $language_code Language code to normalize.
+	 * @return string Normalized language code
+	 */
+	private function normalize_language_code( string $language_code ): string {
+		return preg_replace_callback(
+			'/-(\w+)/',
+			function ( $matches ) {
+				return '-' . ucfirst( strtolower( $matches[1] ) );
+			},
+			strtolower( $language_code )
 		);
 	}
 
@@ -181,9 +201,12 @@ class Translation_API extends WP_REST_Controller {
 			// Always include the original WPML language code.
 			$enum_values[] = $language;
 
+			// Normalize WPML language code to BCP 47 format (e.g., zh-hans -> zh-Hans).
+			$normalized_language = $this->normalize_language_code( $language );
+
 			// Also try to include the normalized BCP 47 version if it differs.
 			try {
-				$lang_tag      = LanguageTag::fromString( $language );
+				$lang_tag      = LanguageTag::fromString( $normalized_language );
 				$enum_values[] = $lang_tag->toString();
 			} catch ( \Exception $e ) {
 				continue;
@@ -268,6 +291,9 @@ class Translation_API extends WP_REST_Controller {
 		$target_lang_code = $request->get_param( 'target_lang' );
 		$source_lang_code = $request->get_param( 'source_lang' ) ?? '';
 
+		// Normalize target language code to BCP 47 format (e.g., zh-hans -> zh-Hans).
+		$target_lang_code = $this->normalize_language_code( $target_lang_code );
+
 		// Convert language codes to LanguageTag objects.
 		try {
 			$target_lang = LanguageTag::fromString( $target_lang_code );
@@ -286,6 +312,9 @@ class Translation_API extends WP_REST_Controller {
 
 		$source_lang = null;
 		if ( ! empty( $source_lang_code ) ) {
+			// Normalize source language code to BCP 47 format (e.g., zh-hans -> zh-Hans).
+			$source_lang_code = $this->normalize_language_code( $source_lang_code );
+
 			try {
 				$source_lang = LanguageTag::fromString( $source_lang_code );
 			} catch ( \Exception $e ) {
@@ -340,6 +369,9 @@ class Translation_API extends WP_REST_Controller {
 
 		// Process each target language.
 		foreach ( $target_language_codes as $lang_code ) {
+			// Normalize language code to BCP 47 format (e.g., zh-hans -> zh-Hans).
+			$lang_code = $this->normalize_language_code( $lang_code );
+
 			// Convert language code to LanguageTag.
 			try {
 				$language_tag = LanguageTag::fromString( $lang_code );

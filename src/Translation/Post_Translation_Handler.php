@@ -99,7 +99,7 @@ class Post_Translation_Handler {
 	 * @return array<string, mixed>|WP_Error Translation result or error
 	 */
 	private function translate_to_language( int $source_post_id, WP_Post $source_post, string $source_lang, LanguageTag $target_lang_tag ): array|WP_Error {
-		$target_lang = $target_lang_tag->toString();
+		$target_lang = strtolower( $target_lang_tag->toString() );
 
 		// Check if translation already exists.
 		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post_id, $target_lang );
