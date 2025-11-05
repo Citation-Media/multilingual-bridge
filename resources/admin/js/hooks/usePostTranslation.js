@@ -135,9 +135,9 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 			// Update translations state for UI updates
 			const newTranslations = { ...updatedTranslations };
 			Object.entries(response.translated_post_ids || {}).forEach(
-				([langCode, postId]) => {
-					if (postId > 0) {
-						newTranslations[langCode] = postId;
+				([langCode, translatedPostId]) => {
+					if (translatedPostId > 0) {
+						newTranslations[langCode] = translatedPostId;
 					}
 				}
 			);
