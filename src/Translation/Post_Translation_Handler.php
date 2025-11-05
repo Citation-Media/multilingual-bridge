@@ -196,43 +196,22 @@ class Post_Translation_Handler {
 	 * @return array{title: string, content: string, excerpt: string}|WP_Error Translated content or error
 	 */
 	private function translate_post_content( WP_Post $source_post, string $target_lang, string $source_lang ) {
-		// Translate post title.
-		$translated_title = $this->translation_manager->translate(
-			$source_post->post_title,
-			$target_lang,
-			$source_lang
-		);
-
+		// Translate post title (always required).
+		$translated_title = $this->translate_field( $source_post->post_title, $target_lang, $source_lang );
 		if ( is_wp_error( $translated_title ) ) {
 			return $translated_title;
 		}
 
 		// Translate post content (if not empty).
-		$translated_content = '';
-		if ( ! empty( $source_post->post_content ) ) {
-			$translated_content = $this->translation_manager->translate(
-				$source_post->post_content,
-				$target_lang,
-				$source_lang
-			);
-
-			if ( is_wp_error( $translated_content ) ) {
-				return $translated_content;
-			}
+		$translated_content = $this->translate_field( $source_post->post_content, $target_lang, $source_lang );
+		if ( is_wp_error( $translated_content ) ) {
+			return $translated_content;
 		}
 
 		// Translate post excerpt (if not empty).
-		$translated_excerpt = '';
-		if ( ! empty( $source_post->post_excerpt ) ) {
-			$translated_excerpt = $this->translation_manager->translate(
-				$source_post->post_excerpt,
-				$target_lang,
-				$source_lang
-			);
-
-			if ( is_wp_error( $translated_excerpt ) ) {
-				return $translated_excerpt;
-			}
+		$translated_excerpt = $this->translate_field( $source_post->post_excerpt, $target_lang, $source_lang );
+		if ( is_wp_error( $translated_excerpt ) ) {
+			return $translated_excerpt;
 		}
 
 		return array(
@@ -240,6 +219,75 @@ class Post_Translation_Handler {
 			'content' => $translated_content,
 			'excerpt' => $translated_excerpt,
 		);
+	}
+
+	/**
+	 * Translate a single field value
+	 *
+	 * @param string $field_value Field value to translate.
+	 * @param string $target_lang Target language code.
+	 * @param string $source_lang Source language code.
+	 * @return string|WP_Error Translated value or error
+	 */
+	private function translate_field( string $field_value, string $target_lang, string $source_lang ) {
+		if ( empty( $field_value ) ) {
+			return '';
+		}
+
+		return $this->translation_manager->translate(
+			$field_value,
+			$target_lang,
+			$source_lang
+		);
+	}
+
+	/**
+	 * Build post data array with translated content
+	 *
+	 * @param array{title: string, content: string, excerpt: string} $translated Translated content.
+	 * @param WP_Post                                                $source_post Source post object.
+	 * @param int|null                                               $target_post_id Target post ID (null for new posts).
+	 * @return array<string, mixed> Post data array
+	 */
+	private function build_translated_post_data( array $translated, WP_Post $source_post, ?int $target_post_id = null ): array {
+		$post_data = array(
+			'post_title'   => $translated['title'],
+			'post_content' => $translated['content'],
+			'post_excerpt' => $translated['excerpt'],
+		);
+
+		if ( null === $target_post_id ) {
+			// For new posts, include additional fields.
+			$post_data['post_status'] = 'draft'; // Create as draft for review.
+			$post_data['post_type']   = $source_post->post_type;
+			$post_data['post_author'] = (int) $source_post->post_author;
+		} else {
+			// For updates, include the post ID.
+			$post_data['ID'] = $target_post_id;
+		}
+
+		return $post_data;
+	}
+
+	/**
+	 * Copy WPML custom fields from source to target post
+	 *
+	 * Copies custom fields marked as "Copy" in WPML settings.
+	 * This ensures ACF fields and other custom fields configured as "Copy" mode
+	 * are properly copied/synced between translations.
+	 *
+	 * @param int $source_post_id Source post ID.
+	 * @param int $target_post_id Target post ID.
+	 * @return void
+	 */
+	private function copy_wpml_custom_fields( int $source_post_id, int $target_post_id ): void {
+		global $sitepress;
+		if ( $sitepress && method_exists( $sitepress, 'copy_custom_fields' ) ) {
+			$sitepress->copy_custom_fields( $source_post_id, $target_post_id );
+		}
+
+		// Trigger action for other plugins that may need to hook into field copying.
+		do_action( 'wpml_after_copy_custom_fields', $source_post_id, $target_post_id );
 	}
 
 	/**
@@ -262,14 +310,7 @@ class Post_Translation_Handler {
 		}
 
 		// Create post data with translated content.
-		$post_data = array(
-			'post_title'   => $translated['title'],
-			'post_content' => $translated['content'],
-			'post_excerpt' => $translated['excerpt'],
-			'post_status'  => 'draft', // Create as draft for review.
-			'post_type'    => $source_post->post_type,
-			'post_author'  => (int) $source_post->post_author,
-		);
+		$post_data = $this->build_translated_post_data( $translated, $source_post );
 
 		// Insert post.
 		$target_post_id = wp_insert_post( $post_data, true );
@@ -296,16 +337,8 @@ class Post_Translation_Handler {
 			return $relation_result;
 		}
 
-		// Copy custom fields marked as "Copy" in WPML settings.
-		// This ensures ACF fields and other custom fields configured as "Copy" mode
-		// are properly copied from the source post to the translation.
-		global $sitepress;
-		if ( $sitepress && method_exists( $sitepress, 'copy_custom_fields' ) ) {
-			$sitepress->copy_custom_fields( $source_post_id, $target_post_id );
-		}
-
-		// Trigger action for other plugins that may need to hook into field copying.
-		do_action( 'wpml_after_copy_custom_fields', $source_post_id, $target_post_id );
+		// Copy WPML custom fields.
+		$this->copy_wpml_custom_fields( $source_post_id, $target_post_id );
 
 		return $target_post_id;
 	}
@@ -328,12 +361,7 @@ class Post_Translation_Handler {
 		}
 
 		// Update post data with translated content.
-		$post_data = array(
-			'ID'           => $target_post_id,
-			'post_title'   => $translated['title'],
-			'post_content' => $translated['content'],
-			'post_excerpt' => $translated['excerpt'],
-		);
+		$post_data = $this->build_translated_post_data( $translated, $source_post, $target_post_id );
 
 		// Update post.
 		$result = wp_update_post( $post_data, true );
@@ -342,16 +370,8 @@ class Post_Translation_Handler {
 			return $result;
 		}
 
-		// Copy custom fields marked as "Copy" in WPML settings.
-		// This ensures ACF fields and other custom fields configured as "Copy" mode
-		// are properly synced when updating existing translations.
-		global $sitepress;
-		if ( $sitepress && method_exists( $sitepress, 'copy_custom_fields' ) ) {
-			$sitepress->copy_custom_fields( $source_post->ID, $target_post_id );
-		}
-
-		// Trigger action for other plugins that may need to hook into field copying.
-		do_action( 'wpml_after_copy_custom_fields', $source_post->ID, $target_post_id );
+		// Copy WPML custom fields.
+		$this->copy_wpml_custom_fields( $source_post->ID, $target_post_id );
 
 		return $target_post_id;
 	}
