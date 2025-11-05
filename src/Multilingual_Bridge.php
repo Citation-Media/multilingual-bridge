@@ -99,11 +99,6 @@ class Multilingual_Bridge {
 		$deepl_provider = new DeepL_Provider();
 		$translation_manager->register_provider( $deepl_provider );
 
-		// Set DeepL as default provider if available.
-		if ( $deepl_provider->is_available() ) {
-			$translation_manager->set_default_provider( 'deepl' );
-		}
-
 		/**
 		 * Fires after translation system is initialized
 		 *
@@ -167,8 +162,8 @@ class Multilingual_Bridge {
 		$this->loader->add_action( 'rest_api_init', $wpml_rest_fields, 'register_fields', 10, 1 );
 
 		// Register REST API endpoints for translation
-		$wpml_rest_translation = new WPML_REST_Translation();
-		$this->loader->add_action( 'rest_api_init', $wpml_rest_translation, 'register_routes', 10, 1 );
+		$translation_api = new Translation_API();
+		$this->loader->add_action( 'rest_api_init', $translation_api, 'register_routes', 10, 1 );
 	}
 
 	/**
