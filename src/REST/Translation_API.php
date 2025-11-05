@@ -222,14 +222,60 @@ class Translation_API extends WP_REST_Controller {
 	}
 
 	/**
+	 * Normalize language tag to RFC 5646 standard format
+	 *
+	 * Converts common variations to proper RFC 5646 format:
+	 * - Primary language: lowercase (en, zh, fr)
+	 * - Script (4 chars): Title case (Hans, Latn, Cyrl)
+	 * - Region (2-3 chars): uppercase (US, CN, GB)
+	 *
+	 * Examples: zh-hans → zh-Hans, en-us → en-US, fr-latn-ca → fr-Latn-CA
+	 *
+	 * @param string $lang_code Language code to normalize.
+	 * @return string Normalized language code
+	 */
+	private function normalize_language_tag( string $lang_code ): string {
+		return preg_replace_callback(
+			'/^([a-z]+)|(?<=-)(\\w+)/i',
+			function ( $matches ) {
+				// Primary language (first match) - lowercase.
+				if ( '' !== $matches[1] ) {
+					return strtolower( $matches[1] );
+				}
+
+				// Subtags after hyphen.
+				$subtag = $matches[2];
+				$length = strlen( $subtag );
+
+				// Script subtags (4 chars) - Title case.
+				if ( 4 === $length ) {
+					return ucfirst( strtolower( $subtag ) );
+				}
+
+				// Region subtags (2-3 chars) - UPPERCASE.
+				if ( 2 === $length || 3 === $length ) {
+					return strtoupper( $subtag );
+				}
+
+				// Other subtags - lowercase.
+				return strtolower( $subtag );
+			},
+			$lang_code
+		);
+	}
+
+	/**
 	 * Validate a single language tag using RFC 5646 standard
 	 *
 	 * @param string $lang_code Language code to validate.
 	 * @return bool True if valid, false otherwise
 	 */
 	private function is_valid_language_tag( string $lang_code ): bool {
+		// Normalize the language tag first.
+		$normalized_code = $this->normalize_language_tag( $lang_code );
+
 		// Use LanguageTag library to validate RFC 5646 compliant language tags.
-		$language_tag = LanguageTag::tryFromString( $lang_code );
+		$language_tag = LanguageTag::tryFromString( $normalized_code );
 
 		return null !== $language_tag;
 	}
@@ -355,9 +401,10 @@ class Translation_API extends WP_REST_Controller {
 		$target_lang_code = $request->get_param( 'target_lang' );
 		$source_lang_code = $request->get_param( 'source_lang' ) ?? '';
 
-		// Convert language codes to LanguageTag objects.
+		// Normalize and convert language codes to LanguageTag objects.
 		try {
-			$target_lang = LanguageTag::fromString( $target_lang_code );
+			$normalized_target = $this->normalize_language_tag( $target_lang_code );
+			$target_lang       = LanguageTag::fromString( $normalized_target );
 		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_target_lang',
@@ -374,7 +421,8 @@ class Translation_API extends WP_REST_Controller {
 		$source_lang = null;
 		if ( ! empty( $source_lang_code ) ) {
 			try {
-				$source_lang = LanguageTag::fromString( $source_lang_code );
+				$normalized_source = $this->normalize_language_tag( $source_lang_code );
+				$source_lang       = LanguageTag::fromString( $normalized_source );
 			} catch ( \Exception $e ) {
 				return new WP_Error(
 					'invalid_source_lang',
@@ -429,7 +477,8 @@ class Translation_API extends WP_REST_Controller {
 		foreach ( $target_language_codes as $lang_code ) {
 			// Convert language code to LanguageTag.
 			try {
-				$language_tag = LanguageTag::fromString( $lang_code );
+				$normalized_lang = $this->normalize_language_tag( $lang_code );
+				$language_tag    = LanguageTag::fromString( $normalized_lang );
 			} catch ( \Exception $e ) {
 				$errors->add(
 					'invalid_language_code',

@@ -77,14 +77,12 @@ class Post_Translation_Handler {
 		}
 
 		$source_language = WPML_Post_Helper::get_language( $post_id );
-		$target_lang     = $target_language->toString();
 
 		// Translate to the target language.
 		$result = $this->translate_to_language(
 			$post_id,
 			$source_post,
 			$source_language,
-			$target_lang,
 			$target_language
 		);
 
@@ -97,11 +95,12 @@ class Post_Translation_Handler {
 	 * @param int         $source_post_id Source post ID.
 	 * @param WP_Post     $source_post    Source post object.
 	 * @param string      $source_lang    Source language code (WPML format).
-	 * @param string      $target_lang    Target language code (WPML format).
 	 * @param LanguageTag $target_lang_tag Target language tag object.
 	 * @return array<string, mixed>|WP_Error Translation result or error
 	 */
-	private function translate_to_language( int $source_post_id, WP_Post $source_post, string $source_lang, string $target_lang, LanguageTag $target_lang_tag ): array|WP_Error {
+	private function translate_to_language( int $source_post_id, WP_Post $source_post, string $source_lang, LanguageTag $target_lang_tag ): array|WP_Error {
+		$target_lang = $target_lang_tag->toString();
+
 		// Check if translation already exists.
 		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post_id, $target_lang );
 
@@ -379,7 +378,12 @@ class Post_Translation_Handler {
 			return $result;
 		}
 
-		// Copy WPML custom fields.
+		/*
+		 * This line copies custom fields (including ACF fields) from
+		 * the source post to the translated post,
+		 * but only those fields configured in WPML as "Copy".
+		 * This ensures that custom field data remains consistent across translations, which is essential for multilingual sites using custom fields.
+		 */
 		$this->copy_wpml_custom_fields( $source_post->ID, $target_post_id );
 
 		return $target_post_id;
