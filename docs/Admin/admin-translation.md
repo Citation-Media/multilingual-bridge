@@ -52,7 +52,7 @@ This document provides an overview of the translation features available in the 
 **Key Files:**
 - `src/Admin/Automatic_Translation_Widget.php` - Widget UI
 - `src/Translation/Meta_Translation_Handler.php` - Core translation logic
-- `src/REST/Translation_API.php` - REST endpoint
+- `src/REST/WPML_REST_Translation.php` - REST endpoint
 - `resources/admin/js/automatic-translation.js` - Frontend interactions
 
 **REST Endpoint:** `POST /wp-json/multilingual-bridge/v1/automatic-translate`

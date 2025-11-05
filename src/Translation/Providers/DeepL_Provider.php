@@ -222,7 +222,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	 *
 	 * ## Related Architecture:
 	 * - This is called from translate() method after receiving a LanguageTag object
-	 * - The LanguageTag was created from normalized BCP 47 code (see Translation_API)
+	 * - The LanguageTag was created from normalized BCP 47 code (see WPML_REST_Translation)
 	 * - DeepL receives the final converted code in the API request
 	 *
 	 * @see https://developers.deepl.com/docs/getting-started/supported-languages DeepL supported languages

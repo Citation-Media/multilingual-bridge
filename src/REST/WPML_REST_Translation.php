@@ -65,11 +65,11 @@ use WP_REST_Response;
 use WP_REST_Server;
 
 /**
- * Class Translation_API
+ * Class WPML_REST_Translation
  *
  * REST API controller for translation operations
  */
-class Translation_API extends WP_REST_Controller {
+class WPML_REST_Translation extends WP_REST_Controller {
 
 	/**
 	 * Namespace for the API
