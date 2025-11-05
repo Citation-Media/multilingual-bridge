@@ -9,45 +9,20 @@
  *
  * ## Language Code Architecture
  *
- * This class handles language codes throughout the translation process using RFC 5646 standard:
+ * This class maintains two parallel representations of language codes:
  *
- * 1. **WPML Language Codes** (e.g., 'zh-hans', 'pt-br', 'en-us')
- *    - Format: Typically lowercase with hyphens (but flexible)
- *    - Used by: WPML core functions and database storage
- *    - Purpose: WPML's internal representation configured in WordPress admin
+ * 1. **WPML Language Codes (string)** - e.g., 'zh-hans', 'pt-br'
+ *    - Used for all WPML operations (set_language, relate_posts, get_translation)
+ *    - Must match exact codes configured in WPML admin (typically lowercase)
  *
- * 2. **RFC 5646 Language Tags** (handled by LanguageTag library)
- *    - Format: Flexible casing - library normalizes automatically
- *    - Examples: 'zh-hans', 'zh-Hans', 'pt-BR', 'pt-br' are all valid
- *    - Used by: LanguageTag library for validation and translation providers
- *    - Purpose: International standard for language identification
+ * 2. **LanguageTag Objects** - RFC 5646 standard
+ *    - Used for validation and translation provider operations
+ *    - Handles normalization internally (accepts 'zh-hans', 'zh-Hans', etc.)
+ *    - Note: `toString()` returns mixed-case format (e.g., 'zh-Hans') incompatible with WPML
  *
- * 3. **Provider-Specific Codes** (e.g., DeepL uses 'ZH', 'ZH-HANT', 'PT-BR')
- *    - Format: Varies by translation service provider
- *    - Used by: External translation APIs (DeepL, Google Translate, etc.)
- *    - Purpose: Service-specific requirements for API requests
- *
- * ### Why We Need Both WPML Codes AND LanguageTag Objects
- *
- * **The Key Insight:**
- * - WPML language codes are compatible with RFC 5646 (LanguageTag library)
- * - LanguageTag::fromString() accepts various casings: 'zh-hans', 'zh-Hans', 'ZH-HANS'
- * - No normalization needed - the library handles it internally
- *
- * **The Solution:**
- * We maintain BOTH representations throughout the translation flow:
- * - Original WPML code (string) → For all WPML API operations
- * - LanguageTag object → For validation and translation provider operations
- *
- * **Critical Operations That Require Original WPML Codes:**
- * - `WPML_Post_Helper::set_language()` - Sets post language in WPML database
- * - `WPML_Post_Helper::relate_posts_as_translations()` - Links translations
- * - `WPML_Post_Helper::get_translation_for_lang()` - Retrieves existing translations
- *
- * Using only `primaryLanguageSubtag` (e.g., 'zh') would fail because:
- * - WPML expects full code 'zh-hans' or 'zh-hant' to distinguish variants
- * - WPML's database stores the complete language code
- * - Error: "Language 'zh' is not configured in WPML" when using subtag only
+ * **Why both?** WPML requires exact case-sensitive strings from its config, while LanguageTag
+ * provides validation and provider compatibility. We cannot use `LanguageTag::toString()`
+ * for WPML operations due to casing differences
  *
  * @package Multilingual_Bridge
  */
@@ -443,10 +418,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			}
 
 			// Translate to target language.
-			// IMPORTANT: We pass both the LanguageTag (for translation provider) AND
-			// the original WPML code (for WPML API operations).
-			// Why? Because WPML_Post_Helper methods require the exact WPML language code
-			// that's configured in WordPress (e.g., 'zh-hans' not 'zh').
+			// Pass both LanguageTag (for translation) and string code (for WPML operations).
 			$target_post_id = $this->translate_to_language(
 				$source_post,
 				$source_lang_tag,
@@ -479,42 +451,29 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	/**
 	 * Translate post to a single target language
 	 *
-	 * This method orchestrates the complete translation process:
+	 * Orchestrates the complete translation process:
 	 * 1. Check for existing translations
 	 * 2. Create new or update existing translation post
 	 * 3. Translate post meta fields
 	 *
-	 * ## Language Code Parameters Explained:
+	 * ## Language Code Usage:
 	 *
-	 * We accept BOTH LanguageTag objects AND the original WPML code string because:
+	 * - **LanguageTag objects:** Used for translation operations (Translation_Manager, providers)
+	 * - **$target_lang_wpml string:** Used for WPML API operations and error identification
 	 *
-	 * - **$source_lang / $target_lang (LanguageTag):**
-	 *   Used for translation operations via Translation_Manager and provider APIs.
-	 *   These are normalized BCP 47 format (e.g., 'zh-Hans') required by LanguageTag library.
+	 * The string parameter is kept separate for error tracking purposes - it represents
+	 * the exact language code from the API request, which is used as the error code key.
 	 *
-	 * - **$target_lang_wpml (string):**
-	 *   Used for ALL WPML API operations (set_language, relate_posts, get_translation).
-	 *   Must be the exact WPML code (e.g., 'zh-hans') configured in WordPress admin.
+	 * ## Error Handling:
 	 *
-	 * **Why not just use $target_lang->primaryLanguageSubtag->value?**
-	 * Because it only extracts the base language code:
-	 * - 'zh-hans' → becomes 'zh' (loses script information)
-	 * - 'pt-br' → becomes 'pt' (loses region information)
+	 * Accumulates errors in the WP_Error object using the language code as the error key.
+	 * Returns 0 on failure, with errors stored in the $error object.
 	 *
-	 * WPML needs the FULL code to distinguish between variants:
-	 * - 'zh-hans' (Simplified Chinese) vs 'zh-hant' (Traditional Chinese)
-	 * - 'pt-br' (Brazilian Portuguese) vs 'pt-pt' (European Portuguese)
-	 *
-	 * ## Error Handling Strategy:
-	 *
-	 * This method accumulates errors in the provided WP_Error object and continues processing.
-	 * Errors are added with the language code as the error code for easy identification.
-	 *
-	 * @param \WP_Post    $source_post         Source post object.
-	 * @param LanguageTag $source_lang         Source language tag (BCP 47 normalized).
-	 * @param LanguageTag $target_lang         Target language tag (BCP 47 normalized).
-	 * @param string      $target_lang_wpml    Original WPML language code (e.g., 'zh-hans', 'pt-br').
-	 * @param WP_Error    $error               Error object for accumulating errors.
+	 * @param \WP_Post    $source_post      Source post object.
+	 * @param LanguageTag $source_lang      Source language tag.
+	 * @param LanguageTag $target_lang      Target language tag.
+	 * @param string      $target_lang_wpml Language code for WPML operations and error tracking.
+	 * @param WP_Error    $error            Error object for accumulating errors.
 	 * @return int Target post ID on success, or 0 if error occurred.
 	 */
 	private function translate_to_language( \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang, string $target_lang_wpml, WP_Error $error ): int {
@@ -633,25 +592,10 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * Creates a new WordPress post with translated content and establishes
 	 * the translation relationship in WPML.
 	 *
-	 * ## Language Code Usage in This Method:
-	 *
-	 * - **LanguageTag objects ($source_lang, $target_lang):**
-	 *   Passed to translate_post_content() → Translation_Manager → Provider
-	 *   Used for actual text translation via external APIs (DeepL, etc.)
-	 *
-	 * - **WPML language code string ($target_lang_wpml):**
-	 *   Used for WPML operations that store/retrieve from WordPress database:
-	 *   - Line ~605: WPML_Post_Helper::set_language() - Sets post language
-	 *   - Line ~615: WPML_Post_Helper::relate_posts_as_translations() - Links translations
-	 *
-	 * **Critical:** These WPML methods expect the exact language code from WPML config.
-	 * Using $target_lang->primaryLanguageSubtag->value would fail with:
-	 * "Language 'zh' is not configured in WPML" (when it expects 'zh-hans')
-	 *
 	 * @param \WP_Post    $source_post       Source post object.
 	 * @param LanguageTag $source_lang       Source language tag (for translation).
 	 * @param LanguageTag $target_lang       Target language tag (for translation).
-	 * @param string      $target_lang_wpml  Original WPML language code (for WPML operations).
+	 * @param string      $target_lang_wpml  WPML language code (for WPML operations).
 	 * @return int|WP_Error Target post ID or error
 	 */
 	private function create_translation_post( \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang, string $target_lang_wpml ) {
@@ -679,9 +623,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			return $target_post_id;
 		}
 
-		// Set language for new post using the original WPML language code.
-		// MUST use $target_lang_wpml (e.g., 'zh-hans') NOT $target_lang->primaryLanguageSubtag->value (e.g., 'zh').
-		// WPML stores and expects the full language code that matches its configuration.
+		// Set language for new post using WPML language code.
 		$wpml_result = WPML_Post_Helper::set_language( $target_post_id, $target_lang_wpml );
 
 		if ( is_wp_error( $wpml_result ) ) {
@@ -690,9 +632,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			return $wpml_result;
 		}
 
-		// Now relate the posts as translations using the original WPML language code.
-		// MUST use $target_lang_wpml (e.g., 'pt-br') NOT $target_lang->primaryLanguageSubtag->value (e.g., 'pt').
-		// WPML's translation relationship table uses the full language code as the key.
+		// Relate the posts as translations using WPML language code.
 		$relation_result = WPML_Post_Helper::relate_posts_as_translations( $target_post_id, $source_post->ID, $target_lang_wpml );
 
 		if ( is_wp_error( $relation_result ) ) {
