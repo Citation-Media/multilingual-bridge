@@ -126,27 +126,21 @@ class Post_Translation_Handler {
 
 		if ( $existing_translation ) {
 			// Update existing translation.
-			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang, $target_lang );
-
-			if ( is_wp_error( $target_post_id ) ) {
-				$result['errors'][] = $target_post_id->get_error_message();
-				return $result;
-			}
-
-			$result['target_post_id'] = $target_post_id;
-			$result['created_new']    = false;
+			$target_post_id        = $this->update_translation_post( $source_post, $existing_translation, $source_lang, $target_lang );
+			$result['created_new'] = false;
 		} else {
 			// Create new translation post.
-			$target_post_id = $this->create_translation_post( $source_post, $source_post_id, $target_lang );
-
-			if ( is_wp_error( $target_post_id ) ) {
-				$result['errors'][] = $target_post_id->get_error_message();
-				return $result;
-			}
-
-			$result['target_post_id'] = $target_post_id;
-			$result['created_new']    = true;
+			$target_post_id        = $this->create_translation_post( $source_post, $source_post_id, $target_lang );
+			$result['created_new'] = true;
 		}
+
+		// Handle translation errors.
+		if ( is_wp_error( $target_post_id ) ) {
+			$result['errors'][] = $target_post_id->get_error_message();
+			return $result;
+		}
+
+		$result['target_post_id'] = $target_post_id;
 
 		// Translate post meta.
 		$meta_results = $this->meta_handler->translate_post_meta(
@@ -242,14 +236,25 @@ class Post_Translation_Handler {
 	}
 
 	/**
-	 * Build post data array with translated content
+	 * Translate post content and build post data array
 	 *
-	 * @param array{title: string, content: string, excerpt: string} $translated Translated content.
-	 * @param WP_Post                                                $source_post Source post object.
-	 * @param int|null                                               $target_post_id Target post ID (null for new posts).
-	 * @return array<string, mixed> Post data array
+	 * Combines translation and post data construction into single operation.
+	 *
+	 * @param WP_Post  $source_post    Source post object.
+	 * @param string   $target_lang    Target language code.
+	 * @param string   $source_lang    Source language code.
+	 * @param int|null $target_post_id Target post ID (null for new posts).
+	 * @return array<string, mixed>|WP_Error Post data array or error
 	 */
-	private function build_translated_post_data( array $translated, WP_Post $source_post, ?int $target_post_id = null ): array {
+	private function translate_and_build_post_data( WP_Post $source_post, string $target_lang, string $source_lang, ?int $target_post_id = null ) {
+		// Translate post content.
+		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+
+		if ( is_wp_error( $translated ) ) {
+			return $translated;
+		}
+
+		// Build post data with translated content.
 		$post_data = array(
 			'post_title'   => $translated['title'],
 			'post_content' => $translated['content'],
@@ -302,15 +307,12 @@ class Post_Translation_Handler {
 		// Get source language for translation.
 		$source_lang = WPML_Post_Helper::get_language( $source_post_id );
 
-		// Translate post content.
-		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+		// Translate and build post data.
+		$post_data = $this->translate_and_build_post_data( $source_post, $target_lang, $source_lang );
 
-		if ( is_wp_error( $translated ) ) {
-			return $translated;
+		if ( is_wp_error( $post_data ) ) {
+			return $post_data;
 		}
-
-		// Create post data with translated content.
-		$post_data = $this->build_translated_post_data( $translated, $source_post );
 
 		// Insert post.
 		$target_post_id = wp_insert_post( $post_data, true );
@@ -353,15 +355,12 @@ class Post_Translation_Handler {
 	 * @return int|WP_Error Target post ID or error
 	 */
 	private function update_translation_post( WP_Post $source_post, int $target_post_id, string $source_lang, string $target_lang ) {
-		// Translate post content.
-		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+		// Translate and build post data.
+		$post_data = $this->translate_and_build_post_data( $source_post, $target_lang, $source_lang, $target_post_id );
 
-		if ( is_wp_error( $translated ) ) {
-			return $translated;
+		if ( is_wp_error( $post_data ) ) {
+			return $post_data;
 		}
-
-		// Update post data with translated content.
-		$post_data = $this->build_translated_post_data( $translated, $source_post, $target_post_id );
 
 		// Update post.
 		$result = wp_update_post( $post_data, true );
