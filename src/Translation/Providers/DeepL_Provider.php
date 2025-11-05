@@ -10,6 +10,7 @@
 namespace Multilingual_Bridge\Translation\Providers;
 
 use Multilingual_Bridge\Translation\Translation_Provider_Interface;
+use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
@@ -57,14 +58,72 @@ class DeepL_Provider implements Translation_Provider_Interface {
 	}
 
 	/**
+	 * Get supported languages for DeepL
+	 *
+	 * Returns all source and target languages supported by DeepL API.
+	 * Includes both base language codes and regional variants.
+	 *
+	 * @see https://developers.deepl.com/docs/getting-started/supported-languages
+	 * @return LanguageTag[] Array of supported language tag instances
+	 */
+	public function get_supported_languages(): array {
+		// DeepL supported languages (includes source and target languages).
+		return array(
+			// Source & Target: Core languages.
+			LanguageTag::fromString( 'ar' ),    // Arabic.
+			LanguageTag::fromString( 'bg' ),    // Bulgarian.
+			LanguageTag::fromString( 'cs' ),    // Czech.
+			LanguageTag::fromString( 'da' ),    // Danish.
+			LanguageTag::fromString( 'de' ),    // German.
+			LanguageTag::fromString( 'el' ),    // Greek.
+			LanguageTag::fromString( 'en' ),    // English (generic).
+			LanguageTag::fromString( 'es' ),    // Spanish.
+			LanguageTag::fromString( 'et' ),    // Estonian.
+			LanguageTag::fromString( 'fi' ),    // Finnish.
+			LanguageTag::fromString( 'fr' ),    // French.
+			LanguageTag::fromString( 'he' ),    // Hebrew (next-gen only).
+			LanguageTag::fromString( 'hu' ),    // Hungarian.
+			LanguageTag::fromString( 'id' ),    // Indonesian.
+			LanguageTag::fromString( 'it' ),    // Italian.
+			LanguageTag::fromString( 'ja' ),    // Japanese.
+			LanguageTag::fromString( 'ko' ),    // Korean.
+			LanguageTag::fromString( 'lt' ),    // Lithuanian.
+			LanguageTag::fromString( 'lv' ),    // Latvian.
+			LanguageTag::fromString( 'nb' ),    // Norwegian Bokmål.
+			LanguageTag::fromString( 'nl' ),    // Dutch.
+			LanguageTag::fromString( 'pl' ),    // Polish.
+			LanguageTag::fromString( 'pt' ),    // Portuguese (generic).
+			LanguageTag::fromString( 'ro' ),    // Romanian.
+			LanguageTag::fromString( 'ru' ),    // Russian.
+			LanguageTag::fromString( 'sk' ),    // Slovak.
+			LanguageTag::fromString( 'sl' ),    // Slovenian.
+			LanguageTag::fromString( 'sv' ),    // Swedish.
+			LanguageTag::fromString( 'th' ),    // Thai (next-gen only).
+			LanguageTag::fromString( 'tr' ),    // Turkish.
+			LanguageTag::fromString( 'uk' ),    // Ukrainian.
+			LanguageTag::fromString( 'vi' ),    // Vietnamese (next-gen only).
+			LanguageTag::fromString( 'zh' ),    // Chinese (generic).
+
+			// Target only: Regional variants.
+			LanguageTag::fromString( 'en-gb' ),    // English (British).
+			LanguageTag::fromString( 'en-us' ),    // English (American).
+			LanguageTag::fromString( 'es-419' ),   // Spanish (Latin American).
+			LanguageTag::fromString( 'pt-br' ),    // Portuguese (Brazilian).
+			LanguageTag::fromString( 'pt-pt' ),    // Portuguese (European).
+			LanguageTag::fromString( 'zh-hans' ),  // Chinese (Simplified).
+			LanguageTag::fromString( 'zh-hant' ),  // Chinese (Traditional).
+		);
+	}
+
+	/**
 	 * Translate text using DeepL API
 	 *
-	 * @param string $text        Text to translate.
-	 * @param string $target_lang Target language code.
-	 * @param string $source_lang Source language code (optional).
+	 * @param LanguageTag      $target_lang Target language tag.
+	 * @param string           $text        Text to translate.
+	 * @param LanguageTag|null $source_lang Source language tag (optional, auto-detect if null).
 	 * @return string|WP_Error Translated text or error
 	 */
-	public function translate( string $text, string $target_lang, string $source_lang = '' ) {
+	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null ) {
 		$api_key = $this->get_api_key();
 
 		if ( ! $api_key ) {
@@ -79,15 +138,18 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		}
 
 		$api_url = $this->get_api_url() . '/translate';
+		// Convert target language to DeepL format.
+		$target_lang_code = strtoupper( $target_lang->toString() );
 
 		// Prepare request data.
 		$data = array(
 			'text'        => array( $text ),
-			'target_lang' => strtoupper( $target_lang ),
+			'target_lang' => $target_lang_code,
 		);
 
-		if ( ! empty( $source_lang ) ) {
-			$data['source_lang'] = strtoupper( $source_lang );
+		if ( null !== $source_lang ) {
+			$source_lang_code    = strtoupper( $source_lang->toString() );
+			$data['source_lang'] = $source_lang_code;
 		}
 
 		/**
