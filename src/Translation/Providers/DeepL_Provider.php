@@ -105,13 +105,13 @@ class DeepL_Provider implements Translation_Provider_Interface {
 			LanguageTag::fromString( 'zh' ),    // Chinese (generic).
 
 			// Target only: Regional variants.
-			LanguageTag::fromString( 'en-GB' ),    // English (British).
-			LanguageTag::fromString( 'en-US' ),    // English (American).
+			LanguageTag::fromString( 'en-gb' ),    // English (British).
+			LanguageTag::fromString( 'en-us' ),    // English (American).
 			LanguageTag::fromString( 'es-419' ),   // Spanish (Latin American).
-			LanguageTag::fromString( 'pt-BR' ),    // Portuguese (Brazilian).
-			LanguageTag::fromString( 'pt-PT' ),    // Portuguese (European).
-			LanguageTag::fromString( 'zh-Hans' ),  // Chinese (Simplified).
-			LanguageTag::fromString( 'zh-Hant' ),  // Chinese (Traditional).
+			LanguageTag::fromString( 'pt-br' ),    // Portuguese (Brazilian).
+			LanguageTag::fromString( 'pt-pt' ),    // Portuguese (European).
+			LanguageTag::fromString( 'zh-hans' ),  // Chinese (Simplified).
+			LanguageTag::fromString( 'zh-hant' ),  // Chinese (Traditional).
 		);
 	}
 
