@@ -17,7 +17,8 @@ use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Admin\Post_Translation_Widget;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
-use Multilingual_Bridge\REST\WPML_REST_Translation;
+use Multilingual_Bridge\REST\Translation_API;
+use Multilingual_Bridge\Translation\Sync_Translations;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
 
@@ -167,8 +168,8 @@ class Multilingual_Bridge {
 		$this->loader->add_action( 'rest_api_init', $wpml_rest_fields, 'register_fields', 10, 1 );
 
 		// Register REST API endpoints for translation
-		$wpml_rest_translation = new WPML_REST_Translation();
-		$this->loader->add_action( 'rest_api_init', $wpml_rest_translation, 'register_routes', 10, 1 );
+		$translation_api = new Translation_API();
+		$this->loader->add_action( 'rest_api_init', $translation_api, 'register_routes', 10, 1 );
 	}
 
 	/**
