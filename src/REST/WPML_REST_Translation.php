@@ -9,17 +9,18 @@
  *
  * ## Language Code Architecture
  *
- * This class handles three different language code formats throughout the translation process:
+ * This class handles language codes throughout the translation process using RFC 5646 standard:
  *
  * 1. **WPML Language Codes** (e.g., 'zh-hans', 'pt-br', 'en-us')
- *    - Format: Lowercase with hyphens
+ *    - Format: Typically lowercase with hyphens (but flexible)
  *    - Used by: WPML core functions and database storage
  *    - Purpose: WPML's internal representation configured in WordPress admin
  *
- * 2. **BCP 47 Language Tags** (e.g., 'zh-Hans', 'pt-BR', 'en-US')
- *    - Format: Proper casing - language(lowercase), Script(Titlecase), Region(UPPERCASE)
- *    - Used by: LanguageTag library for validation and standardization
- *    - Purpose: International standard for language identification (RFC 5646)
+ * 2. **RFC 5646 Language Tags** (handled by LanguageTag library)
+ *    - Format: Flexible casing - library normalizes automatically
+ *    - Examples: 'zh-hans', 'zh-Hans', 'pt-BR', 'pt-br' are all valid
+ *    - Used by: LanguageTag library for validation and translation providers
+ *    - Purpose: International standard for language identification
  *
  * 3. **Provider-Specific Codes** (e.g., DeepL uses 'ZH', 'ZH-HANT', 'PT-BR')
  *    - Format: Varies by translation service provider
@@ -28,15 +29,15 @@
  *
  * ### Why We Need Both WPML Codes AND LanguageTag Objects
  *
- * **The Challenge:**
- * - WPML stores and expects lowercase codes: `zh-hans`, `pt-br`
- * - LanguageTag validation requires proper BCP 47 casing: `zh-Hans`, `pt-BR`
- * - LanguageTag->primaryLanguageSubtag only extracts base code: `zh-hans` → `zh`
+ * **The Key Insight:**
+ * - WPML language codes are compatible with RFC 5646 (LanguageTag library)
+ * - LanguageTag::fromString() accepts various casings: 'zh-hans', 'zh-Hans', 'ZH-HANS'
+ * - No normalization needed - the library handles it internally
  *
  * **The Solution:**
  * We maintain BOTH representations throughout the translation flow:
  * - Original WPML code (string) → For all WPML API operations
- * - Normalized LanguageTag (object) → For validation and translation provider operations
+ * - LanguageTag object → For validation and translation provider operations
  *
  * **Critical Operations That Require Original WPML Codes:**
  * - `WPML_Post_Helper::set_language()` - Sets post language in WPML database
@@ -400,14 +401,10 @@ class WPML_REST_Translation extends WP_REST_Controller {
 
 		$source_language = WPML_Post_Helper::get_language( $post_id );
 
-		// Normalize WPML language code to BCP 47 format before creating LanguageTag.
-		// Example: 'zh-hans' (WPML) → 'zh-Hans' (BCP 47)
-		// This is required because LanguageTag library validates against BCP 47 standard.
-		$normalized_source = $this->normalize_wpml_language_code( $source_language );
-
 		// Convert source language string to LanguageTag.
+		// LanguageTag library supports RFC 5646 format and handles various casings natively.
 		try {
-			$source_lang_tag = LanguageTag::fromString( $normalized_source );
+			$source_lang_tag = LanguageTag::fromString( $source_language );
 		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_language',
@@ -421,39 +418,27 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			);
 		}
 
-		$results = array(
-			'success'     => true,
-			'source_post' => $post_id,
-			'languages'   => array(),
-		);
+		// Accumulate errors for all languages using WP_Error.
+		$error            = new WP_Error();
+		$translated_posts = array();
 
 		// Process each target language.
 		foreach ( $target_languages as $target_lang_code ) {
-			// Normalize WPML language code to BCP 47 format before creating LanguageTag.
-			// Example: 'pt-br' (WPML) → 'pt-BR' (BCP 47)
-			// We preserve the original WPML code ($target_lang_code) for WPML operations.
-			$normalized_code = $this->normalize_wpml_language_code( $target_lang_code );
-
 			// Convert target language string to LanguageTag.
+			// LanguageTag library supports RFC 5646 format and handles various casings natively.
+			// We preserve the original WPML code ($target_lang_code) for WPML operations.
 			try {
-				$target_lang_tag = LanguageTag::fromString( $normalized_code );
+				$target_lang_tag = LanguageTag::fromString( $target_lang_code );
 			} catch ( \Exception $e ) {
-				$results['languages'][ $target_lang_code ] = array(
-					'success'         => false,
-					'target_post_id'  => 0,
-					'created_new'     => false,
-					'meta_translated' => 0,
-					'meta_skipped'    => 0,
-					'errors'          => array(
-						sprintf(
-							/* translators: %1$s: language code, %2$s: error message */
-							__( 'Invalid target language code: %1$s (%2$s)', 'multilingual-bridge' ),
-							$target_lang_code,
-							$e->getMessage()
-						),
-					),
+				$error->add(
+					$target_lang_code,
+					sprintf(
+						/* translators: %1$s: language code, %2$s: error message */
+						__( 'Invalid target language code: %1$s (%2$s)', 'multilingual-bridge' ),
+						$target_lang_code,
+						$e->getMessage()
+					)
 				);
-				$results['success']                        = false;
 				continue;
 			}
 
@@ -462,22 +447,33 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			// the original WPML code (for WPML API operations).
 			// Why? Because WPML_Post_Helper methods require the exact WPML language code
 			// that's configured in WordPress (e.g., 'zh-hans' not 'zh').
-			$language_result = $this->translate_to_language(
+			$target_post_id = $this->translate_to_language(
 				$source_post,
 				$source_lang_tag,
 				$target_lang_tag,
-				$target_lang_code // Original WPML code preserved here.
+				$target_lang_code,
+				$error
 			);
 
-			$results['languages'][ $target_lang_code ] = $language_result;
-
-			// Mark overall success as false if any language fails.
-			if ( ! $language_result['success'] ) {
-				$results['success'] = false;
+			// Track successfully translated posts (errors are accumulated in $error object).
+			if ( $target_post_id > 0 ) {
+				$translated_posts[ $target_lang_code ] = $target_post_id;
 			}
 		}
 
-		return new WP_REST_Response( $results, 200 );
+		// If any errors occurred, return them.
+		if ( $error->has_errors() ) {
+			return $error;
+		}
+
+		// Return success response with translated post IDs.
+		return new WP_REST_Response(
+			array(
+				'source_post_id'   => $post_id,
+				'translated_posts' => $translated_posts,
+			),
+			200
+		);
 	}
 
 	/**
@@ -509,22 +505,19 @@ class WPML_REST_Translation extends WP_REST_Controller {
 	 * - 'zh-hans' (Simplified Chinese) vs 'zh-hant' (Traditional Chinese)
 	 * - 'pt-br' (Brazilian Portuguese) vs 'pt-pt' (European Portuguese)
 	 *
+	 * ## Error Handling Strategy:
+	 *
+	 * This method accumulates errors in the provided WP_Error object and continues processing.
+	 * Errors are added with the language code as the error code for easy identification.
+	 *
 	 * @param \WP_Post    $source_post         Source post object.
 	 * @param LanguageTag $source_lang         Source language tag (BCP 47 normalized).
 	 * @param LanguageTag $target_lang         Target language tag (BCP 47 normalized).
 	 * @param string      $target_lang_wpml    Original WPML language code (e.g., 'zh-hans', 'pt-br').
-	 * @return array<string, mixed> Translation result
+	 * @param WP_Error    $error               Error object for accumulating errors.
+	 * @return int Target post ID on success, or 0 if error occurred.
 	 */
-	private function translate_to_language( \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang, string $target_lang_wpml ): array {
-		$result = array(
-			'success'         => false,
-			'target_post_id'  => 0,
-			'created_new'     => false,
-			'meta_translated' => 0,
-			'meta_skipped'    => 0,
-			'errors'          => array(),
-		);
-
+	private function translate_to_language( \WP_Post $source_post, LanguageTag $source_lang, LanguageTag $target_lang, string $target_lang_wpml, WP_Error $error ): int {
 		// Check if translation already exists using the original WPML language code.
 		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post->ID, $target_lang_wpml );
 
@@ -533,23 +526,17 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$target_post_id = $this->update_translation_post( $source_post, $existing_translation, $source_lang, $target_lang );
 
 			if ( is_wp_error( $target_post_id ) ) {
-				$result['errors'][] = $target_post_id->get_error_message();
-				return $result;
+				$error->add( $target_lang_wpml, $target_post_id->get_error_message() );
+				return 0;
 			}
-
-			$result['target_post_id'] = $target_post_id;
-			$result['created_new']    = false;
 		} else {
 			// Create new translation post.
 			$target_post_id = $this->create_translation_post( $source_post, $source_lang, $target_lang, $target_lang_wpml );
 
 			if ( is_wp_error( $target_post_id ) ) {
-				$result['errors'][] = $target_post_id->get_error_message();
-				return $result;
+				$error->add( $target_lang_wpml, $target_post_id->get_error_message() );
+				return 0;
 			}
-
-			$result['target_post_id'] = $target_post_id;
-			$result['created_new']    = true;
 		}
 
 		// Translate post meta.
@@ -560,12 +547,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$source_lang
 		);
 
-		$result['meta_translated'] = $meta_results['translated'];
-		$result['meta_skipped']    = $meta_results['skipped'];
-
-		// Only include actual critical errors (not skip errors).
+		// Add meta translation errors if any occurred.
 		if ( ! empty( $meta_results['errors'] ) ) {
-			$result['errors'] = array_merge( $result['errors'], $meta_results['errors'] );
+			foreach ( $meta_results['errors'] as $meta_error ) {
+				$error->add( $target_lang_wpml, $meta_error );
+			}
 		}
 
 		// Trigger wp_update_post to fire WordPress hooks (save_post, etc.) after all changes are complete.
@@ -579,16 +565,11 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		);
 
 		if ( is_wp_error( $update_result ) ) {
-			$result['errors'][] = $update_result->get_error_message();
+			$error->add( $target_lang_wpml, $update_result->get_error_message() );
+			return 0;
 		}
 
-		// Consider success if:
-		// 1. Target post exists
-		// 2. Either some meta was translated, OR there were no critical errors in meta translation.
-		$has_critical_errors = ! empty( $meta_results['errors'] );
-		$result['success']   = $target_post_id > 0 && ! $has_critical_errors;
-
-		return $result;
+		return $target_post_id;
 	}
 
 	/**
@@ -778,69 +759,5 @@ class WPML_REST_Translation extends WP_REST_Controller {
 		do_action( 'wpml_after_copy_custom_fields', $source_post->ID, $target_post_id );
 
 		return $target_post_id;
-	}
-
-	/**
-	 * Normalize WPML language code to BCP 47 format
-	 *
-	 * ## The Problem This Solves:
-	 *
-	 * WPML uses lowercase language codes (e.g., 'zh-hans', 'pt-br', 'en-us'),
-	 * but the LanguageTag library requires proper BCP 47 casing for validation.
-	 *
-	 * Without normalization, LanguageTag::fromString('zh-hans') would fail because
-	 * BCP 47 standard requires script codes to be Title case ('Hans' not 'hans').
-	 *
-	 * ## BCP 47 Casing Rules (RFC 5646):
-	 * - Language subtag: lowercase (e.g., 'en', 'zh', 'pt')
-	 * - Script subtag: Title case (e.g., 'Hans', 'Hant', 'Latn')
-	 * - Region subtag: UPPERCASE (e.g., 'US', 'BR', 'GB', 'CN')
-	 * - Variant subtag: lowercase or numeric
-	 *
-	 * ## Transformation Examples:
-	 * - 'zh-hans' → 'zh-Hans' (Chinese Simplified)
-	 * - 'zh-hant' → 'zh-Hant' (Chinese Traditional)
-	 * - 'pt-br' → 'pt-BR' (Brazilian Portuguese)
-	 * - 'en-us' → 'en-US' (American English)
-	 * - 'sr-latn-rs' → 'sr-Latn-RS' (Serbian Latin Serbia)
-	 *
-	 * ## Usage Flow:
-	 * 1. Receive WPML code from API or database: 'zh-hans'
-	 * 2. Normalize to BCP 47: 'zh-Hans'
-	 * 3. Create LanguageTag object: LanguageTag::fromString('zh-Hans') ✓ Valid
-	 * 4. Keep original WPML code for WPML operations: 'zh-hans'
-	 *
-	 * @param string $wpml_code WPML language code (e.g., 'zh-hans', 'pt-br', 'en-us').
-	 * @return string BCP 47 formatted language code (e.g., 'zh-Hans', 'pt-BR', 'en-US').
-	 */
-	private function normalize_wpml_language_code( string $wpml_code ): string {
-		// Already normalized or simple code.
-		if ( ! str_contains( $wpml_code, '-' ) ) {
-			return strtolower( $wpml_code );
-		}
-
-		$parts = explode( '-', strtolower( $wpml_code ) );
-
-		// First part is always the language code (lowercase).
-		$normalized = array( $parts[0] );
-
-		// Process remaining parts.
-		$parts_count = count( $parts );
-		for ( $i = 1; $i < $parts_count; $i++ ) {
-			$part = $parts[ $i ];
-
-			// Script codes are 4 letters (e.g., 'hans', 'hant', 'latn') - use Title case.
-			if ( strlen( $part ) === 4 && ctype_alpha( $part ) ) {
-				$normalized[] = ucfirst( strtolower( $part ) );
-			} elseif ( ( strlen( $part ) === 2 && ctype_alpha( $part ) ) || ( strlen( $part ) === 3 && ctype_digit( $part ) ) ) {
-				// Region codes are 2 letters or 3 digits - use UPPERCASE.
-				$normalized[] = strtoupper( $part );
-			} else {
-				// Variant codes - keep lowercase.
-				$normalized[] = strtolower( $part );
-			}
-		}
-
-		return implode( '-', $normalized );
 	}
 }
