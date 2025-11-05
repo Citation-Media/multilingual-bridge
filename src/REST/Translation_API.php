@@ -149,8 +149,8 @@ class Translation_API extends WP_REST_Controller {
 							'required'    => true,
 							'type'        => 'array',
 							'items'       => array(
-								'type'      => 'string',
-								'enum'      => $this->get_language_tag_enum()
+								'type' => 'string',
+								'enum' => $this->get_language_tag_enum(),
 							),
 							'minItems'    => 1,
 							'maxItems'    => 20,
@@ -181,12 +181,13 @@ class Translation_API extends WP_REST_Controller {
 			// Always include the original WPML language code.
 			$enum_values[] = $language;
 
-			// Also try to include the normalized BCP 47 version if it differs.
-			try {
-				$lang_tag      = LanguageTag::fromString( $language );
-				$enum_values[] = $lang_tag->toString();
-			} catch ( \Exception $e ) {
-				continue;
+			// Use tolerant parsing to get normalized BCP 47 version.
+			$lang_tag = $this->parse_language_tag( $language );
+			if ( ! is_wp_error( $lang_tag ) ) {
+				$normalized = $lang_tag->toString();
+				if ( $normalized !== $language ) {
+					$enum_values[] = $normalized;
+				}
 			}
 		}
 
@@ -268,17 +269,16 @@ class Translation_API extends WP_REST_Controller {
 		$target_lang_code = $request->get_param( 'target_lang' );
 		$source_lang_code = $request->get_param( 'source_lang' ) ?? '';
 
-		// Convert language codes to LanguageTag objects.
-		try {
-			$target_lang = LanguageTag::fromString( $target_lang_code );
-		} catch ( \Exception $e ) {
+		// Convert language codes to LanguageTag objects using tolerant parsing.
+		$target_lang = $this->parse_language_tag( $target_lang_code );
+		if ( is_wp_error( $target_lang ) ) {
 			return new WP_Error(
 				'invalid_target_lang',
 				sprintf(
 				/* translators: 1: language code, 2: error message */
 					__( 'Invalid target language code "%1$s": %2$s', 'multilingual-bridge' ),
 					$target_lang_code,
-					$e->getMessage()
+					$target_lang->get_error_message()
 				),
 				array( 'status' => 400 )
 			);
@@ -286,16 +286,15 @@ class Translation_API extends WP_REST_Controller {
 
 		$source_lang = null;
 		if ( ! empty( $source_lang_code ) ) {
-			try {
-				$source_lang = LanguageTag::fromString( $source_lang_code );
-			} catch ( \Exception $e ) {
+			$source_lang = $this->parse_language_tag( $source_lang_code );
+			if ( is_wp_error( $source_lang ) ) {
 				return new WP_Error(
 					'invalid_source_lang',
 					sprintf(
 					/* translators: 1: language code, 2: error message */
 						__( 'Invalid source language code "%1$s": %2$s', 'multilingual-bridge' ),
 						$source_lang_code,
-						$e->getMessage()
+						$source_lang->get_error_message()
 					),
 					array( 'status' => 400 )
 				);
@@ -322,6 +321,92 @@ class Translation_API extends WP_REST_Controller {
 	}
 
 	/**
+	 * Parse language code with tolerant handling of common variants
+	 *
+	 * Accepts WPML language codes and BCP-47 variants with flexible casing.
+	 * Handles common issues like lowercase script subtags (zh-hans -> zh-Hans).
+	 *
+	 * @param string $code Language code from request.
+	 * @return LanguageTag|WP_Error Parsed language tag or error
+	 */
+	private function parse_language_tag( string $code ) {
+		$code = trim( $code );
+		if ( '' === $code ) {
+			return new WP_Error(
+				'invalid_language_code',
+				__( 'Empty language code', 'multilingual-bridge' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Try direct parsing first.
+		$tag = LanguageTag::tryFromString( $code );
+		if ( null !== $tag ) {
+			return $tag;
+		}
+
+		// Common alias mappings for frequently used codes.
+		$aliases = array(
+			'zh-hans' => 'zh-Hans',
+			'zh-hant' => 'zh-Hant',
+		);
+
+		$lower = strtolower( $code );
+		if ( isset( $aliases[ $lower ] ) ) {
+			$tag = LanguageTag::tryFromString( $aliases[ $lower ] );
+			if ( null !== $tag ) {
+				return $tag;
+			}
+		}
+
+		// Case normalization for BCP-47 format:
+		// language-Script-REGION (e.g., en-US, zh-Hans, pt-BR).
+		$normalized = preg_replace_callback(
+			'/^([A-Za-z]{2,3})(?:-([A-Za-z]{4}))?(?:-([A-Za-z]{2}|\d{3}))?$/i',
+			function ( $m ) {
+				$out = strtolower( $m[1] ); // Language code (lowercase).
+				if ( ! empty( $m[2] ) ) {
+					// Script subtag (Title case).
+					$out .= '-' . ucfirst( strtolower( $m[2] ) );
+				}
+				if ( ! empty( $m[3] ) ) {
+					// Region subtag (uppercase).
+					$out .= '-' . strtoupper( $m[3] );
+				}
+				return $out;
+			},
+			$code
+		);
+
+		if ( is_string( $normalized ) && $normalized !== $code ) {
+			$tag = LanguageTag::tryFromString( $normalized );
+			if ( null !== $tag ) {
+				return $tag;
+			}
+		}
+
+		// Fallback: check WPML language details for stored BCP-47 tag.
+		$details = WPML_Language_Helper::get_language_details( $code );
+		if ( ! empty( $details['tag'] ) ) {
+			$tag = LanguageTag::tryFromString( $details['tag'] );
+			if ( null !== $tag ) {
+				return $tag;
+			}
+		}
+
+		// All parsing attempts failed.
+		return new WP_Error(
+			'invalid_language_code',
+			sprintf(
+				/* translators: %s: language code */
+				__( 'Invalid language code "%s". Expected valid BCP-47 format (e.g., en, zh-Hans, pt-BR)', 'multilingual-bridge' ),
+				$code
+			),
+			array( 'status' => 400 )
+		);
+	}
+
+	/**
 	 * Translate post and meta to multiple languages (one-time translation, overwrites existing translations)
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
@@ -340,18 +425,13 @@ class Translation_API extends WP_REST_Controller {
 
 		// Process each target language.
 		foreach ( $target_language_codes as $lang_code ) {
-			// Convert language code to LanguageTag.
-			try {
-				$language_tag = LanguageTag::fromString( $lang_code );
-			} catch ( \Exception $e ) {
+			// Convert language code to LanguageTag using tolerant parsing.
+			$language_tag = $this->parse_language_tag( $lang_code );
+
+			if ( is_wp_error( $language_tag ) ) {
 				$errors->add(
-					'invalid_language_code',
-					sprintf(
-					/* translators: 1: language code, 2: error message */
-						__( 'Invalid language code "%1$s": %2$s', 'multilingual-bridge' ),
-						$lang_code,
-						$e->getMessage()
-					),
+					$language_tag->get_error_code(),
+					$language_tag->get_error_message(),
 					array(
 						'language' => $lang_code,
 						'status'   => 400,
