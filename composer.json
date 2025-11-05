@@ -84,7 +84,7 @@
     },
     "config": {
         "platform": {
-            "php": "8.0"
+            "php": "8.1"
         },
         "allow-plugins": {
             "phpstan/extension-installer": true,
@@ -93,6 +93,7 @@
         }
     },
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.1",
+        "prinsfrank/standards": "^3.0"
     }
 }

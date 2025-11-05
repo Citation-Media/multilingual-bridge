@@ -49,7 +49,7 @@ Multilingual Bridge enhances WPML's functionality by adding full REST API suppor
 
 - WordPress 5.0 or higher
 - WPML plugin installed and activated
-- PHP 8.0 or higher
+- PHP 8.1 or higher
 
 ## Installation
 
