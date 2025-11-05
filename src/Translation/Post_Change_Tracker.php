@@ -22,6 +22,7 @@ namespace Multilingual_Bridge\Translation;
 
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
+use Multilingual_Bridge\Helpers\WPML_Language_Helper;
 
 /**
  * Class Post_Change_Tracker
@@ -207,6 +208,7 @@ class Post_Change_Tracker {
 	 *
 	 * Adds the field to the list of fields that need to be synced to translations.
 	 * This is for core post fields (title, content, excerpt) that are always translatable.
+	 * Flags the field as pending for all available target languages.
 	 *
 	 * @param int    $post_id    Post ID where change occurred.
 	 * @param string $field_name Field name (title, content, excerpt).
@@ -223,11 +225,40 @@ class Post_Change_Tracker {
 			return;
 		}
 
+		// Get source post language.
+		$source_lang = WPML_Post_Helper::get_language( $original_post_id );
+		if ( ! $source_lang ) {
+			return;
+		}
+
+		// Get all active languages except source.
+		$all_languages    = WPML_Language_Helper::get_active_language_codes();
+		$target_languages = array_filter(
+			$all_languages,
+			function ( $lang_code ) use ( $source_lang ) {
+				return $lang_code !== $source_lang;
+			}
+		);
+
+		if ( empty( $target_languages ) ) {
+			return;
+		}
+
 		// Get current pending updates.
 		$pending_updates = $this->get_pending_updates( $original_post_id );
 
-		// Set field flag to true.
-		$pending_updates[ $field_name ] = true;
+		// Initialize languages structure if not set.
+		if ( ! isset( $pending_updates['languages'] ) || ! is_array( $pending_updates['languages'] ) ) {
+			$pending_updates['languages'] = array();
+		}
+
+		// Flag field for each target language.
+		foreach ( $target_languages as $lang_code ) {
+			if ( ! isset( $pending_updates['languages'][ $lang_code ] ) ) {
+				$pending_updates['languages'][ $lang_code ] = array();
+			}
+			$pending_updates['languages'][ $lang_code ][ $field_name ] = true;
+		}
 
 		// Store updated pending list.
 		update_post_meta( $original_post_id, self::SYNC_FLAG_META_KEY, $pending_updates );
@@ -235,11 +266,12 @@ class Post_Change_Tracker {
 		/**
 		 * Fires when a content field is flagged for translation sync
 		 *
-		 * @param int    $original_post_id Original post ID where flag was set
-		 * @param string $field_name       Field name that needs sync (title, content, excerpt)
-		 * @param int    $post_id          Post ID where change occurred (may be translation)
+		 * @param int      $original_post_id Original post ID where flag was set
+		 * @param string   $field_name       Field name that needs sync (title, content, excerpt)
+		 * @param int      $post_id          Post ID where change occurred (may be translation)
+		 * @param string[] $target_languages Target language codes that were flagged
 		 */
-		do_action( 'multilingual_bridge_content_field_flagged_for_sync', $original_post_id, $field_name, $post_id );
+		do_action( 'multilingual_bridge_content_field_flagged_for_sync', $original_post_id, $field_name, $post_id, $target_languages );
 	}
 
 	/**
@@ -250,6 +282,7 @@ class Post_Change_Tracker {
 	 * - In the source/original language post
 	 * - Translatable (ACF fields marked for translation)
 	 * - Not internal WordPress or plugin meta
+	 * Flags the field as pending for all available target languages.
 	 *
 	 * @param int    $post_id  Post ID where change occurred.
 	 * @param string $meta_key Meta key that changed.
@@ -303,16 +336,43 @@ class Post_Change_Tracker {
 			return;
 		}
 
+		// Get source post language.
+		$source_lang = WPML_Post_Helper::get_language( $original_post_id );
+		if ( ! $source_lang ) {
+			return;
+		}
+
+		// Get all active languages except source.
+		$all_languages    = WPML_Language_Helper::get_active_language_codes();
+		$target_languages = array_filter(
+			$all_languages,
+			function ( $lang_code ) use ( $source_lang ) {
+				return $lang_code !== $source_lang;
+			}
+		);
+
+		if ( empty( $target_languages ) ) {
+			return;
+		}
+
 		// Get current pending updates.
 		$pending_updates = $this->get_pending_updates( $original_post_id );
 
-		// Initialize meta array if not set.
-		if ( ! isset( $pending_updates['meta'] ) ) {
-			$pending_updates['meta'] = array();
+		// Initialize languages structure if not set.
+		if ( ! isset( $pending_updates['languages'] ) || ! is_array( $pending_updates['languages'] ) ) {
+			$pending_updates['languages'] = array();
 		}
 
-		// Set meta field flag to true.
-		$pending_updates['meta'][ $meta_key ] = true;
+		// Flag meta field for each target language.
+		foreach ( $target_languages as $lang_code ) {
+			if ( ! isset( $pending_updates['languages'][ $lang_code ] ) ) {
+				$pending_updates['languages'][ $lang_code ] = array();
+			}
+			if ( ! isset( $pending_updates['languages'][ $lang_code ]['meta'] ) ) {
+				$pending_updates['languages'][ $lang_code ]['meta'] = array();
+			}
+			$pending_updates['languages'][ $lang_code ]['meta'][ $meta_key ] = true;
+		}
 
 		// Store updated pending list.
 		update_post_meta( $original_post_id, self::SYNC_FLAG_META_KEY, $pending_updates );
@@ -320,18 +380,19 @@ class Post_Change_Tracker {
 		/**
 		 * Fires when a meta field is flagged for translation sync
 		 *
-		 * @param int    $original_post_id Original post ID where flag was set
-		 * @param string $meta_key         Meta key that needs sync
-		 * @param int    $post_id          Post ID where change occurred (may be translation)
+		 * @param int      $original_post_id Original post ID where flag was set
+		 * @param string   $meta_key         Meta key that needs sync
+		 * @param int      $post_id          Post ID where change occurred (may be translation)
+		 * @param string[] $target_languages Target language codes that were flagged
 		 */
-		do_action( 'multilingual_bridge_field_flagged_for_sync', $original_post_id, $meta_key, $post_id );
+		do_action( 'multilingual_bridge_field_flagged_for_sync', $original_post_id, $meta_key, $post_id, $target_languages );
 	}
 
 	/**
 	 * Get pending updates for a post
 	 *
-	 * Returns an array with boolean flags for content fields and nested meta fields.
-	 * Structure: {title: true, content: true, excerpt: true, meta: {field_name: true}}
+	 * Returns an array with per-language pending updates.
+	 * New structure: {languages: {de: {title: true, content: true, meta: {field_name: true}}}}
 	 *
 	 * Public API method for querying sync status. Can be used by:
 	 * - REST API endpoints to show pending changes
@@ -339,7 +400,7 @@ class Post_Change_Tracker {
 	 * - External integrations to check translation state
 	 *
 	 * @param int $post_id Post ID (should be original/source post).
-	 * @return array<string, bool|array<string, bool>> Array of pending updates
+	 * @return array<string, mixed> Array of pending updates with per-language structure
 	 */
 	public function get_pending_updates( int $post_id ): array {
 		$pending = get_post_meta( $post_id, self::SYNC_FLAG_META_KEY, true );
@@ -352,6 +413,31 @@ class Post_Change_Tracker {
 	}
 
 	/**
+	 * Get pending updates for a specific language
+	 *
+	 * Returns an array with boolean flags for content fields and nested meta fields for a specific language.
+	 * Structure: {title: true, content: true, excerpt: true, meta: {field_name: true}}
+	 *
+	 * Public API method for querying language-specific sync status. Can be used by:
+	 * - REST API endpoints to show pending changes for a specific translation
+	 * - Admin UI to display per-language sync indicators
+	 * - Translation workflows to determine what needs translating
+	 *
+	 * @param int    $post_id       Post ID (should be original/source post).
+	 * @param string $language_code Target language code (e.g., 'de', 'fr').
+	 * @return array<string, bool|array<string, bool>> Array of pending updates for the language
+	 */
+	public function get_pending_updates_for_language( int $post_id, string $language_code ): array {
+		$all_pending = $this->get_pending_updates( $post_id );
+
+		if ( ! isset( $all_pending['languages'][ $language_code ] ) || ! is_array( $all_pending['languages'][ $language_code ] ) ) {
+			return array();
+		}
+
+		return $all_pending['languages'][ $language_code ];
+	}
+
+	/**
 	 * Check if post has pending updates
 	 *
 	 * Public API method for quick sync status checks. Useful for:
@@ -359,14 +445,52 @@ class Post_Change_Tracker {
 	 * - Conditional logic in REST API responses
 	 * - Triggering automated sync processes
 	 *
-	 * @param int         $post_id Post ID.
-	 * @param string|null $type    Optional. Filter by type: 'content', 'meta', or null for all.
+	 * @param int         $post_id       Post ID.
+	 * @param string|null $type          Optional. Filter by type: 'content', 'meta', or null for all.
+	 * @param string|null $language_code Optional. Check only for specific language. If null, checks all languages.
 	 * @return bool True if post has fields pending sync
 	 */
-	public function has_pending_updates( int $post_id, ?string $type = null ): bool {
+	public function has_pending_updates( int $post_id, ?string $type = null, ?string $language_code = null ): bool {
 		$pending = $this->get_pending_updates( $post_id );
 
 		if ( empty( $pending ) ) {
+			return false;
+		}
+
+		// If language is specified, check only that language.
+		if ( null !== $language_code ) {
+			$language_pending = $this->get_pending_updates_for_language( $post_id, $language_code );
+
+			if ( empty( $language_pending ) ) {
+				return false;
+			}
+
+			// If no type filter, return true if any pending updates exist for this language.
+			if ( null === $type ) {
+				return true;
+			}
+
+			// Check for content updates.
+			if ( 'content' === $type ) {
+				$content_fields = array( 'title', 'content', 'excerpt' );
+				foreach ( $content_fields as $field ) {
+					if ( ! empty( $language_pending[ $field ] ) ) {
+						return true;
+					}
+				}
+				return false;
+			}
+
+			// Check for meta updates.
+			if ( 'meta' === $type ) {
+				return ! empty( $language_pending['meta'] ) && is_array( $language_pending['meta'] );
+			}
+
+			return false;
+		}
+
+		// No language specified - check if ANY language has pending updates.
+		if ( ! isset( $pending['languages'] ) || ! is_array( $pending['languages'] ) || empty( $pending['languages'] ) ) {
 			return false;
 		}
 
@@ -375,14 +499,28 @@ class Post_Change_Tracker {
 			return true;
 		}
 
-		// Check for content updates.
-		if ( 'content' === $type ) {
-			return ! empty( $this->get_pending_content_updates( $post_id ) );
-		}
+		// Check each language for the specified type.
+		foreach ( $pending['languages'] as $lang_pending ) {
+			if ( ! is_array( $lang_pending ) ) {
+				continue;
+			}
 
-		// Check for meta updates.
-		if ( 'meta' === $type ) {
-			return ! empty( $this->get_pending_meta_updates( $post_id ) );
+			// Check for content updates.
+			if ( 'content' === $type ) {
+				$content_fields = array( 'title', 'content', 'excerpt' );
+				foreach ( $content_fields as $field ) {
+					if ( ! empty( $lang_pending[ $field ] ) ) {
+						return true;
+					}
+				}
+			}
+
+			// Check for meta updates.
+			if ( 'meta' === $type ) {
+				if ( ! empty( $lang_pending['meta'] ) && is_array( $lang_pending['meta'] ) ) {
+					return true;
+				}
+			}
 		}
 
 		return false;
@@ -394,21 +532,47 @@ class Post_Change_Tracker {
 	 * Public API method for retrieving specific content field changes.
 	 * Used to display which post fields need translation sync.
 	 *
-	 * @param int $post_id Post ID (should be original/source post).
+	 * @param int         $post_id       Post ID (should be original/source post).
+	 * @param string|null $language_code Optional. Get updates for specific language. If null, returns union of all languages.
 	 * @return string[] Array of content field names that need sync (e.g., ['title', 'content'])
 	 */
-	public function get_pending_content_updates( int $post_id ): array {
-		$all_pending    = $this->get_pending_updates( $post_id );
+	public function get_pending_content_updates( int $post_id, ?string $language_code = null ): array {
 		$content_fields = array();
 
-		// Check each possible content field.
-		foreach ( array( 'title', 'content', 'excerpt' ) as $field ) {
-			if ( ! empty( $all_pending[ $field ] ) ) {
-				$content_fields[] = $field;
+		if ( null !== $language_code ) {
+			// Get for specific language.
+			$language_pending = $this->get_pending_updates_for_language( $post_id, $language_code );
+
+			foreach ( array( 'title', 'content', 'excerpt' ) as $field ) {
+				if ( ! empty( $language_pending[ $field ] ) ) {
+					$content_fields[] = $field;
+				}
+			}
+
+			return $content_fields;
+		}
+
+		// Get union of all languages.
+		$all_pending = $this->get_pending_updates( $post_id );
+
+		if ( ! isset( $all_pending['languages'] ) || ! is_array( $all_pending['languages'] ) ) {
+			return array();
+		}
+
+		$all_fields = array();
+		foreach ( $all_pending['languages'] as $lang_pending ) {
+			if ( ! is_array( $lang_pending ) ) {
+				continue;
+			}
+
+			foreach ( array( 'title', 'content', 'excerpt' ) as $field ) {
+				if ( ! empty( $lang_pending[ $field ] ) ) {
+					$all_fields[ $field ] = true;
+				}
 			}
 		}
 
-		return $content_fields;
+		return array_keys( $all_fields );
 	}
 
 	/**
@@ -417,18 +581,43 @@ class Post_Change_Tracker {
 	 * Public API method for retrieving specific meta field changes.
 	 * Used to display which custom fields need translation sync.
 	 *
-	 * @param int $post_id Post ID (should be original/source post).
+	 * @param int         $post_id       Post ID (should be original/source post).
+	 * @param string|null $language_code Optional. Get updates for specific language. If null, returns union of all languages.
 	 * @return string[] Array of meta keys that need sync (e.g., ['field_123', 'custom_field'])
 	 */
-	public function get_pending_meta_updates( int $post_id ): array {
-		$all_pending = $this->get_pending_updates( $post_id );
+	public function get_pending_meta_updates( int $post_id, ?string $language_code = null ): array {
+		if ( null !== $language_code ) {
+			// Get for specific language.
+			$language_pending = $this->get_pending_updates_for_language( $post_id, $language_code );
 
-		// Return keys from the nested meta object.
-		if ( isset( $all_pending['meta'] ) && is_array( $all_pending['meta'] ) ) {
-			return array_keys( array_filter( $all_pending['meta'] ) );
+			if ( isset( $language_pending['meta'] ) && is_array( $language_pending['meta'] ) ) {
+				return array_keys( array_filter( $language_pending['meta'] ) );
+			}
+
+			return array();
 		}
 
-		return array();
+		// Get union of all languages.
+		$all_pending = $this->get_pending_updates( $post_id );
+
+		if ( ! isset( $all_pending['languages'] ) || ! is_array( $all_pending['languages'] ) ) {
+			return array();
+		}
+
+		$all_meta_keys = array();
+		foreach ( $all_pending['languages'] as $lang_pending ) {
+			if ( ! is_array( $lang_pending ) || ! isset( $lang_pending['meta'] ) || ! is_array( $lang_pending['meta'] ) ) {
+				continue;
+			}
+
+			foreach ( $lang_pending['meta'] as $meta_key => $value ) {
+				if ( $value ) {
+					$all_meta_keys[ $meta_key ] = true;
+				}
+			}
+		}
+
+		return array_keys( $all_meta_keys );
 	}
 
 	/**
@@ -440,59 +629,138 @@ class Post_Change_Tracker {
 	 * - Manual sync operations from admin UI
 	 * - Automated sync workflows
 	 *
-	 * @param int         $post_id    Post ID.
-	 * @param string|null $field_name Optional. Clear only specific field (content or meta key). If null, clears all.
+	 * @param int         $post_id       Post ID.
+	 * @param string|null $field_name    Optional. Clear only specific field (content or meta key). If null, clears all for the language.
+	 * @param string|null $language_code Optional. Clear only for specific language. If null, clears for all languages.
 	 * @return bool True on success
 	 */
-	public function clear_pending_updates( int $post_id, ?string $field_name = null ): bool {
-		if ( null === $field_name ) {
-			// Clear all pending updates.
-			$result = delete_post_meta( $post_id, self::SYNC_FLAG_META_KEY );
+	public function clear_pending_updates( int $post_id, ?string $field_name = null, ?string $language_code = null ): bool {
+		// If no language specified, clear for all languages (backward compatibility / clear all).
+		if ( null === $language_code ) {
+			if ( null === $field_name ) {
+				// Clear everything.
+				$result = delete_post_meta( $post_id, self::SYNC_FLAG_META_KEY );
 
-			// Update last sync timestamp.
-			update_post_meta( $post_id, self::LAST_SYNC_META_KEY, time() );
+				// Update last sync timestamp.
+				update_post_meta( $post_id, self::LAST_SYNC_META_KEY, time() );
 
-			/**
-			 * Fires after all pending updates are cleared
-			 *
-			 * @param int $post_id Post ID
-			 */
-			do_action( 'multilingual_bridge_sync_completed', $post_id );
+				/**
+				 * Fires after all pending updates are cleared
+				 *
+				 * @param int $post_id Post ID
+				 */
+				do_action( 'multilingual_bridge_sync_completed', $post_id );
 
-			return $result;
+				return $result;
+			}
+
+			// Clear specific field for all languages.
+			$pending = $this->get_pending_updates( $post_id );
+
+			if ( ! isset( $pending['languages'] ) || ! is_array( $pending['languages'] ) ) {
+				return false;
+			}
+
+			$modified = false;
+			foreach ( $pending['languages'] as $lang_code => $lang_pending ) {
+				if ( $this->clear_field_for_language( $pending, $lang_code, $field_name ) ) {
+					$modified = true;
+				}
+			}
+
+			if ( ! $modified ) {
+				return false;
+			}
+
+			// Clean up empty languages.
+			$pending['languages'] = array_filter( $pending['languages'] );
+
+			if ( empty( $pending['languages'] ) ) {
+				return $this->clear_pending_updates( $post_id );
+			}
+
+			return update_post_meta( $post_id, self::SYNC_FLAG_META_KEY, $pending );
 		}
 
-		// Clear specific field.
+		// Clear for specific language.
 		$pending = $this->get_pending_updates( $post_id );
 
-		// Check if it's a content field (title, content, excerpt).
-		if ( in_array( $field_name, array( 'title', 'content', 'excerpt' ), true ) ) {
-			if ( ! isset( $pending[ $field_name ] ) ) {
-				// Field not in pending list.
-				return false;
-			}
-			unset( $pending[ $field_name ] );
-		} else {
-			// It's a meta field - check nested meta object.
-			if ( ! isset( $pending['meta'][ $field_name ] ) ) {
-				// Field not in pending list.
-				return false;
-			}
-			unset( $pending['meta'][ $field_name ] );
-
-			// If meta object is now empty, remove it entirely.
-			if ( empty( $pending['meta'] ) ) {
-				unset( $pending['meta'] );
-			}
+		if ( ! isset( $pending['languages'][ $language_code ] ) ) {
+			return false;
 		}
 
-		if ( empty( $pending ) ) {
+		if ( null === $field_name ) {
+			// Clear all fields for this language.
+			unset( $pending['languages'][ $language_code ] );
+
+			// Update last sync timestamp for this language.
+			$sync_times = get_post_meta( $post_id, self::LAST_SYNC_META_KEY, true );
+			if ( ! is_array( $sync_times ) ) {
+				$sync_times = array();
+			}
+			$sync_times[ $language_code ] = time();
+			update_post_meta( $post_id, self::LAST_SYNC_META_KEY, $sync_times );
+
+			/**
+			 * Fires after pending updates are cleared for a language
+			 *
+			 * @param int    $post_id       Post ID
+			 * @param string $language_code Language code
+			 */
+			do_action( 'multilingual_bridge_language_sync_completed', $post_id, $language_code );
+		} elseif ( ! $this->clear_field_for_language( $pending, $language_code, $field_name ) ) {
+			// Clear specific field for this language.
+			return false;
+		}
+
+		// Clean up empty languages.
+		$pending['languages'] = array_filter( $pending['languages'] );
+
+		if ( empty( $pending['languages'] ) ) {
 			// No more pending updates - delete the meta.
 			return $this->clear_pending_updates( $post_id );
 		}
 
 		// Update with remaining pending items.
 		return update_post_meta( $post_id, self::SYNC_FLAG_META_KEY, $pending );
+	}
+
+	/**
+	 * Clear a specific field for a language
+	 *
+	 * Helper method to remove a field from the pending updates for a specific language.
+	 *
+	 * @param array<string, mixed> $pending     Pending updates array (passed by reference).
+	 * @param string               $lang_code   Language code.
+	 * @param string               $field_name  Field name to clear.
+	 * @return bool True if field was found and cleared
+	 */
+	private function clear_field_for_language( array &$pending, string $lang_code, string $field_name ): bool {
+		if ( ! isset( $pending['languages'][ $lang_code ] ) ) {
+			return false;
+		}
+
+		// Check if it's a content field (title, content, excerpt).
+		if ( in_array( $field_name, array( 'title', 'content', 'excerpt' ), true ) ) {
+			if ( ! isset( $pending['languages'][ $lang_code ][ $field_name ] ) ) {
+				return false;
+			}
+			unset( $pending['languages'][ $lang_code ][ $field_name ] );
+			return true;
+		}
+
+		// It's a meta field - check nested meta object.
+		if ( ! isset( $pending['languages'][ $lang_code ]['meta'][ $field_name ] ) ) {
+			return false;
+		}
+		unset( $pending['languages'][ $lang_code ]['meta'][ $field_name ] );
+
+		// If meta object is now empty, remove it entirely.
+		if ( empty( $pending['languages'][ $lang_code ]['meta'] ) ) {
+			unset( $pending['languages'][ $lang_code ]['meta'] );
+		}
+
+		return true;
 	}
 
 	/**
@@ -523,25 +791,54 @@ class Post_Change_Tracker {
 	 * - Selective translation operations
 	 * - Field-level sync indicators
 	 *
-	 * @param int    $post_id    Post ID (should be original/source post).
-	 * @param string $field_name Field name (content field like 'title' or meta key).
+	 * @param int         $post_id       Post ID (should be original/source post).
+	 * @param string      $field_name    Field name (content field like 'title' or meta key).
+	 * @param string|null $language_code Optional. Check for specific language. If null, checks if ANY language has pending updates for this field.
 	 * @return bool True if field has pending updates
 	 */
-	public function has_pending_field_update( int $post_id, string $field_name ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+	public function has_pending_field_update( int $post_id, string $field_name, ?string $language_code = null ): bool {
+		if ( null !== $language_code ) {
+			// Check specific language.
+			$language_pending = $this->get_pending_updates_for_language( $post_id, $language_code );
 
-		if ( empty( $pending ) ) {
+			if ( empty( $language_pending ) ) {
+				return false;
+			}
+
+			// Check if it's a content field (title, content, excerpt).
+			if ( in_array( $field_name, array( 'title', 'content', 'excerpt' ), true ) ) {
+				return ! empty( $language_pending[ $field_name ] );
+			}
+
+			// Check if it's a meta field.
+			if ( isset( $language_pending['meta'][ $field_name ] ) ) {
+				return (bool) $language_pending['meta'][ $field_name ];
+			}
+
 			return false;
 		}
 
-		// Check if it's a content field (title, content, excerpt).
-		if ( in_array( $field_name, array( 'title', 'content', 'excerpt' ), true ) ) {
-			return ! empty( $pending[ $field_name ] );
+		// Check if ANY language has this field pending.
+		$pending = $this->get_pending_updates( $post_id );
+
+		if ( empty( $pending ) || ! isset( $pending['languages'] ) || ! is_array( $pending['languages'] ) ) {
+			return false;
 		}
 
-		// Check if it's a meta field.
-		if ( isset( $pending['meta'][ $field_name ] ) ) {
-			return (bool) $pending['meta'][ $field_name ];
+		foreach ( $pending['languages'] as $lang_pending ) {
+			if ( ! is_array( $lang_pending ) ) {
+				continue;
+			}
+
+			// Check if it's a content field (title, content, excerpt).
+			if ( in_array( $field_name, array( 'title', 'content', 'excerpt' ), true ) ) {
+				if ( ! empty( $lang_pending[ $field_name ] ) ) {
+					return true;
+				}
+			} elseif ( isset( $lang_pending['meta'][ $field_name ] ) && $lang_pending['meta'][ $field_name ] ) {
+				// Check if it's a meta field.
+				return true;
+			}
 		}
 
 		return false;

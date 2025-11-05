@@ -378,9 +378,9 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				$results['success'] = false;
 			}
 
-			// Clear pending updates for this language if translation was successful.
+			// Clear pending updates for this specific language if translation was successful.
 			if ( $language_result['success'] ) {
-				$this->sync_handler->clear_pending_updates( $post_id );
+				$this->sync_handler->clear_pending_updates( $post_id, null, $target_lang );
 			}
 		}
 
