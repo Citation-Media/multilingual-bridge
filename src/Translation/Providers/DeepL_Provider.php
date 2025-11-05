@@ -120,9 +120,8 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		}
 
 		$api_url = $this->get_api_url() . '/translate';
-
 		// Convert target language to DeepL format.
-		$target_lang_code = $this->convert_to_deepl_language_code( $target_lang );
+		$target_lang_code = strtoupper($target_lang->toString());;
 
 		// Prepare request data.
 		$data = array(
@@ -131,7 +130,7 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		);
 
 		if ( null !== $source_lang ) {
-			$source_lang_code    = $this->convert_to_deepl_language_code( $source_lang );
+			$source_lang_code    =  strtoupper($source_lang->toString());
 			$data['source_lang'] = $source_lang_code;
 		}
 
@@ -188,69 +187,6 @@ class DeepL_Provider implements Translation_Provider_Interface {
 		}
 
 		return $decoded['translations'][0]['text'];
-	}
-
-	/**
-	 * Convert LanguageTag to DeepL-compatible language code
-	 *
-	 * ## Why This Conversion Is Necessary:
-	 *
-	 * DeepL API requires language codes in UPPERCASE format. This method converts
-	 * BCP 47 LanguageTag objects to DeepL's expected format by uppercasing all components.
-	 *
-	 * ## DeepL API Format:
-	 * - Primary language codes are UPPERCASE (e.g., 'EN', 'DE', 'FR', 'JA')
-	 * - Script subtags are UPPERCASE and hyphen-separated (e.g., 'ZH-HANS', 'ZH-HANT')
-	 * - Region subtags are UPPERCASE and hyphen-separated (e.g., 'EN-US', 'PT-BR')
-	 *
-	 * ## Conversion Flow Examples:
-	 *
-	 * **Chinese Simplified:**
-	 * WPML: 'zh-hans' → BCP 47: 'zh-Hans' → DeepL: 'ZH-HANS'
-	 *
-	 * **Chinese Traditional:**
-	 * WPML: 'zh-hant' → BCP 47: 'zh-Hant' → DeepL: 'ZH-HANT'
-	 *
-	 * **Brazilian Portuguese:**
-	 * WPML: 'pt-br' → BCP 47: 'pt-BR' → DeepL: 'PT-BR'
-	 *
-	 * **American English:**
-	 * WPML: 'en-us' → BCP 47: 'en-US' → DeepL: 'EN-US'
-	 *
-	 * **Japanese (simple case):**
-	 * WPML: 'ja' → BCP 47: 'ja' → DeepL: 'JA'
-	 *
-	 * ## Related Architecture:
-	 * - This is called from translate() method after receiving a LanguageTag object
-	 * - The LanguageTag was created from normalized BCP 47 code (see WPML_REST_Translation)
-	 * - DeepL receives the final converted code in the API request
-	 *
-	 * @see https://developers.deepl.com/docs/getting-started/supported-languages DeepL supported languages
-	 *
-	 * @param LanguageTag $language_tag Language tag to convert (BCP 47 normalized).
-	 * @return string DeepL API language code (e.g., 'ZH-HANS', 'ZH-HANT', 'PT-BR', 'EN-US').
-	 */
-	private function convert_to_deepl_language_code( LanguageTag $language_tag ): string {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
-		$primary_code = strtoupper( $language_tag->primaryLanguageSubtag->value );
-
-		// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- External library property.
-		$script_code = $language_tag->scriptSubtag ? $language_tag->scriptSubtag->value : null;
-		$region_code = $language_tag->regionSubtag ? $language_tag->regionSubtag->value : null;
-		// phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-
-		// If script subtag exists, combine primary + script (e.g., ZH-HANS, ZH-HANT).
-		if ( $script_code ) {
-			return $primary_code . '-' . strtoupper( $script_code );
-		}
-
-		// If region subtag exists, combine primary + region (e.g., EN-US, PT-BR).
-		if ( $region_code ) {
-			return $primary_code . '-' . strtoupper( $region_code );
-		}
-
-		// Otherwise, just return the primary language code (e.g., JA, FR, DE).
-		return $primary_code;
 	}
 
 	/**
