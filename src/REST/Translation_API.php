@@ -28,8 +28,8 @@ use WP_REST_Server;
  *
  * REST API controller for translation operations
  */
-class Translation_API extends WP_REST_Controller
-{
+class Translation_API extends WP_REST_Controller {
+
 
 	/**
 	 * Namespace for the API
@@ -55,10 +55,9 @@ class Translation_API extends WP_REST_Controller
 	/**
 	 * Constructor
 	 */
-	public function __construct()
-	{
+	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
-		$this->post_handler = new Post_Translation_Handler();
+		$this->post_handler        = new Post_Translation_Handler();
 	}
 
 	/**
@@ -66,8 +65,7 @@ class Translation_API extends WP_REST_Controller
 	 *
 	 * @return void
 	 */
-	public function register_routes()
-	{
+	public function register_routes() {
 		// Get meta value from default language.
 		register_rest_route(
 			$this->namespace,
@@ -75,17 +73,17 @@ class Translation_API extends WP_REST_Controller
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array($this, 'get_meta_value'),
-					'permission_callback' => array($this, 'permissions_check'),
+					'callback'            => array( $this, 'get_meta_value' ),
+					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'post_id'   => array(
-							'description' => __('Post ID to retrieve meta value from', 'multilingual-bridge'),
+							'description' => __( 'Post ID to retrieve meta value from', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'integer',
 							'minimum'     => 1,
 						),
 						'field_key' => array(
-							'description' => __('Meta field key to retrieve', 'multilingual-bridge'),
+							'description' => __( 'Meta field key to retrieve', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'string',
 							'minLength'   => 1,
@@ -104,24 +102,24 @@ class Translation_API extends WP_REST_Controller
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array($this, 'translate_text'),
-					'permission_callback' => array($this, 'permissions_check'),
+					'callback'            => array( $this, 'translate_text' ),
+					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'text'        => array(
-							'description' => __('Text to translate', 'multilingual-bridge'),
+							'description' => __( 'Text to translate', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'string',
 							'minLength'   => 1,
 							'maxLength'   => 50000,
 						),
 						'target_lang' => array(
-							'description' => __('Target language code (BCP 47)', 'multilingual-bridge'),
+							'description' => __( 'Target language code (BCP 47)', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'string',
 							'enum'        => $this->get_language_tag_enum(),
 						),
 						'source_lang' => array(
-							'description' => __('Source language code (BCP 47), auto-detect if not provided', 'multilingual-bridge'),
+							'description' => __( 'Source language code (BCP 47), auto-detect if not provided', 'multilingual-bridge' ),
 							'type'        => 'string',
 							'enum'        => $this->get_language_tag_enum(),
 						),
@@ -137,27 +135,25 @@ class Translation_API extends WP_REST_Controller
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array($this, 'post_translate'),
-					'permission_callback' => array($this, 'permissions_check'),
+					'callback'            => array( $this, 'post_translate' ),
+					'permission_callback' => array( $this, 'permissions_check' ),
 					'args'                => array(
 						'post_id'          => array(
-							'description' => __('Source post ID to translate from', 'multilingual-bridge'),
+							'description' => __( 'Source post ID to translate from', 'multilingual-bridge' ),
 							'required'    => true,
 							'type'        => 'integer',
 							'minimum'     => 1,
 						),
 						'target_languages' => array(
-							'description'       => __('Array of target language codes. This will overwrite existing translations.', 'multilingual-bridge'),
-							'required'          => true,
-							'type'              => 'array',
-							'items'             => array(
+							'description' => __( 'Array of target language codes. This will overwrite existing translations.', 'multilingual-bridge' ),
+							'required'    => true,
+							'type'        => 'array',
+							'items'       => array(
 								'type'      => 'string',
-								'enum'      => $this->get_language_tag_enum(),
-								'minLength' => 2,
-								'maxLength' => 10
+								'enum'      => $this->get_language_tag_enum()
 							),
-							'minItems'          => 1,
-							'maxItems'          => 20,
+							'minItems'    => 1,
+							'maxItems'    => 20,
 						),
 					),
 				),
@@ -176,27 +172,26 @@ class Translation_API extends WP_REST_Controller
 	 *
 	 * @return string[]
 	 */
-	private function get_language_tag_enum(): array
-	{
+	private function get_language_tag_enum(): array {
 		// Get active WPML languages.
 		$active_languages = WPML_Language_Helper::get_active_language_codes();
-		$enum_values = array();
+		$enum_values      = array();
 
-		foreach ($active_languages as $language) {
+		foreach ( $active_languages as $language ) {
 			// Always include the original WPML language code.
 			$enum_values[] = $language;
 
 			// Also try to include the normalized BCP 47 version if it differs.
 			try {
-				$lang_tag = LanguageTag::fromString($language);
+				$lang_tag      = LanguageTag::fromString( $language );
 				$enum_values[] = $lang_tag->toString();
-			} catch (\Exception $e) {
+			} catch ( \Exception $e ) {
 				continue;
 			}
 		}
 
 		// Remove duplicates and re-index array.
-		return array_unique($enum_values);
+		return array_unique( $enum_values );
 	}
 
 	/**
@@ -204,9 +199,8 @@ class Translation_API extends WP_REST_Controller
 	 *
 	 * @return bool
 	 */
-	public function permissions_check(): bool
-	{
-		return current_user_can('edit_posts');
+	public function permissions_check(): bool {
+		return current_user_can( 'edit_posts' );
 	}
 
 	/**
@@ -217,32 +211,31 @@ class Translation_API extends WP_REST_Controller
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
-	public function get_meta_value(WP_REST_Request $request)
-	{
-		$post_id = (int)$request->get_param('post_id');
-		$field_key = $request->get_param('field_key');
+	public function get_meta_value( WP_REST_Request $request ) {
+		$post_id   = (int) $request->get_param( 'post_id' );
+		$field_key = $request->get_param( 'field_key' );
 
 		// Get default language version of the post.
-		$default_lang_post_id = WPML_Post_Helper::get_default_language_post_id($post_id);
+		$default_lang_post_id = WPML_Post_Helper::get_default_language_post_id( $post_id );
 
-		if (!$default_lang_post_id) {
+		if ( ! $default_lang_post_id ) {
 			return new WP_Error(
 				'post_not_found',
-				__('Default language version of post not found', 'multilingual-bridge'),
-				array('status' => 404)
+				__( 'Default language version of post not found', 'multilingual-bridge' ),
+				array( 'status' => 404 )
 			);
 		}
 
 		$value = null;
 
 		// Try ACF fields first if available.
-		if (function_exists('get_field')) {
-			$value = get_field($field_key, $default_lang_post_id);
+		if ( function_exists( 'get_field' ) ) {
+			$value = get_field( $field_key, $default_lang_post_id );
 		}
 
 		// Fallback to post meta if ACF returns nothing.
-		if (empty($value)) {
-			$value = get_post_meta($default_lang_post_id, $field_key, true);
+		if ( empty( $value ) ) {
+			$value = get_post_meta( $default_lang_post_id, $field_key, true );
 		}
 
 		/**
@@ -252,7 +245,7 @@ class Translation_API extends WP_REST_Controller
 		 * @param string $field_key Field key
 		 * @param int $post_id Original post ID
 		 */
-		$value = apply_filters('multilingual_bridge_rest_meta_value', $value, $field_key, $default_lang_post_id);
+		$value = apply_filters( 'multilingual_bridge_rest_meta_value', $value, $field_key, $default_lang_post_id );
 
 		return new WP_REST_Response(
 			array(
@@ -270,42 +263,41 @@ class Translation_API extends WP_REST_Controller
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
-	public function translate_text(WP_REST_Request $request)
-	{
-		$text = $request->get_param('text');
-		$target_lang_code = $request->get_param('target_lang');
-		$source_lang_code = $request->get_param('source_lang') ?? '';
+	public function translate_text( WP_REST_Request $request ) {
+		$text             = $request->get_param( 'text' );
+		$target_lang_code = $request->get_param( 'target_lang' );
+		$source_lang_code = $request->get_param( 'source_lang' ) ?? '';
 
 		// Convert language codes to LanguageTag objects.
 		try {
-			$target_lang = LanguageTag::fromString($target_lang_code);
-		} catch (\Exception $e) {
+			$target_lang = LanguageTag::fromString( $target_lang_code );
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_target_lang',
 				sprintf(
 				/* translators: 1: language code, 2: error message */
-					__('Invalid target language code "%1$s": %2$s', 'multilingual-bridge'),
+					__( 'Invalid target language code "%1$s": %2$s', 'multilingual-bridge' ),
 					$target_lang_code,
 					$e->getMessage()
 				),
-				array('status' => 400)
+				array( 'status' => 400 )
 			);
 		}
 
 		$source_lang = null;
-		if (!empty($source_lang_code)) {
+		if ( ! empty( $source_lang_code ) ) {
 			try {
-				$source_lang = LanguageTag::fromString($source_lang_code);
-			} catch (\Exception $e) {
+				$source_lang = LanguageTag::fromString( $source_lang_code );
+			} catch ( \Exception $e ) {
 				return new WP_Error(
 					'invalid_source_lang',
 					sprintf(
 					/* translators: 1: language code, 2: error message */
-						__('Invalid source language code "%1$s": %2$s', 'multilingual-bridge'),
+						__( 'Invalid source language code "%1$s": %2$s', 'multilingual-bridge' ),
 						$source_lang_code,
 						$e->getMessage()
 					),
-					array('status' => 400)
+					array( 'status' => 400 )
 				);
 			}
 		}
@@ -317,7 +309,7 @@ class Translation_API extends WP_REST_Controller
 			$source_lang
 		);
 
-		if (is_wp_error($translation)) {
+		if ( is_wp_error( $translation ) ) {
 			return $translation;
 		}
 
@@ -337,27 +329,26 @@ class Translation_API extends WP_REST_Controller
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 	 */
-	public function post_translate(WP_REST_Request $request)
-	{
-		$post_id = (int)$request->get_param('post_id');
-		$target_language_codes = $request->get_param('target_languages');
+	public function post_translate( WP_REST_Request $request ) {
+		$post_id               = (int) $request->get_param( 'post_id' );
+		$target_language_codes = $request->get_param( 'target_languages' );
 
 		// Track successful translations and errors.
-		$errors = new WP_Error();
-		$successful_langs = array();
+		$errors              = new WP_Error();
+		$successful_langs    = array();
 		$translated_post_ids = array();
 
 		// Process each target language.
-		foreach ($target_language_codes as $lang_code) {
+		foreach ( $target_language_codes as $lang_code ) {
 			// Convert language code to LanguageTag.
 			try {
-				$language_tag = LanguageTag::fromString($lang_code);
-			} catch (\Exception $e) {
+				$language_tag = LanguageTag::fromString( $lang_code );
+			} catch ( \Exception $e ) {
 				$errors->add(
 					'invalid_language_code',
 					sprintf(
 					/* translators: 1: language code, 2: error message */
-						__('Invalid language code "%1$s": %2$s', 'multilingual-bridge'),
+						__( 'Invalid language code "%1$s": %2$s', 'multilingual-bridge' ),
 						$lang_code,
 						$e->getMessage()
 					),
@@ -370,20 +361,20 @@ class Translation_API extends WP_REST_Controller
 			}
 
 			// Translate post to this language.
-			$result = $this->post_handler->translate_post($post_id, $language_tag);
+			$result = $this->post_handler->translate_post( $post_id, $language_tag );
 
 			// Handle errors from handler.
-			if (is_wp_error($result)) {
+			if ( is_wp_error( $result ) ) {
 				$error_code = $result->get_error_code();
 
 				// For critical errors (post_not_found, not_source_post), return immediately.
-				if ('post_not_found' === $error_code || 'not_source_post' === $error_code) {
+				if ( 'post_not_found' === $error_code || 'not_source_post' === $error_code ) {
 					return $result;
 				}
 
 				// For other errors, accumulate all errors and continue processing other languages.
-				foreach ($result->get_error_codes() as $code) {
-					foreach ($result->get_error_messages($code) as $message) {
+				foreach ( $result->get_error_codes() as $code ) {
+					foreach ( $result->get_error_messages( $code ) as $message ) {
 						$errors->add(
 							$code,
 							$message,
@@ -398,14 +389,14 @@ class Translation_API extends WP_REST_Controller
 			}
 
 			// Track successful translation.
-			if (isset($result['success']) && $result['success']) {
-				$successful_langs[] = $lang_code;
-				$translated_post_ids[$lang_code] = $result['translated_post_id'] ?? null;
+			if ( isset( $result['success'] ) && $result['success'] ) {
+				$successful_langs[]                = $lang_code;
+				$translated_post_ids[ $lang_code ] = $result['translated_post_id'] ?? null;
 			}
 		}
 
 		// If any errors occurred, return WP_Error with all accumulated errors.
-		if ($errors->has_errors()) {
+		if ( $errors->has_errors() ) {
 			return $errors;
 		}
 
@@ -421,10 +412,10 @@ class Translation_API extends WP_REST_Controller
 					_n(
 						'Successfully translated post to %d language',
 						'Successfully translated post to %d languages',
-						count($successful_langs),
+						count( $successful_langs ),
 						'multilingual-bridge'
 					),
-					count($successful_langs)
+					count( $successful_langs )
 				),
 			),
 			200
