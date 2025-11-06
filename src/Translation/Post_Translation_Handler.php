@@ -106,8 +106,7 @@ class Post_Translation_Handler {
 		try {
 			// Convert source language to LanguageTag.
 			$source_lang_tag = LanguageTag::tryFromString( $source_lang );
-		}
-		catch ( \Exception $e ) {
+		} catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_source_language',
 				sprintf(
@@ -185,58 +184,60 @@ class Post_Translation_Handler {
 	}
 
 	/**
-	 * Translate post content (title, content, excerpt)
+	 * Translate post title
 	 *
-	 * @param WP_Post     $source_post Source post object.
+	 * @param string      $title       Post title to translate.
 	 * @param LanguageTag $target_lang Target language tag.
 	 * @param LanguageTag $source_lang Source language tag.
-	 * @return array{title: string, content: string, excerpt: string}|WP_Error Translated content or error
+	 * @return string|WP_Error Translated title or error
 	 */
-	private function translate_post_content( WP_Post $source_post, LanguageTag $target_lang, LanguageTag $source_lang ): array|WP_Error {
-		// Translate post title (always required).
-		$translated_title = $this->translation_manager->translate(
+	private function translate_post_title( string $title, LanguageTag $target_lang, LanguageTag $source_lang ): string|WP_Error {
+		return $this->translation_manager->translate(
 			$target_lang,
-			$source_post->post_title,
+			$title,
 			$source_lang
 		);
+	}
 
-		if ( is_wp_error( $translated_title ) ) {
-			return $translated_title;
+	/**
+	 * Translate post content
+	 *
+	 * @param string      $content     Post content to translate.
+	 * @param LanguageTag $target_lang Target language tag.
+	 * @param LanguageTag $source_lang Source language tag.
+	 * @return string|WP_Error Translated content or error
+	 */
+	private function translate_post_content( string $content, LanguageTag $target_lang, LanguageTag $source_lang ): string|WP_Error {
+		// Skip translation if content is empty to avoid unnecessary API calls.
+		if ( '' === trim( $content ) ) {
+			return '';
 		}
 
-		// Translate post content (skip if empty to avoid unnecessary API calls).
-		if ( '' === trim( $source_post->post_content ) ) {
-			$translated_content = '';
-		} else {
-			$translated_content = $this->translation_manager->translate(
-				$target_lang,
-				$source_post->post_content,
-				$source_lang
-			);
-			if ( is_wp_error( $translated_content ) ) {
-				return $translated_content;
-			}
+		return $this->translation_manager->translate(
+			$target_lang,
+			$content,
+			$source_lang
+		);
+	}
+
+	/**
+	 * Translate post excerpt
+	 *
+	 * @param string      $excerpt     Post excerpt to translate.
+	 * @param LanguageTag $target_lang Target language tag.
+	 * @param LanguageTag $source_lang Source language tag.
+	 * @return string|WP_Error Translated excerpt or error
+	 */
+	private function translate_post_excerpt( string $excerpt, LanguageTag $target_lang, LanguageTag $source_lang ): string|WP_Error {
+		// Skip translation if excerpt is empty to avoid unnecessary API calls.
+		if ( '' === trim( $excerpt ) ) {
+			return '';
 		}
 
-		// Translate post excerpt (skip if empty to avoid unnecessary API calls).
-		if ( '' === trim( $source_post->post_excerpt ) ) {
-			$translated_excerpt = '';
-		} else {
-			$translated_excerpt = $this->translation_manager->translate(
-				$target_lang,
-				$source_post->post_excerpt,
-				$source_lang
-			);
-
-			if ( is_wp_error( $translated_excerpt ) ) {
-				return $translated_excerpt;
-			}
-		}
-
-		return array(
-			'title'   => $translated_title,
-			'content' => $translated_content,
-			'excerpt' => $translated_excerpt,
+		return $this->translation_manager->translate(
+			$target_lang,
+			$excerpt,
+			$source_lang
 		);
 	}
 
@@ -252,18 +253,44 @@ class Post_Translation_Handler {
 	 * @return array<string, mixed>|WP_Error Post data array or error
 	 */
 	private function translate_and_build_post_data( WP_Post $source_post, LanguageTag $target_lang, LanguageTag $source_lang, ?int $target_post_id = null ): array|WP_Error {
-		// Translate post content.
-		$translated = $this->translate_post_content( $source_post, $target_lang, $source_lang );
+		// Translate post title (always required).
+		$translated_title = $this->translate_post_title(
+			$source_post->post_title,
+			$target_lang,
+			$source_lang
+		);
 
-		if ( is_wp_error( $translated ) ) {
-			return $translated;
+		if ( is_wp_error( $translated_title ) ) {
+			return $translated_title;
+		}
+
+		// Translate post content.
+		$translated_content = $this->translate_post_content(
+			$source_post->post_content,
+			$target_lang,
+			$source_lang
+		);
+
+		if ( is_wp_error( $translated_content ) ) {
+			return $translated_content;
+		}
+
+		// Translate post excerpt.
+		$translated_excerpt = $this->translate_post_excerpt(
+			$source_post->post_excerpt,
+			$target_lang,
+			$source_lang
+		);
+
+		if ( is_wp_error( $translated_excerpt ) ) {
+			return $translated_excerpt;
 		}
 
 		// Build post data with translated content.
 		$post_data = array(
-			'post_title'   => $translated['title'],
-			'post_content' => $translated['content'],
-			'post_excerpt' => $translated['excerpt'],
+			'post_title'   => $translated_title,
+			'post_content' => $translated_content,
+			'post_excerpt' => $translated_excerpt,
 		);
 
 		if ( null === $target_post_id ) {
