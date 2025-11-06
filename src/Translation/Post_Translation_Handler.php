@@ -103,14 +103,15 @@ class Post_Translation_Handler {
 
 		// Check if translation already exists.
 		$existing_translation = WPML_Post_Helper::get_translation_for_lang( $source_post_id, $target_lang );
-
-		// Convert source language to LanguageTag.
-		$source_lang_tag = LanguageTag::tryFromString( $source_lang );
-		if ( null === $source_lang_tag ) {
+		try {
+			// Convert source language to LanguageTag.
+			$source_lang_tag = LanguageTag::tryFromString( $source_lang );
+		}
+		catch ( \Exception $e ) {
 			return new WP_Error(
 				'invalid_source_language',
 				sprintf(
-					/* translators: %s: language code */
+				/* translators: %s: language code */
 					__( 'Invalid source language code: %s', 'multilingual-bridge' ),
 					$source_lang
 				),
@@ -193,7 +194,12 @@ class Post_Translation_Handler {
 	 */
 	private function translate_post_content( WP_Post $source_post, LanguageTag $target_lang, LanguageTag $source_lang ): array|WP_Error {
 		// Translate post title (always required).
-		$translated_title = $this->translate_field( $source_post->post_title, $target_lang, $source_lang );
+		$translated_title = $this->translation_manager->translate(
+			$target_lang,
+			$source_post->post_title,
+			$source_lang
+		);
+
 		if ( is_wp_error( $translated_title ) ) {
 			return $translated_title;
 		}
@@ -202,7 +208,11 @@ class Post_Translation_Handler {
 		if ( '' === trim( $source_post->post_content ) ) {
 			$translated_content = '';
 		} else {
-			$translated_content = $this->translate_field( $source_post->post_content, $target_lang, $source_lang );
+			$translated_content = $this->translation_manager->translate(
+				$target_lang,
+				$source_post->post_content,
+				$source_lang
+			);
 			if ( is_wp_error( $translated_content ) ) {
 				return $translated_content;
 			}
@@ -212,7 +222,12 @@ class Post_Translation_Handler {
 		if ( '' === trim( $source_post->post_excerpt ) ) {
 			$translated_excerpt = '';
 		} else {
-			$translated_excerpt = $this->translate_field( $source_post->post_excerpt, $target_lang, $source_lang );
+			$translated_excerpt = $this->translation_manager->translate(
+				$target_lang,
+				$source_post->post_excerpt,
+				$source_lang
+			);
+
 			if ( is_wp_error( $translated_excerpt ) ) {
 				return $translated_excerpt;
 			}
@@ -222,26 +237,6 @@ class Post_Translation_Handler {
 			'title'   => $translated_title,
 			'content' => $translated_content,
 			'excerpt' => $translated_excerpt,
-		);
-	}
-
-	/**
-	 * Translate a single field value
-	 *
-	 * @param string      $field_value Field value to translate.
-	 * @param LanguageTag $target_lang Target language tag.
-	 * @param LanguageTag $source_lang Source language tag.
-	 * @return string|WP_Error Translated value or error
-	 */
-	private function translate_field( string $field_value, LanguageTag $target_lang, LanguageTag $source_lang ): string|WP_Error {
-		if ( empty( $field_value ) ) {
-			return '';
-		}
-
-		return $this->translation_manager->translate(
-			$target_lang,
-			$field_value,
-			$source_lang
 		);
 	}
 
