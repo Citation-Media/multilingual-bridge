@@ -185,6 +185,12 @@ class Translation_Manager {
 	 * @return string|WP_Error Translated text or error
 	 */
 	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null ) {
+
+		//exit early for empty string
+		if( empty( trim($text) ) ) {
+			return '';
+		}
+
 		$provider_id = $this->get_default_provider_id();
 
 		if ( null === $provider_id ) {
