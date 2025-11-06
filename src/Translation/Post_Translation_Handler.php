@@ -209,7 +209,7 @@ class Post_Translation_Handler {
 	 */
 	private function translate_post_content( string $content, LanguageTag $target_lang, LanguageTag $source_lang ): string|WP_Error {
 		// Skip translation if content is empty to avoid unnecessary API calls.
-		if ( '' === trim( $content ) ) {
+		if (empty(trim( $content )) ) {
 			return '';
 		}
 
