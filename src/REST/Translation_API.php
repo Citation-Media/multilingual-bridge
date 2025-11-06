@@ -165,7 +165,7 @@ class Translation_API extends WP_REST_Controller {
 	 * Normalize language code to BCP 47 format
 	 *
 	 * Converts WPML-style language codes (e.g., zh-hans) to proper BCP 47 format (e.g., zh-Hans).
-	 * This is necessary because WPML uses lowercase for script subtags, while BCP 47 requires
+	 * This is necessary because WPML uses lowercase for script subtags, while BCP 47 requires for PrinsFrank\Standards\LanguageTag library
 	 * title case (first letter uppercase, rest lowercase).
 	 *
 	 * @param string $language_code Language code to normalize.
