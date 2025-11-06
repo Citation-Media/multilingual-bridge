@@ -186,8 +186,8 @@ class Translation_Manager {
 	 */
 	public function translate( LanguageTag $target_lang, string $text, ?LanguageTag $source_lang = null ) {
 
-		//exit early for empty string
-		if( empty( trim($text) ) ) {
+		// exit early for empty string
+		if ( empty( trim( $text ) ) ) {
 			return '';
 		}
 

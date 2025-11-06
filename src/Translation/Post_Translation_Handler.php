@@ -219,10 +219,10 @@ class Post_Translation_Handler {
 
 		// Translate post excerpt.
 		$translated_excerpt = $this->translation_manager->translate(
-				$target_lang,
-				$source_post->post_excerpt,
-				$source_lang
-			);
+			$target_lang,
+			$source_post->post_excerpt,
+			$source_lang
+		);
 
 		if ( is_wp_error( $translated_excerpt ) ) {
 			return $translated_excerpt;
