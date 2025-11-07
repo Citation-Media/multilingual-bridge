@@ -34,6 +34,7 @@ use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Meta_Translation_Handler;
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
+use Multilingual_Bridge\Translation\Post_Change_Tracker;
 use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Request;
@@ -435,15 +436,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				$error
 			);
 
-			// Track successfully translated posts (errors are accumulated in $error object).
-			if ( $target_post_id > 0 ) {
-				$translated_posts[ $target_lang_code ] = $target_post_id;
-			}
+		// Track successfully translated posts (errors are accumulated in $error object).
+		if ( $target_post_id > 0 ) {
+			$translated_posts[ $target_lang_code ] = $target_post_id;
 
 			// Clear pending updates for this specific language if translation was successful.
-			if ( $language_result['success'] ) {
-				$this->sync_handler->clear_pending_updates( $post_id, null, $target_lang );
-			}
+			$this->sync_handler->clear_pending_updates( $post_id, null, $target_lang_code );
+		}
 		}
 
 		// If any errors occurred, return them.

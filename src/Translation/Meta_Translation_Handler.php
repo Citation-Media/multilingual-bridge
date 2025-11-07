@@ -130,11 +130,6 @@ class Meta_Translation_Handler {
 		);
 
 		foreach ( $all_meta as $meta_key => $meta_values ) {
-			// Skip fields not in allowed list (selective translation).
-			if ( is_array( $allowed_fields ) && ! in_array( $meta_key, $allowed_fields, true ) ) {
-				++$results['skipped'];
-				continue;
-			}
 
 			// Skip internal WordPress meta.
 			if ( $this->should_skip_meta( $meta_key ) ) {
