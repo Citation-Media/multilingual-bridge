@@ -19,7 +19,7 @@ Choose the appropriate method based on your application's architecture:
 
 Use `WP_Exception` for:
 - Immediate error termination with proper exception handling
-- Modern PHP patterns (PHP 8.0+) in object-oriented code
+- Modern PHP patterns (PHP 8.1+) in object-oriented code
 - Complex business logic requiring precise error control
 
 ### Basic Implementation

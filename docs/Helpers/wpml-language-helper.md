@@ -336,7 +336,7 @@ All methods handle WPML absence gracefully:
 ## Requirements
 
 - WPML plugin must be installed and activated for full functionality
-- PHP 8.0 or higher (for union type support)
+- PHP 8.1 or higher (for union type and enum support)
 - WordPress 5.0 or higher
 
 ## Migration from Direct WPML Calls
