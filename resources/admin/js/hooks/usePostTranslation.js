@@ -112,15 +112,32 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 			// Update progress to 100%
 			updateProgress(100, __('Complete!', 'multilingual-bridge'));
 
-			// Store results
-			setResult(response);
+			// Store results with normalized structure
+			// API returns: { success, source_post_id, translated_languages, translated_post_ids, message }
+			// Convert to UI-friendly format with per-language results
+			const languagesResult = {};
+			selectedLanguages.forEach((langCode) => {
+				const wasTranslated =
+					response.translated_languages?.includes(langCode);
+				languagesResult[langCode] = {
+					success: wasTranslated,
+					target_post_id:
+						response.translated_post_ids?.[langCode] || 0,
+					errors: wasTranslated ? [] : ['Translation failed'],
+				};
+			});
+
+			setResult({
+				success: response.success,
+				languages: languagesResult,
+			});
 
 			// Update translations state for UI updates
 			const newTranslations = { ...updatedTranslations };
-			Object.entries(response.languages || {}).forEach(
-				([langCode, langResult]) => {
-					if (langResult.success && langResult.target_post_id > 0) {
-						newTranslations[langCode] = langResult.target_post_id;
+			Object.entries(response.translated_post_ids || {}).forEach(
+				([langCode, translatedPostId]) => {
+					if (translatedPostId > 0) {
+						newTranslations[langCode] = translatedPostId;
 					}
 				}
 			);
