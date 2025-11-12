@@ -515,8 +515,7 @@ class WPML_REST_Translation extends WP_REST_Controller {
 			$source_post->ID,
 			$target_post_id,
 			$target_lang,
-			$source_lang,
-			null
+			$source_lang
 		);
 
 		// Add meta translation errors if any occurred.
