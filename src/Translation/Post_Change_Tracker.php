@@ -81,6 +81,9 @@ class Post_Change_Tracker {
 
 		// Track post meta deletions.
 		add_filter( 'delete_post_metadata', array( $this, 'track_meta_delete' ), 10, 5 );
+
+		// Add visual indicator to ACF fields with pending updates.
+		add_filter( 'acf/field_wrapper_attributes', array( $this, 'add_pending_update_class' ), 10, 2 );
 	}
 
 	/**
@@ -911,5 +914,48 @@ class Post_Change_Tracker {
 		 * @param string $meta_key    Meta key
 		 */
 		return apply_filters( 'multilingual_bridge_skip_sync_tracking', false, $meta_key );
+	}
+
+	/**
+	 * Add pending update class to ACF field wrappers
+	 *
+	 * Adds 'mlb-pending-update' class to ACF fields that have pending updates
+	 * in translation posts. This provides a visual indicator that the field
+	 * needs to be synced from the source language.
+	 *
+	 * @param array<string, mixed> $wrapper The field wrapper attributes.
+	 * @param array<string, mixed> $field   The field array.
+	 * @return array<string, mixed>
+	 */
+	public function add_pending_update_class( array $wrapper, array $field ): array {
+		global $post;
+
+		// Only add class on translation posts (not source language).
+		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
+			return $wrapper;
+		}
+
+		// Get the source post ID.
+		$source_post_id = WPML_Post_Helper::get_default_language_post_id( $post->ID );
+		if ( ! $source_post_id ) {
+			return $wrapper;
+		}
+
+		// Get current post language.
+		$current_lang = WPML_Post_Helper::get_language( $post->ID );
+		if ( ! $current_lang ) {
+			return $wrapper;
+		}
+
+		// Check if this field has pending updates for this language.
+		$field_name = $field['name'];
+		if ( $this->has_pending_field_update( $source_post_id, $field_name, $current_lang ) ) {
+			// Add the pending update class.
+			$wrapper['class'] = isset( $wrapper['class'] )
+				? $wrapper['class'] . ' mlb-pending-update'
+				: 'mlb-pending-update';
+		}
+
+		return $wrapper;
 	}
 }

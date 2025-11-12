@@ -102,6 +102,10 @@ class Multilingual_Bridge {
 		$deepl_provider = new DeepL_Provider();
 		$translation_manager->register_provider( $deepl_provider );
 
+		// Register Post Change Tracker to monitor field changes and flag for sync.
+		$post_change_tracker = new Post_Change_Tracker();
+		$post_change_tracker->register_hooks();
+
 		/**
 		 * Fires after translation system is initialized
 		 *
