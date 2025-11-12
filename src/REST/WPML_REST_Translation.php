@@ -436,13 +436,13 @@ class WPML_REST_Translation extends WP_REST_Controller {
 				$error
 			);
 
-		// Track successfully translated posts (errors are accumulated in $error object).
-		if ( $target_post_id > 0 ) {
-			$translated_posts[ $target_lang_code ] = $target_post_id;
+			// Track successfully translated posts (errors are accumulated in $error object).
+			if ( $target_post_id > 0 ) {
+				$translated_posts[ $target_lang_code ] = $target_post_id;
 
-			// Clear pending updates for this specific language if translation was successful.
-			$this->sync_handler->clear_pending_updates( $post_id, null, $target_lang_code );
-		}
+				// Clear pending updates for this specific language if translation was successful.
+				$this->sync_handler->clear_pending_updates( $post_id, null, $target_lang_code );
+			}
 		}
 
 		// If any errors occurred, return them.
