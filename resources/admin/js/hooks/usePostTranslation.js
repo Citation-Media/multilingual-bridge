@@ -14,18 +14,12 @@ import { __ } from '@wordpress/i18n';
 /**
  * Custom hook for post translation functionality
  *
- * @param {number} postId              - Source post ID
- * @param {Object} targetLanguages     - Available target languages object
- * @param {Object} translations        - Existing translations object
- * @param {Object} translationsPending - Pending updates for each translation language
+ * @param {number} postId          - Source post ID
+ * @param {Object} targetLanguages - Available target languages object
+ * @param {Object} translations    - Existing translations object
  * @return {Object} Translation state and methods
  */
-export const usePostTranslation = (
-	postId,
-	targetLanguages,
-	translations,
-	translationsPending = {}
-) => {
+export const usePostTranslation = (postId, targetLanguages, translations) => {
 	// Selected language codes for translation
 	const [selectedLanguages, setSelectedLanguages] = useState([]);
 
@@ -45,9 +39,6 @@ export const usePostTranslation = (
 	// Track updated translations to update UI
 	const [updatedTranslations, setUpdatedTranslations] =
 		useState(translations);
-
-	// Track pending updates for translations
-	const [pendingUpdates, setPendingUpdates] = useState(translationsPending);
 
 	/**
 	 * Toggle language selection
@@ -121,29 +112,36 @@ export const usePostTranslation = (
 			// Update progress to 100%
 			updateProgress(100, __('Complete!', 'multilingual-bridge'));
 
-			// Store results
-			setResult(response);
+			// Store results with normalized structure
+			// API returns: { success, source_post_id, translated_languages, translated_post_ids, message }
+			// Convert to UI-friendly format with per-language results
+			const languagesResult = {};
+			selectedLanguages.forEach((langCode) => {
+				const wasTranslated =
+					response.translated_languages?.includes(langCode);
+				languagesResult[langCode] = {
+					success: wasTranslated,
+					target_post_id:
+						response.translated_post_ids?.[langCode] || 0,
+					errors: wasTranslated ? [] : ['Translation failed'],
+				};
+			});
+
+			setResult({
+				success: response.success,
+				languages: languagesResult,
+			});
 
 			// Update translations state for UI updates
 			const newTranslations = { ...updatedTranslations };
-			const newPendingUpdates = { ...pendingUpdates };
-
-			Object.entries(response.languages || {}).forEach(
-				([langCode, langResult]) => {
-					if (langResult.success && langResult.target_post_id > 0) {
-						newTranslations[langCode] = langResult.target_post_id;
-
-						// Clear pending updates for successfully translated language
-						if (newPendingUpdates[langCode]) {
-							newPendingUpdates[langCode] = {
-								hasPending: false,
-							};
-						}
+			Object.entries(response.translated_post_ids || {}).forEach(
+				([langCode, translatedPostId]) => {
+					if (translatedPostId > 0) {
+						newTranslations[langCode] = translatedPostId;
 					}
 				}
 			);
 			setUpdatedTranslations(newTranslations);
-			setPendingUpdates(newPendingUpdates);
 
 			// Clear error
 			setErrorMessage('');
@@ -180,6 +178,5 @@ export const usePostTranslation = (
 		translate,
 		reset,
 		updatedTranslations,
-		pendingUpdates,
 	};
 };
