@@ -51,7 +51,7 @@ class Translation_Post_Types {
 		 */
 		return apply_filters(
 			'multilingual_bridge_translation_post_types',
-			array()
+			array( 'zg_products' )
 		);
 	}
 
