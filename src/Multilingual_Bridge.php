@@ -16,6 +16,7 @@ namespace Multilingual_Bridge;
 use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Admin\Post_Translation_Widget;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
+use Multilingual_Bridge\Integrations\WPML\Translation_Widget;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\Translation_API;
 use Multilingual_Bridge\Translation\Translation_Manager;
@@ -144,6 +145,10 @@ class Multilingual_Bridge {
 		// Register Post Translation Widget
 		$post_translation_widget = new Post_Translation_Widget();
 		$post_translation_widget->register_hooks();
+
+		// Register WPML Translation Widget Integration
+		$wpml_translation_widget = new Translation_Widget();
+		$wpml_translation_widget->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
