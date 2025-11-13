@@ -33,52 +33,27 @@ class Translation_Widget {
 	}
 
 	/**
-	 * Remove WPML's language meta box on post types where our translation widget is active
+	 * Remove WPML's language meta boxes
 	 *
-	 * WPML adds its meta box via 'admin_head' action (not 'add_meta_boxes').
-	 * We need to remove it to avoid duplicate translation UI when our widget is displayed.
-	 *
-	 * WPML registers the meta box with:
-	 * - ID: 'icl_div' (defined as WPML_Meta_Boxes_Post_Edit_HTML::WRAPPER_ID)
-	 * - Title: 'Language'
-	 * - Context: 'side' (filterable via 'wpml_post_edit_meta_box_context')
-	 * - Priority: 'high' (filterable via 'wpml_post_edit_meta_box_priority')
+	 * Removes WPML's default meta boxes to avoid duplicate translation UI.
+	 * - 'icl_div' = Language meta box (WPML_Meta_Boxes_Post_Edit_HTML::WRAPPER_ID)
+	 * - 'icl_div_config' = Multilingual Content Setup meta box
 	 */
 	public function remove_wpml_meta_box(): void {
 		global $post;
 
-		// Safety check: ensure we're on a post edit screen.
-		if ( ! $post || ! isset( $post->ID ) || ! function_exists( 'get_current_screen' ) ) {
-			return;
-		}
-
-		$screen = get_current_screen();
-		if ( ! $screen || ! in_array( $screen->base, array( 'post', 'post-new' ), true ) ) {
+		if ( ! $post ) {
 			return;
 		}
 
 		$post_type = $post->post_type;
 
-		// Get the context where WPML's meta box is added (default is 'side').
-		// WPML allows filtering this via 'wpml_post_edit_meta_box_context' filter.
-		$context = apply_filters( 'wpml_post_edit_meta_box_context', 'side', 'icl_div' );
+		// Remove WPML's Language meta box from all contexts.
+		remove_meta_box( 'icl_div', $post_type, 'side' );
+		remove_meta_box( 'icl_div', $post_type, 'normal' );
+		remove_meta_box( 'icl_div', $post_type, 'advanced' );
 
-		// Remove WPML's language meta box.
-		// The meta box ID is 'icl_div' as defined in WPML_Meta_Boxes_Post_Edit_HTML::WRAPPER_ID.
-		remove_meta_box( 'icl_div', $post_type, $context );
-		
-		// Also try other contexts in case WPML or another plugin moved it.
-		if ( 'side' !== $context ) {
-			remove_meta_box( 'icl_div', $post_type, 'side' );
-		}
-		if ( 'normal' !== $context ) {
-			remove_meta_box( 'icl_div', $post_type, 'normal' );
-		}
-		if ( 'advanced' !== $context ) {
-			remove_meta_box( 'icl_div', $post_type, 'advanced' );
-		}
-
-		// Also remove the Multilingual Content Setup meta box if present.
+		// Remove WPML's Multilingual Content Setup meta box.
 		remove_meta_box( 'icl_div_config', $post_type, 'normal' );
 	}
 
