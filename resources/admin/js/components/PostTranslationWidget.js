@@ -352,8 +352,8 @@ export const PostTranslationWidget = ({
 									const isNewTranslation =
 										newlyTranslated[langCode] === true;
 									const hasPending =
-										pendingUpdates?.[langCode]?.hasPending ||
-										false;
+										pendingUpdates?.[langCode]
+											?.hasPending || false;
 
 									return createElement(LanguageCheckboxItem, {
 										key: langCode,

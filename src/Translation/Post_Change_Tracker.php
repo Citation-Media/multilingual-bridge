@@ -84,6 +84,9 @@ class Post_Change_Tracker {
 
 		// Add visual indicator to ACF fields with pending updates.
 		add_filter( 'acf/field_wrapper_attributes', array( $this, 'add_pending_update_class' ), 10, 2 );
+
+		// Add JavaScript-based visual indicators (works in both Block and Classic Editor).
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_pending_updates_script' ) );
 	}
 
 	/**
@@ -917,21 +920,130 @@ class Post_Change_Tracker {
 	}
 
 	/**
+	 * Enqueue script for pending update indicators
+	 *
+	 * Enqueues JavaScript that adds visual indicators to ACF fields with pending updates.
+	 * This works in both Block Editor and Classic Editor by using JavaScript to locate
+	 * and style ACF fields after the page is loaded.
+	 *
+	 * @param string $hook The current admin page hook.
+	 */
+	public function enqueue_pending_updates_script( string $hook ): void {
+		// Only run on post edit screens.
+		if ( 'post.php' !== $hook && 'post-new.php' !== $hook ) {
+			return;
+		}
+
+		global $post;
+		if ( ! $post || ! isset( $post->ID ) ) {
+			return;
+		}
+
+		// Only run on translation posts.
+		if ( WPML_Post_Helper::is_original_post( $post->ID ) ) {
+			return;
+		}
+
+		$source_post_id = WPML_Post_Helper::get_default_language_post_id( $post->ID );
+		if ( ! $source_post_id ) {
+			return;
+		}
+
+		$current_lang = WPML_Post_Helper::get_language( $post->ID );
+		if ( ! $current_lang ) {
+			return;
+		}
+
+		// Get pending updates for this language.
+		$pending = $this->get_pending_updates_for_language( $source_post_id, $current_lang );
+
+		// Extract pending meta field names.
+		$pending_fields = array();
+		if ( isset( $pending['meta'] ) && is_array( $pending['meta'] ) ) {
+			$pending_fields = array_keys( $pending['meta'] );
+		}
+
+		// Only enqueue if there are pending fields.
+		if ( empty( $pending_fields ) ) {
+			return;
+		}
+
+		// Enqueue inline script (no external file needed for this simple script).
+		wp_add_inline_script(
+			'jquery',
+			sprintf(
+				'jQuery(document).ready(function($) {
+					var pendingFields = %s;
+					
+					// Function to add pending class to ACF fields.
+					function addPendingIndicators() {
+						pendingFields.forEach(function(fieldName) {
+							// Try multiple selectors to cover different ACF rendering methods:
+							
+							// 1. Classic Editor: ACF field wrapper with data-name attribute.
+							$(".acf-field[data-name=\"" + fieldName + "\"]").addClass("mlb-pending-update");
+							
+							// 2. Block Editor: ACF field wrapper with data-key or name attributes.
+							$(".acf-field[data-key*=\"" + fieldName + "\"]").addClass("mlb-pending-update");
+							
+							// 3. ACF blocks: Block wrapper with field name in data attributes.
+							$("[data-name=\"" + fieldName + "\"]").closest(".acf-field").addClass("mlb-pending-update");
+							
+							// 4. Direct input name matching (fallback).
+							$("input[name=\"acf[" + fieldName + "]\"], textarea[name=\"acf[" + fieldName + "]\"]")
+								.closest(".acf-field").addClass("mlb-pending-update");
+						});
+					}
+					
+					// Run immediately.
+					addPendingIndicators();
+					
+					// Re-run after ACF loads (for dynamic fields).
+					if (typeof acf !== "undefined") {
+						acf.addAction("ready", addPendingIndicators);
+						acf.addAction("append", addPendingIndicators);
+					}
+					
+					// Re-run on mutation (for dynamically loaded content in Block Editor).
+					var observer = new MutationObserver(function() {
+						addPendingIndicators();
+					});
+					observer.observe(document.body, { childList: true, subtree: true });
+				});',
+				wp_json_encode( $pending_fields )
+			)
+		);
+	}
+
+	/**
 	 * Add pending update class to ACF field wrappers
 	 *
 	 * Adds 'mlb-pending-update' class to ACF fields that have pending updates
 	 * in translation posts. This provides a visual indicator that the field
 	 * needs to be synced from the source language.
 	 *
+	 * This method uses the ACF filter hook which only works in Classic Editor.
+	 * For Block Editor compatibility, see enqueue_pending_updates_script().
+	 *
 	 * @param array<string, mixed> $wrapper The field wrapper attributes.
 	 * @param array<string, mixed> $field   The field array.
 	 * @return array<string, mixed>
 	 */
 	public function add_pending_update_class( array $wrapper, array $field ): array {
+		// Only run on admin screens.
+		if ( ! is_admin() ) {
+			return $wrapper;
+		}
+
 		global $post;
 
+		// Bail if no post context.
+		if ( ! $post || ! isset( $post->ID ) ) {
+			return $wrapper;
+		}
+
 		// Only add class on translation posts (not source language).
-		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
+		if ( WPML_Post_Helper::is_original_post( $post->ID ) ) {
 			return $wrapper;
 		}
 
@@ -948,7 +1060,12 @@ class Post_Change_Tracker {
 		}
 
 		// Check if this field has pending updates for this language.
-		$field_name = $field['name'];
+		// ACF fields use the 'name' attribute as the meta key.
+		$field_name = $field['name'] ?? '';
+		if ( empty( $field_name ) ) {
+			return $wrapper;
+		}
+
 		if ( $this->has_pending_field_update( $source_post_id, $field_name, $current_lang ) ) {
 			// Add the pending update class.
 			$wrapper['class'] = isset( $wrapper['class'] )

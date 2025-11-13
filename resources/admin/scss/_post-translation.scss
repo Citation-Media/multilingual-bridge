@@ -362,6 +362,6 @@
 // Highlight ACF fields with pending updates from source language
 .acf-field.mlb-pending-update > .acf-input > input[type="text"],
 .acf-field.mlb-pending-update > .acf-input > textarea,
-.acf-field.mlb-pending-update > .acf-input > .wp-editor-container {
-	border: 1px solid #f0b849;
+.acf-field.mlb-pending-update {
+	border: 1px solid #f0b849 !important;
 }

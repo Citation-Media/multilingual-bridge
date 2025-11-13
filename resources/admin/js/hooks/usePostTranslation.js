@@ -14,13 +14,18 @@ import { __ } from '@wordpress/i18n';
 /**
  * Custom hook for post translation functionality
  *
- * @param {number} postId               - Source post ID
- * @param {Object} targetLanguages      - Available target languages object
- * @param {Object} translations         - Existing translations object
- * @param {Object} translationsPending  - Pending updates for translations
+ * @param {number} postId              - Source post ID
+ * @param {Object} targetLanguages     - Available target languages object
+ * @param {Object} translations        - Existing translations object
+ * @param {Object} translationsPending - Pending updates for translations
  * @return {Object} Translation state and methods
  */
-export const usePostTranslation = (postId, targetLanguages, translations, translationsPending = {}) => {
+export const usePostTranslation = (
+	postId,
+	targetLanguages,
+	translations,
+	translationsPending = {}
+) => {
 	// Selected language codes for translation
 	const [selectedLanguages, setSelectedLanguages] = useState([]);
 
@@ -146,6 +151,15 @@ export const usePostTranslation = (postId, targetLanguages, translations, transl
 				}
 			);
 			setUpdatedTranslations(newTranslations);
+
+			// Clear pending updates for successfully translated languages
+			const newPendingUpdates = { ...pendingUpdates };
+			response.translated_languages?.forEach((langCode) => {
+				if (newPendingUpdates[langCode]) {
+					newPendingUpdates[langCode] = { hasPending: false };
+				}
+			});
+			setPendingUpdates(newPendingUpdates);
 
 			// Clear error
 			setErrorMessage('');

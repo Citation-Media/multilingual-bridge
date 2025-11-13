@@ -42,11 +42,19 @@ class Post_Translation_Handler {
 	private Meta_Translation_Handler $meta_handler;
 
 	/**
+	 * Post Change Tracker instance
+	 *
+	 * @var Post_Change_Tracker
+	 */
+	private Post_Change_Tracker $change_tracker;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
 		$this->meta_handler        = new Meta_Translation_Handler();
+		$this->change_tracker      = new Post_Change_Tracker();
 	}
 
 	/**
@@ -172,6 +180,9 @@ class Post_Translation_Handler {
 		if ( $errors->has_errors() ) {
 			return $errors;
 		}
+
+		// Clear pending updates for this language after successful translation.
+		$this->change_tracker->clear_pending_updates( $source_post_id, null, $target_lang );
 
 		// Return success result.
 		return array(
