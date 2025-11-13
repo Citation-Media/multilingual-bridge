@@ -204,9 +204,9 @@ const ProgressBar = ({ percent, text }) => {
  */
 export const PostTranslationWidget = ({
 	postId,
-	targetLanguages,
-	translations,
-	translationsPending,
+	targetLanguages = {},
+	translations = {},
+	translationsPending = {},
 	editPostUrl,
 }) => {
 	const {
@@ -233,9 +233,12 @@ export const PostTranslationWidget = ({
 	// Track newly translated languages to highlight them
 	const [newlyTranslated, setNewlyTranslated] = useState({});
 
-	// Get language names for display
+	// Get language names for display - with safety check
 	const langNames = Object.fromEntries(
-		Object.entries(targetLanguages).map(([code, data]) => [code, data.name])
+		Object.entries(targetLanguages || {}).map(([code, data]) => [
+			code,
+			data?.name || code,
+		])
 	);
 
 	/**
@@ -287,7 +290,7 @@ export const PostTranslationWidget = ({
 
 	return createElement(
 		'div',
-		{ id: 'multilingual-bridge-post-widget' },
+		{ className: 'multilingual-bridge-post-widget-container' },
 
 		// Language list
 		createElement(
@@ -303,7 +306,7 @@ export const PostTranslationWidget = ({
 				)
 			),
 
-			Object.keys(targetLanguages).length === 0
+			Object.keys(targetLanguages || {}).length === 0
 				? createElement(
 						'p',
 						{ className: 'mlb-no-languages' },
@@ -338,7 +341,7 @@ export const PostTranslationWidget = ({
 						createElement(
 							'div',
 							{ className: 'mlb-language-list' },
-							...Object.entries(targetLanguages).map(
+							...Object.entries(targetLanguages || {}).map(
 								([langCode, language]) => {
 									const hasTranslation =
 										updatedTranslations[langCode] !==
@@ -349,13 +352,13 @@ export const PostTranslationWidget = ({
 									const isNewTranslation =
 										newlyTranslated[langCode] === true;
 									const hasPending =
-										pendingUpdates[langCode]?.hasPending ||
+										pendingUpdates?.[langCode]?.hasPending ||
 										false;
 
 									return createElement(LanguageCheckboxItem, {
 										key: langCode,
 										langCode,
-										langName: language.name,
+										langName: language?.name || langCode,
 										hasTranslation,
 										translationId,
 										checked:
