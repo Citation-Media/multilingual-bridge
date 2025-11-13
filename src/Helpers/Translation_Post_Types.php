@@ -26,7 +26,7 @@ class Translation_Post_Types {
 	 * - ACF Translation Modal (inline ACF field translation)
 	 * - WPML integration (disables WPML for these types)
 	 *
-	 * By default, only 'zg_products' is enabled. Use the filter to add more post types.
+	 * By default, no post type is enabled. Use the filter to add/remove more post types.
 	 *
 	 * @return string[] Array of post type slugs enabled for translation
 	 */
@@ -38,8 +38,6 @@ class Translation_Post_Types {
 		 * - Post Translation Widget in the sidebar
 		 * - ACF Translation Modal for inline field translation
 		 * - WPML automatic translation disabled (Multilingual Bridge handles it)
-		 *
-		 * By default, only 'zg_products' is enabled.
 		 *
 		 * @param string[] $enabled_post_types Post types enabled for Multilingual Bridge translation
 		 *
@@ -53,7 +51,7 @@ class Translation_Post_Types {
 		 */
 		return apply_filters(
 			'multilingual_bridge_translation_post_types',
-			array( 'zg_products' )
+			array()
 		);
 	}
 
