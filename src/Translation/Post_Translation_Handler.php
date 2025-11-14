@@ -17,8 +17,8 @@ namespace Multilingual_Bridge\Translation;
 
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
-use Multilingual_Bridge\Translation\Post_Data_Tracking\Post_Content_Tracker;
-use Multilingual_Bridge\Translation\Post_Data_Tracking\Post_Meta_Tracker;
+use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Content_Tracker;
+use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Meta_Tracker;
 use WP_Error;
 use WP_Post;
 

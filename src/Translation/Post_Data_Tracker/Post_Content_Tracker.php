@@ -9,7 +9,7 @@
  * @package Multilingual_Bridge
  */
 
-namespace Multilingual_Bridge\Translation\Post_Data_Tracking;
+namespace Multilingual_Bridge\Translation\Post_Data_Tracker;
 
 use Multilingual_Bridge\Helpers\Post_Data_Helper;
 

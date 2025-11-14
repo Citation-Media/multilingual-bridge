@@ -20,8 +20,8 @@ use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\Translation_API;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
-use Multilingual_Bridge\Translation\Post_Data_Tracking\Post_Content_Tracker;
-use Multilingual_Bridge\Translation\Post_Data_Tracking\Post_Meta_Tracker;
+use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Content_Tracker;
+use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Meta_Tracker;
 
 /**
  * The core plugin class.
