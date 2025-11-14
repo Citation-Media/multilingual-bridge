@@ -9,7 +9,7 @@
  * @package Multilingual_Bridge
  */
 
-namespace Multilingual_Bridge\Translation\Post_Data_Tracker;
+namespace Multilingual_Bridge\Translation\Change_Tracking;
 
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;

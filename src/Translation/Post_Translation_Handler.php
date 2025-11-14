@@ -17,8 +17,8 @@ namespace Multilingual_Bridge\Translation;
 
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
-use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Content_Tracker;
-use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Meta_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 use WP_Error;
 use WP_Post;
 
@@ -46,9 +46,9 @@ class Post_Translation_Handler {
 	/**
 	 * Post Content Tracker instance
 	 *
-	 * @var Post_Content_Tracker
+	 * @var Post_Data_Tracker
 	 */
-	private Post_Content_Tracker $content_tracker;
+	private Post_Data_Tracker $content_tracker;
 
 	/**
 	 * Post Meta Tracker instance
@@ -63,7 +63,7 @@ class Post_Translation_Handler {
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
 		$this->meta_handler        = new Meta_Translation_Handler();
-		$this->content_tracker     = new Post_Content_Tracker();
+		$this->content_tracker     = new Post_Data_Tracker();
 		$this->meta_tracker        = new Post_Meta_Tracker();
 	}
 

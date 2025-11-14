@@ -9,7 +9,7 @@
  * @package Multilingual_Bridge
  */
 
-namespace Multilingual_Bridge\Translation\Post_Data_Tracker;
+namespace Multilingual_Bridge\Translation\Change_Tracking;
 
 use Multilingual_Bridge\Helpers\Post_Data_Helper;
 
@@ -18,7 +18,7 @@ use Multilingual_Bridge\Helpers\Post_Data_Helper;
  *
  * Handles translation sync tracking for post content fields (title, content, excerpt)
  */
-class Post_Content_Tracker {
+class Post_Data_Tracker {
 
 	/**
 	 * Meta key for storing fields that need translation sync

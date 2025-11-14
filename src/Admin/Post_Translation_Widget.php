@@ -12,8 +12,8 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
-use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Content_Tracker;
-use Multilingual_Bridge\Translation\Post_Data_Tracker\Post_Meta_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
 /**
  * Class Post_Translation_Widget
@@ -97,7 +97,7 @@ class Post_Translation_Widget {
 		);
 
 		// Get pending updates for this post (post change tracking feature).
-		$content_tracker = new Post_Content_Tracker();
+		$content_tracker = new Post_Data_Tracker();
 		$meta_tracker    = new Post_Meta_Tracker();
 
 		// Build pending updates data for each translation language.

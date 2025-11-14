@@ -95,7 +95,7 @@ class Post_Data_Helper {
 		}
 
 		$source_lang = WPML_Post_Helper::get_language( $original_post_id );
-		if ( ! $source_lang ) {
+		if ( '' === $source_lang ) {
 			return false;
 		}
 
@@ -103,7 +103,7 @@ class Post_Data_Helper {
 		$all_languages    = WPML_Language_Helper::get_active_language_codes();
 		$target_languages = array_filter(
 			$all_languages,
-			function ( $lang_code ) use ( $source_lang ) {
+			function ( string $lang_code ) use ( $source_lang ): bool {
 				return $lang_code !== $source_lang;
 			}
 		);
