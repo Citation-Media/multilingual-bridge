@@ -373,34 +373,32 @@
 	}
 }
 
-// Pending update badge with warning icon (using WordPress Tooltip component)
+// Pending update badge wrapping entire label with warning icon (using WordPress Tooltip component)
 .mlb-pending-badge {
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
-	width: 20px;
-	height: 20px;
-	margin-right: 6px;
+	gap: 6px;
+	padding: 4px 10px;
 	background-color: #f0b849;
-	border-radius: 50%;
-	vertical-align: middle;
+	border-radius: 10px;
 	cursor: help;
 	transition: all 0.2s ease;
-	position: relative;
+	font-weight: 600;
+	color: #000;
 
-	// Dashicon warning
+	// Dashicon warning on left
 	.dashicons {
-		width: 14px;
-		height: 14px;
-		font-size: 14px;
-		color: #fff;
+		width: 16px;
+		height: 16px;
+		font-size: 16px;
+		color: #000;
 		line-height: 1;
+		flex-shrink: 0;
 	}
 
 	// Hover effect
 	&:hover {
 		background-color: #dba617;
-		transform: scale(1.1);
 	}
 }
 

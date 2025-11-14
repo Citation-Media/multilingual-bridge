@@ -19,7 +19,7 @@ import { PostTranslationWidget } from './components/PostTranslationWidget';
 /**
  * Add pending update indicators to ACF fields
  *
- * Adds a badge icon with tooltip to ACF fields that have pending translation updates.
+ * Wraps the entire field label in a yellow badge with warning icon.
  * Uses WordPress Tooltip component for proper positioning and accessibility.
  */
 function addPendingUpdateIndicators() {
@@ -46,14 +46,20 @@ function addPendingUpdateIndicators() {
 			return;
 		}
 
+		// Get the original label text
+		const labelText = label.textContent.trim();
+
+		// Clear the label content
+		label.textContent = '';
+
 		// Create container for React component
 		const container = document.createElement('span');
 		container.className = 'mlb-pending-badge-container';
 
-		// Insert container before label content
-		label.insertBefore(container, label.firstChild);
+		// Append container to label
+		label.appendChild(container);
 
-		// Create React root and render Tooltip component
+		// Create React root and render Tooltip component wrapping entire badge
 		const root = createRoot(container);
 		root.render(
 			createElement(
@@ -68,7 +74,8 @@ function addPendingUpdateIndicators() {
 					createElement('span', {
 						className: 'dashicons dashicons-warning',
 						'aria-hidden': 'true',
-					})
+					}),
+					labelText
 				)
 			)
 		);
