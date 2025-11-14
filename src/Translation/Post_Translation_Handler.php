@@ -17,6 +17,8 @@ namespace Multilingual_Bridge\Translation;
 
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 use WP_Error;
 use WP_Post;
 
@@ -42,11 +44,27 @@ class Post_Translation_Handler {
 	private Meta_Translation_Handler $meta_handler;
 
 	/**
+	 * Post Content Tracker instance
+	 *
+	 * @var Post_Data_Tracker
+	 */
+	private Post_Data_Tracker $content_tracker;
+
+	/**
+	 * Post Meta Tracker instance
+	 *
+	 * @var Post_Meta_Tracker
+	 */
+	private Post_Meta_Tracker $meta_tracker;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
 		$this->meta_handler        = new Meta_Translation_Handler();
+		$this->content_tracker     = new Post_Data_Tracker();
+		$this->meta_tracker        = new Post_Meta_Tracker();
 	}
 
 	/**
@@ -172,6 +190,10 @@ class Post_Translation_Handler {
 		if ( $errors->has_errors() ) {
 			return $errors;
 		}
+
+		// Clear pending updates from the translation post after successful translation.
+		$this->content_tracker->clear_pending_content_updates( $target_post_id );
+		$this->meta_tracker->clear_pending_meta_updates( $target_post_id );
 
 		// Return success result.
 		return array(

@@ -130,6 +130,7 @@ class Meta_Translation_Handler {
 		);
 
 		foreach ( $all_meta as $meta_key => $meta_values ) {
+
 			// Skip internal WordPress meta.
 			if ( $this->should_skip_meta( $meta_key ) ) {
 				++$results['skipped'];
