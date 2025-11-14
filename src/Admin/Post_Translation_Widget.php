@@ -206,6 +206,7 @@ class Post_Translation_Widget {
 					'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
 					'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
 					'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
+					'pendingUpdateTooltip' => __( 'This field has translation updates from the source language', 'multilingual-bridge' ),
 				),
 			)
 		);

@@ -315,13 +315,6 @@
 	color: #d63638;
 }
 
-// More specific ID-based dashicon styles must come after class-based ones
-#mlb-generate-translation .dashicons {
-	width: 20px;
-	height: 20px;
-	font-size: 20px;
-}
-
 // =============================================================================
 // Widget Footer
 // =============================================================================
@@ -365,7 +358,7 @@
 
 	// Yellow left border indicator
 	&::before {
-		content: '';
+		content: "";
 		position: absolute;
 		top: 0;
 		left: -12px;
@@ -374,20 +367,68 @@
 		background-color: #f0b849;
 	}
 
-	// Style the label: bold, italic, yellow
+	// Style the label
 	> .acf-label label {
-		font-weight: bold;
-		font-style: italic;
+		font-weight: 600;
 	}
 }
 
-// Warning icon added by JavaScript
-.mlb-pending-icon {
-	display: inline-block;
+// Pending update badge with warning icon (using WordPress Tooltip component)
+.mlb-pending-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin-right: 6px;
+	background-color: #f0b849;
+	border-radius: 50%;
 	vertical-align: middle;
-	color: #f0b849;
-	font-size: 16px;
-	width: 16px;
-	height: 16px;
-	margin-right: 5px;
+	cursor: help;
+	transition: all 0.2s ease;
+	position: relative;
+
+	// Dashicon warning
+	.dashicons {
+		width: 14px;
+		height: 14px;
+		font-size: 14px;
+		color: #fff;
+		line-height: 1;
+	}
+
+	// Hover effect
+	&:hover {
+		background-color: #dba617;
+		transform: scale(1.1);
+	}
+}
+
+// Pulse animation for newly flagged fields
+@keyframes mlb-badge-pulse {
+
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(240, 184, 73, 0.7);
+	}
+
+	50% {
+		box-shadow: 0 0 0 6px rgba(240, 184, 73, 0);
+	}
+}
+
+// Apply pulse animation when field is first flagged
+.mlb-pending-badge.mlb-new-flag {
+	animation: mlb-badge-pulse 1s ease-out;
+}
+
+// =============================================================================
+// ID-based Specificity Overrides (must come last)
+// =============================================================================
+
+// More specific dashicon styles for button
+#mlb-generate-translation .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
 }
