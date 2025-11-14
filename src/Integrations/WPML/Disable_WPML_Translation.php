@@ -47,8 +47,14 @@ class Disable_WPML_Translation {
 	 * - 'icl_div_config' = Multilingual Content Setup meta box
 	 */
 	public function remove_wpml_meta_box(): void {
-		global $post;
+		$screen = get_current_screen();
 
+		// Only run on post edit screens
+		if ( ! $screen || 'post' !== $screen->base ) {
+			return;
+		}
+
+		global $post;
 		if ( ! $post ) {
 			return;
 		}
