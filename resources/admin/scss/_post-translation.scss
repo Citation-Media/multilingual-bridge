@@ -360,8 +360,34 @@
 // =============================================================================
 
 // Highlight ACF fields with pending updates from source language
-.acf-field.mlb-pending-update > .acf-input > input[type="text"],
-.acf-field.mlb-pending-update > .acf-input > textarea,
 .acf-field.mlb-pending-update {
-	border: 1px solid #f0b849 !important;
+	position: relative;
+
+	// Yellow left border indicator
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -12px;
+		bottom: 0;
+		width: 4px;
+		background-color: #f0b849;
+	}
+
+	// Style the label: bold, italic, yellow
+	> .acf-label label {
+		font-weight: bold;
+		font-style: italic;
+	}
+}
+
+// Warning icon added by JavaScript
+.mlb-pending-icon {
+	display: inline-block;
+	vertical-align: middle;
+	color: #f0b849;
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	margin-right: 5px;
 }
