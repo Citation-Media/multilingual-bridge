@@ -369,6 +369,9 @@ class Translation_API extends WP_REST_Controller {
 
 		// Process each target language.
 		foreach ( $target_language_codes as $lang_code ) {
+			// Store original WPML format language code for response.
+			$wpml_lang_code = strtolower( $lang_code );
+
 			// Normalize language code to BCP 47 format (e.g., zh-hans -> zh-Hans).
 			$lang_code = $this->normalize_language_code( $lang_code );
 
@@ -385,7 +388,7 @@ class Translation_API extends WP_REST_Controller {
 						$e->getMessage()
 					),
 					array(
-						'language' => $lang_code,
+						'language' => $wpml_lang_code,
 						'status'   => 400,
 					)
 				);
@@ -411,7 +414,7 @@ class Translation_API extends WP_REST_Controller {
 							$code,
 							$message,
 							array(
-								'language' => $lang_code,
+								'language' => $wpml_lang_code,
 								'status'   => 400,
 							)
 						);
@@ -421,9 +424,10 @@ class Translation_API extends WP_REST_Controller {
 			}
 
 			// Track successful translation.
+			// Use WPML format language code (lowercase) for frontend compatibility.
 			if ( isset( $result['success'] ) && $result['success'] ) {
-				$successful_langs[]                = $lang_code;
-				$translated_post_ids[ $lang_code ] = $result['translated_post_id'] ?? null;
+				$successful_langs[]                    = $wpml_lang_code;
+				$translated_post_ids[ $wpml_lang_code ] = $result['translated_post_id'] ?? null;
 			}
 		}
 
