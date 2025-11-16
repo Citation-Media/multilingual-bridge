@@ -35,6 +35,13 @@ class ACF_Translation_Handler {
 	private Translation_Manager $translation_manager;
 
 	/**
+	 * ACF Taxonomy Field Handler instance
+	 *
+	 * @var ACF_Taxonomy_Field_Handler
+	 */
+	private ACF_Taxonomy_Field_Handler $taxonomy_handler;
+
+	/**
 	 * Default translatable field types
 	 *
 	 * These are the ACF field types that can be translated.
@@ -42,13 +49,14 @@ class ACF_Translation_Handler {
 	 *
 	 * @var string[]
 	 */
-	private const DEFAULT_TRANSLATABLE_TYPES = array( 'text', 'textarea', 'wysiwyg' );
+	private const DEFAULT_TRANSLATABLE_TYPES = array( 'text', 'textarea', 'wysiwyg', 'taxonomy' );
 
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
+		$this->taxonomy_handler    = new ACF_Taxonomy_Field_Handler();
 	}
 
 	/**
@@ -214,14 +222,26 @@ class ACF_Translation_Handler {
 			);
 		}
 
-		// Only translate string values.
+		// Handle taxonomy fields separately (they require term ID translation, not text translation).
+		if ( 'taxonomy' === $field['type'] ) {
+			return $this->taxonomy_handler->translate_taxonomy_field(
+				$field,
+				$meta_value,
+				$source_post_id,
+				$target_post_id,
+				$target_language,
+				$source_language
+			);
+		}
+
+		// Only translate string values (for text-based fields).
 		if ( ! is_string( $meta_value ) ) {
 			// Non-string value for translatable field type - copy as-is.
 			// This handles cases like arrays or serialized data.
 			return false;
 		}
 
-		// Translate the value.
+		// Translate the value (for text-based fields like text, textarea, wysiwyg).
 		$translated_value = $this->translation_manager->translate(
 			$target_language,
 			$meta_value,
