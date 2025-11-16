@@ -460,7 +460,7 @@ export const PostTranslationWidget = ({
 				'p',
 				{ className: 'description' },
 				__(
-					'This will translate all translatable ACF fields to the selected languages.',
+					'This will translate all translatable fields and attributes into the selected languages.',
 					'multilingual-bridge'
 				)
 			)
