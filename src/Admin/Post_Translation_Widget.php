@@ -12,6 +12,7 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
+use Multilingual_Bridge\Helpers\Translation_Post_Types;
 use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
 use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
