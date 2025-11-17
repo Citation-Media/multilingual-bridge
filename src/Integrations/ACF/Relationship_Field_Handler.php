@@ -112,15 +112,35 @@ class Relationship_Field_Handler {
 		// Preserve single/multiple value structure.
 		$value_to_save = $is_multiple ? $target_post_ids : $target_post_ids[0];
 
+		// Validate update_field function exists.
+		if ( ! function_exists( 'update_field' ) ) {
+			return new WP_Error(
+				'acf_function_missing',
+				sprintf(
+					/* translators: %d: Target post ID */
+					__( 'ACF update_field function not available (post ID: %d)', 'multilingual-bridge' ),
+					$target_post_id
+				)
+			);
+		}
+
 		// Update field using ACF's update_field function.
 		$result = update_field( $field['key'], $value_to_save, $target_post_id );
 
 		if ( ! $result ) {
 			return new WP_Error(
 				'update_field_failed',
-				sprintf( 'Failed to update relationship field "%s"', $field['name'] )
+				sprintf(
+					/* translators: 1: Field name, 2: Target post ID */
+					__( 'Failed to update relationship field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
+					$field['name'],
+					$target_post_id
+				)
 			);
 		}
+
+		// Handle bidirectional relationships if enabled.
+		$this->sync_bidirectional_relationships( $field, $target_post_ids, $target_post_id, $target_language );
 
 		return true;
 	}
@@ -280,5 +300,108 @@ class Relationship_Field_Handler {
 		}
 
 		return in_array( $field['type'], self::RELATIONSHIP_FIELD_TYPES, true );
+	}
+
+	/**
+	 * Check if bidirectional relationships are enabled for this field
+	 *
+	 * @param array<string, mixed> $field ACF field object.
+	 * @return bool True if bidirectional is enabled
+	 */
+	private function is_bidirectional_enabled( array $field ): bool {
+		// ACF stores bidirectional setting in field config.
+		return isset( $field['bidirectional'] ) && ! empty( $field['bidirectional'] );
+	}
+
+	/**
+	 * Get the bidirectional target field key
+	 *
+	 * @param array<string, mixed> $field ACF field object.
+	 * @return string|null Target field key or null if not set
+	 */
+	private function get_bidirectional_target( array $field ): ?string {
+		if ( ! $this->is_bidirectional_enabled( $field ) ) {
+			return null;
+		}
+
+		return $field['bidirectional_target'][0] ?? null;
+	}
+
+	/**
+	 * Sync bidirectional relationships for translated posts
+	 *
+	 * When a relationship field is bidirectional, updates on one side should
+	 * reflect on the other. This method ensures translated posts maintain
+	 * bidirectional sync in the target language.
+	 *
+	 * @param array<string, mixed> $field            ACF field object.
+	 * @param array<int, int>      $related_post_ids Post IDs that were added to relationship.
+	 * @param int                  $source_post_id   Post ID that owns the relationship.
+	 * @param LanguageTag          $target_language  Target language tag.
+	 * @return void
+	 */
+	private function sync_bidirectional_relationships( array $field, array $related_post_ids, int $source_post_id, LanguageTag $target_language ): void {
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		unset( $target_language );
+
+		// Check if bidirectional is enabled.
+		if ( ! $this->is_bidirectional_enabled( $field ) ) {
+			return;
+		}
+
+		$target_field_key = $this->get_bidirectional_target( $field );
+		if ( empty( $target_field_key ) ) {
+			return;
+		}
+
+		// Temporarily disable ACF's bidirectional filter to prevent infinite loops.
+		if ( function_exists( 'acf_disable_filter' ) ) {
+			acf_disable_filter( 'bidirectional' );
+		}
+
+		// Update reverse relationships on each related post.
+		foreach ( $related_post_ids as $related_post_id ) {
+			$this->add_reverse_relationship(
+				$related_post_id,
+				$source_post_id,
+				$target_field_key
+			);
+		}
+
+		// Re-enable ACF's bidirectional filter.
+		if ( function_exists( 'acf_enable_filter' ) ) {
+			acf_enable_filter( 'bidirectional' );
+		}
+	}
+
+	/**
+	 * Add reverse relationship on related post
+	 *
+	 * Updates the target field on a related post to include the source post,
+	 * maintaining bidirectional sync.
+	 *
+	 * @param int    $related_post_id Related post ID that should reference back.
+	 * @param int    $source_post_id  Source post ID to add to relationship.
+	 * @param string $target_field_key Target field key on related post.
+	 * @return void
+	 */
+	private function add_reverse_relationship( int $related_post_id, int $source_post_id, string $target_field_key ): void {
+		if ( ! function_exists( 'get_field' ) || ! function_exists( 'update_field' ) ) {
+			return;
+		}
+
+		// Get current relationships on the related post.
+		$current_relationships = get_field( $target_field_key, $related_post_id );
+
+		// Normalize to array of post IDs.
+		$current_ids = $this->normalize_to_post_ids( $current_relationships );
+
+		// Add source post if not already present.
+		if ( ! in_array( $source_post_id, $current_ids, true ) ) {
+			$current_ids[] = $source_post_id;
+
+			// Update the field on related post.
+			update_field( $target_field_key, $current_ids, $related_post_id );
+		}
 	}
 }

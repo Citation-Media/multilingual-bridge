@@ -143,7 +143,7 @@ class Multilingual_Bridge {
 		$language_debug->register_hooks();
 
 		// Register ACF Translation functionality
-		$acf_translation = new ACF_Translation_Modal();
+		$acf_translation = new Translation_Modal();
 		$acf_translation->register_hooks();
 
 		// Register Post Translation Widget
