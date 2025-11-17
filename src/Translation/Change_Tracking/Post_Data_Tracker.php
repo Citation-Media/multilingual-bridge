@@ -97,6 +97,11 @@ class Post_Data_Tracker {
 		}
 
 		foreach ( self::TRACKED_POST_FIELDS as $post_field => $flag_name ) {
+			// Defensive check: Ensure both objects have the property before accessing.
+			if ( ! property_exists( $post_before, $post_field ) || ! property_exists( $post_after, $post_field ) ) {
+				continue;
+			}
+
 			$old_value = $post_before->$post_field;
 			$new_value = $post_after->$post_field;
 

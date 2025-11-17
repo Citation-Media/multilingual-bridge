@@ -51,7 +51,7 @@ class Post_Meta_Tracker {
 		}
 
 		if ( Post_Data_Helper::has_meta_value_changed( $prev_value, $object_id, $meta_key, $meta_value ) ) {
-			$this->flag_meta_field_for_sync( $object_id, $meta_key );
+			$this->flag_meta_field_for_sync( $object_id, $meta_key, $meta_value );
 		}
 
 		return $check;
@@ -74,7 +74,7 @@ class Post_Meta_Tracker {
 			return $check;
 		}
 
-		$this->flag_meta_field_for_sync( $object_id, $meta_key );
+		$this->flag_meta_field_for_sync( $object_id, $meta_key, $meta_value );
 
 		return $check;
 	}
@@ -96,7 +96,7 @@ class Post_Meta_Tracker {
 			return $check;
 		}
 
-		$this->flag_meta_field_for_sync( $object_id, $meta_key );
+		$this->flag_meta_field_for_sync( $object_id, $meta_key, null );
 
 		return $check;
 	}
@@ -108,10 +108,11 @@ class Post_Meta_Tracker {
 	 * Only flags translatable fields (ACF fields marked for translation or custom fields).
 	 * Flags the field as pending on each translation post.
 	 *
-	 * @param int    $post_id  Post ID where change occurred.
-	 * @param string $meta_key Meta key that changed.
+	 * @param int    $post_id    Post ID where change occurred.
+	 * @param string $meta_key   Meta key that changed.
+	 * @param mixed  $meta_value Optional. Meta value to check. If null, fetches from database.
 	 */
-	private function flag_meta_field_for_sync( int $post_id, string $meta_key ): void {
+	private function flag_meta_field_for_sync( int $post_id, string $meta_key, mixed $meta_value = null ): void {
 		if ( ! get_post( $post_id ) ) {
 			return;
 		}
@@ -120,11 +121,12 @@ class Post_Meta_Tracker {
 			return;
 		}
 
-		if ( Post_Data_Tracker::get_sync_flag_meta_key() === $meta_key || Post_Data_Tracker::get_last_sync_meta_key() === $meta_key ) {
-			return;
+		// Fetch meta value if not provided to avoid duplicate get_post_meta calls.
+		if ( null === $meta_value ) {
+			$meta_value = get_post_meta( $post_id, $meta_key, true );
 		}
 
-		if ( ACF_Translation_Handler::is_acf_field_key_reference( $meta_key, get_post_meta( $post_id, $meta_key, true ) ) ) {
+		if ( ACF_Translation_Handler::is_acf_field_key_reference( $meta_key, $meta_value ) ) {
 			return;
 		}
 

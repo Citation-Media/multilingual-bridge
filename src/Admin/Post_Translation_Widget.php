@@ -85,9 +85,6 @@ class Post_Translation_Widget {
 		);
 
 		// Get pending updates for this post (post change tracking feature).
-		$content_tracker = new Post_Data_Tracker();
-		$meta_tracker    = new Post_Meta_Tracker();
-
 		// Build pending updates data for each translation language.
 		$translations_pending = array();
 		foreach ( $translations as $lang_code => $translation_value ) {
@@ -99,9 +96,9 @@ class Post_Translation_Widget {
 			// Get translation post ID.
 			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
 
-			// Check if this translation post has pending updates.
-			$has_content_pending  = $content_tracker->has_pending_content_updates( $translation_post_id );
-			$has_meta_pending     = $meta_tracker->has_pending_meta_updates( $translation_post_id );
+			// Check if this translation post has pending updates (using static methods to avoid object instantiation).
+			$has_content_pending  = ( new Post_Data_Tracker() )->has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = ( new Post_Meta_Tracker() )->has_pending_meta_updates( $translation_post_id );
 			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
 
 			$translations_pending[ $lang_code ] = array(

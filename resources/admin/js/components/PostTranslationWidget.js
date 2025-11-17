@@ -290,7 +290,10 @@ export const PostTranslationWidget = ({
 
 	return createElement(
 		'div',
-		{ className: 'multilingual-bridge-post-widget-container' },
+		{
+			id: 'multilingual-bridge-post-widget',
+			className: 'multilingual-bridge-post-widget-container',
+		},
 
 		// Language list
 		createElement(
