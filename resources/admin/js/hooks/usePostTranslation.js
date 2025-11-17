@@ -155,9 +155,8 @@ export const usePostTranslation = (
 			// Clear pending updates for successfully translated languages
 			const newPendingUpdates = { ...pendingUpdates };
 			response.translated_languages?.forEach((langCode) => {
-				if (newPendingUpdates[langCode]) {
-					newPendingUpdates[langCode] = { hasPending: false };
-				}
+				// Always set hasPending to false for successfully translated languages
+				newPendingUpdates[langCode] = { hasPending: false };
 			});
 			setPendingUpdates(newPendingUpdates);
 

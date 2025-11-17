@@ -53,7 +53,7 @@ const LanguageCheckboxItem = ({
 	if (hasPending) {
 		statusClass += ' mlb-translation-pending';
 		iconClass += ' dashicons-warning';
-		titleText = __('Translation needs update', 'multilingual-bridge');
+		titleText = __('Untranslated changes pending', 'multilingual-bridge');
 	} else if (hasTranslation) {
 		statusClass += ` mlb-has-translation${isNewTranslation ? ' mlb-new-translation' : ''}`;
 		iconClass += ' dashicons-yes-alt';
@@ -460,7 +460,7 @@ export const PostTranslationWidget = ({
 				'p',
 				{ className: 'description' },
 				__(
-					'This will translate all translatable ACF fields to the selected languages.',
+					'This will translate all translatable fields and attributes into the selected languages.',
 					'multilingual-bridge'
 				)
 			)

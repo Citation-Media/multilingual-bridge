@@ -13,7 +13,74 @@
  */
 
 import { createElement, createRoot } from '@wordpress/element';
+import { Tooltip } from '@wordpress/components';
 import { PostTranslationWidget } from './components/PostTranslationWidget';
+
+/**
+ * Add pending update indicators to ACF fields
+ *
+ * Wraps the entire field label in a yellow badge with warning icon.
+ * Uses WordPress Tooltip component for proper positioning and accessibility.
+ */
+function addPendingUpdateIndicators() {
+	// Get localized strings
+	const strings = window.multilingualBridgePost?.strings || {};
+	const tooltipText =
+		strings.pendingUpdateTooltip ||
+		'This field has translation updates from the source language';
+
+	// Find all ACF fields with pending updates
+	const pendingFields = document.querySelectorAll(
+		'.acf-field.mlb-pending-update'
+	);
+
+	pendingFields.forEach((field) => {
+		// Check if indicator already exists
+		if (field.querySelector('.mlb-pending-badge-container')) {
+			return;
+		}
+
+		// Find the label element
+		const label = field.querySelector('.acf-label label');
+		if (!label) {
+			return;
+		}
+
+		// Get the original label text
+		const labelText = label.textContent.trim();
+
+		// Clear the label content
+		label.textContent = '';
+
+		// Create container for React component
+		const container = document.createElement('span');
+		container.className = 'mlb-pending-badge-container';
+
+		// Append container to label
+		label.appendChild(container);
+
+		// Create React root and render Tooltip component wrapping entire badge
+		const root = createRoot(container);
+		root.render(
+			createElement(
+				Tooltip,
+				{ text: tooltipText },
+				createElement(
+					'span',
+					{
+						className: 'mlb-pending-badge',
+						'aria-label': tooltipText,
+					},
+					createElement('span', {
+						className: 'dashicons dashicons-warning',
+						'aria-hidden': 'true',
+					}),
+					labelText
+				)
+			)
+		);
+	});
+}
 
 /**
  * Bootstrap Application
@@ -57,5 +124,15 @@ document.addEventListener('DOMContentLoaded', function () {
 				editPostUrl,
 			})
 		);
+	}
+
+	// Add pending update indicators to ACF fields
+	addPendingUpdateIndicators();
+
+	// Re-add indicators when ACF fields are loaded/updated (e.g., flexible content, repeaters)
+	if (window.acf) {
+		window.acf.addAction('ready', addPendingUpdateIndicators);
+		window.acf.addAction('append', addPendingUpdateIndicators);
+		window.acf.addAction('load', addPendingUpdateIndicators);
 	}
 });

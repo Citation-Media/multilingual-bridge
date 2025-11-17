@@ -12,8 +12,8 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
-use Multilingual_Bridge\Helpers\Translation_Post_Types;
-use Multilingual_Bridge\Translation\Post_Change_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
 /**
  * Class Post_Translation_Widget
@@ -84,18 +84,24 @@ class Post_Translation_Widget {
 		);
 
 		// Get pending updates for this post (post change tracking feature).
-		$post_change_tracker = new Post_Change_Tracker();
+		$content_tracker = new Post_Data_Tracker();
+		$meta_tracker    = new Post_Meta_Tracker();
 
 		// Build pending updates data for each translation language.
 		$translations_pending = array();
-		foreach ( array_keys( $translations ) as $lang_code ) {
+		foreach ( $translations as $lang_code => $translation_value ) {
 			// Skip source language.
 			if ( $lang_code === $source_language ) {
 				continue;
 			}
 
-			// Check if this specific language has pending updates.
-			$has_pending_for_lang = $post_change_tracker->has_pending_updates( $post->ID, null, $lang_code );
+			// Get translation post ID.
+			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
+
+			// Check if this translation post has pending updates.
+			$has_content_pending  = $content_tracker->has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = $meta_tracker->has_pending_meta_updates( $translation_post_id );
+			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
 
 			$translations_pending[ $lang_code ] = array(
 				'hasPending' => $has_pending_for_lang,
@@ -187,6 +193,7 @@ class Post_Translation_Widget {
 					'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
 					'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
 					'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
+					'pendingUpdateTooltip' => __( 'This field has translation updates from the source language', 'multilingual-bridge' ),
 				),
 			)
 		);
