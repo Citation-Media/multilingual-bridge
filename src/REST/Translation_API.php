@@ -426,7 +426,7 @@ class Translation_API extends WP_REST_Controller {
 			// Track successful translation.
 			// Use WPML format language code (lowercase) for frontend compatibility.
 			if ( isset( $result['success'] ) && $result['success'] ) {
-				$successful_langs[]                    = $wpml_lang_code;
+				$successful_langs[]                     = $wpml_lang_code;
 				$translated_post_ids[ $wpml_lang_code ] = $result['translated_post_id'] ?? null;
 			}
 		}

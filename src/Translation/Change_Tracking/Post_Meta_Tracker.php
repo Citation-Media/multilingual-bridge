@@ -23,20 +23,6 @@ use Multilingual_Bridge\Helpers\Post_Data_Helper;
 class Post_Meta_Tracker {
 
 	/**
-	 * Meta key for storing fields that need translation sync
-	 *
-	 * @var string
-	 */
-	private const SYNC_FLAG_META_KEY = '_mlb_updates_pending';
-
-	/**
-	 * Meta key for storing last sync timestamp
-	 *
-	 * @var string
-	 */
-	private const LAST_SYNC_META_KEY = '_mlb_last_sync';
-
-	/**
 	 * Register hooks
 	 */
 	public function register_hooks(): void {
@@ -56,7 +42,7 @@ class Post_Meta_Tracker {
 	 * @param int       $object_id  Post ID.
 	 * @param string    $meta_key   Meta key being updated.
 	 * @param mixed     $meta_value New meta value.
-	 * @param mixed     $prev_value Previous meta value (for targeted updates) - unused but required by filter.
+	 * @param mixed     $prev_value Previous value parameter used for conditional updates (not the actual current value in the database).
 	 * @return null|bool Null to continue with update, bool to short-circuit
 	 */
 	public function track_meta_update( mixed $check, int $object_id, string $meta_key, mixed $meta_value, mixed $prev_value ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
@@ -134,7 +120,7 @@ class Post_Meta_Tracker {
 			return;
 		}
 
-		if ( self::SYNC_FLAG_META_KEY === $meta_key || self::LAST_SYNC_META_KEY === $meta_key ) {
+		if ( Post_Data_Tracker::get_sync_flag_meta_key() === $meta_key || Post_Data_Tracker::get_last_sync_meta_key() === $meta_key ) {
 			return;
 		}
 
@@ -172,7 +158,7 @@ class Post_Meta_Tracker {
 	 * @return array<string, mixed> Array of pending updates
 	 */
 	public function get_pending_updates( int $post_id ): array {
-		$pending = get_post_meta( $post_id, self::SYNC_FLAG_META_KEY, true );
+		$pending = get_post_meta( $post_id, Post_Data_Tracker::get_sync_flag_meta_key(), true );
 
 		if ( ! is_array( $pending ) ) {
 			return array();
@@ -248,12 +234,12 @@ class Post_Meta_Tracker {
 
 		// If no pending updates remain, delete the meta and set last sync timestamp.
 		if ( empty( $pending ) ) {
-			delete_post_meta( $post_id, self::SYNC_FLAG_META_KEY );
-			update_post_meta( $post_id, self::LAST_SYNC_META_KEY, time() );
+			delete_post_meta( $post_id, Post_Data_Tracker::get_sync_flag_meta_key() );
+			update_post_meta( $post_id, Post_Data_Tracker::get_last_sync_meta_key(), time() );
 			return true;
 		}
 
-		return update_post_meta( $post_id, self::SYNC_FLAG_META_KEY, $pending );
+		return update_post_meta( $post_id, Post_Data_Tracker::get_sync_flag_meta_key(), $pending );
 	}
 
 	/**

@@ -47,6 +47,30 @@ class Post_Data_Tracker {
 	);
 
 	/**
+	 * Get sync flag meta key
+	 *
+	 * Returns the meta key used for storing pending updates.
+	 * Used by both Post_Data_Tracker and Post_Meta_Tracker.
+	 *
+	 * @return string Meta key for sync flags
+	 */
+	public static function get_sync_flag_meta_key(): string {
+		return self::SYNC_FLAG_META_KEY;
+	}
+
+	/**
+	 * Get last sync meta key
+	 *
+	 * Returns the meta key used for storing last sync timestamp.
+	 * Used by both Post_Data_Tracker and Post_Meta_Tracker.
+	 *
+	 * @return string Meta key for last sync timestamp
+	 */
+	public static function get_last_sync_meta_key(): string {
+		return self::LAST_SYNC_META_KEY;
+	}
+
+	/**
 	 * Register hooks
 	 */
 	public function register_hooks(): void {
