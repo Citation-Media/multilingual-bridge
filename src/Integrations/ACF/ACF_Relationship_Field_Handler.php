@@ -63,7 +63,12 @@ class ACF_Relationship_Field_Handler {
 		if ( ! isset( $field['type'] ) || ! $this->is_relationship_field_type( $field['type'] ) ) {
 			return new WP_Error(
 				'invalid_field_type',
-				sprintf( 'Field is not a relationship type (got: %s)', $field['type'] ?? 'unknown' )
+				sprintf(
+					/* translators: 1: Field type, 2: Target post ID */
+					__( 'Field is not a relationship type (got: %1$s, post ID: %2$d)', 'multilingual-bridge' ),
+					$field['type'] ?? 'unknown',
+					$target_post_id
+				)
 			);
 		}
 

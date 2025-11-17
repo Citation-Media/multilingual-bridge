@@ -35,20 +35,6 @@ class ACF_Translation_Handler {
 	private Translation_Manager $translation_manager;
 
 	/**
-	 * ACF Taxonomy Field Handler instance
-	 *
-	 * @var ACF_Taxonomy_Field_Handler
-	 */
-	private ACF_Taxonomy_Field_Handler $taxonomy_handler;
-
-	/**
-	 * ACF Relationship Field Handler instance
-	 *
-	 * @var ACF_Relationship_Field_Handler
-	 */
-	private ACF_Relationship_Field_Handler $relationship_handler;
-
-	/**
 	 * Default translatable field types
 	 *
 	 * These are the ACF field types that can be translated.
@@ -62,9 +48,7 @@ class ACF_Translation_Handler {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->translation_manager  = Translation_Manager::instance();
-		$this->taxonomy_handler     = new ACF_Taxonomy_Field_Handler();
-		$this->relationship_handler = new ACF_Relationship_Field_Handler();
+		$this->translation_manager = Translation_Manager::instance();
 	}
 
 	/**
@@ -201,14 +185,14 @@ class ACF_Translation_Handler {
 	public function translate_field( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, LanguageTag $target_language, LanguageTag $source_language ) {
 		// Check if ACF is active.
 		if ( ! function_exists( 'get_field_object' ) ) {
-			return new WP_Error( 'acf_not_available', 'ACF is not available' );
+			return new WP_Error( 'acf_not_available', __( 'ACF is not available', 'multilingual-bridge' ) );
 		}
 
 		// Get ACF field object.
 		$field = get_field_object( $meta_key, $source_post_id );
 
 		if ( ! $field ) {
-			return new WP_Error( 'not_acf_field', 'Not an ACF field' );
+			return new WP_Error( 'not_acf_field', __( 'Not an ACF field', 'multilingual-bridge' ) );
 		}
 
 		// Handle empty values by syncing them to translations (delete field).
@@ -226,13 +210,18 @@ class ACF_Translation_Handler {
 			// Field type is not registered for translation - skip it.
 			return new WP_Error(
 				'field_type_not_translatable',
-				sprintf( 'Field type "%s" is not registered for translation', $field['type'] )
+				sprintf(
+					/* translators: %s: Field type */
+					__( 'Field type "%s" is not registered for translation', 'multilingual-bridge' ),
+					$field['type']
+				)
 			);
 		}
 
 		// Handle taxonomy fields separately (they require term ID translation, not text translation).
 		if ( 'taxonomy' === $field['type'] ) {
-			return $this->taxonomy_handler->translate_taxonomy_field(
+			$taxonomy_handler = new ACF_Taxonomy_Field_Handler();
+			return $taxonomy_handler->translate_taxonomy_field(
 				$field,
 				$meta_value,
 				$source_post_id,
@@ -244,7 +233,8 @@ class ACF_Translation_Handler {
 
 		// Handle relationship fields separately (they require post ID translation, not text translation).
 		if ( ACF_Relationship_Field_Handler::can_handle_field( $field ) ) {
-			return $this->relationship_handler->translate_relationship_field(
+			$relationship_handler = new ACF_Relationship_Field_Handler();
+			return $relationship_handler->translate_relationship_field(
 				$field,
 				$meta_value,
 				$source_post_id,

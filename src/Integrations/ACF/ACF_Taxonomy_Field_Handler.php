@@ -50,7 +50,11 @@ class ACF_Taxonomy_Field_Handler {
 		if ( ! isset( $field['type'] ) || 'taxonomy' !== $field['type'] ) {
 			return new WP_Error(
 				'invalid_field_type',
-				'Field is not a taxonomy type'
+				sprintf(
+					/* translators: %d: Target post ID */
+					__( 'Field is not a taxonomy type (post ID: %d)', 'multilingual-bridge' ),
+					$target_post_id
+				)
 			);
 		}
 
@@ -59,7 +63,11 @@ class ACF_Taxonomy_Field_Handler {
 		if ( empty( $taxonomy ) ) {
 			return new WP_Error(
 				'missing_taxonomy',
-				'Taxonomy not specified in field settings'
+				sprintf(
+					/* translators: %d: Target post ID */
+					__( 'Taxonomy not specified in field settings (post ID: %d)', 'multilingual-bridge' ),
+					$target_post_id
+				)
 			);
 		}
 
@@ -67,7 +75,12 @@ class ACF_Taxonomy_Field_Handler {
 		if ( ! taxonomy_exists( $taxonomy ) ) {
 			return new WP_Error(
 				'invalid_taxonomy',
-				sprintf( 'Taxonomy "%s" does not exist', $taxonomy )
+				sprintf(
+					/* translators: 1: Taxonomy name, 2: Target post ID */
+					__( 'Taxonomy "%1$s" does not exist (post ID: %2$d)', 'multilingual-bridge' ),
+					$taxonomy,
+					$target_post_id
+				)
 			);
 		}
 
@@ -91,6 +104,14 @@ class ACF_Taxonomy_Field_Handler {
 			$target_language->toString()
 		);
 
+		// If no terms could be translated, delete field in target.
+		if ( empty( $target_term_ids ) ) {
+			if ( function_exists( 'delete_field' ) ) {
+				delete_field( $field['name'], $target_post_id );
+			}
+			return true;
+		}
+
 		// Preserve single/multiple value structure based on field settings.
 		// Check ACF field 'multiple' setting - if 0, return single value.
 		$field_multiple = $field['multiple'] ?? 0;
@@ -102,7 +123,12 @@ class ACF_Taxonomy_Field_Handler {
 		if ( ! $result ) {
 			return new WP_Error(
 				'update_field_failed',
-				sprintf( 'Failed to update taxonomy field "%s"', $field['name'] )
+				sprintf(
+					/* translators: 1: Field name, 2: Target post ID */
+					__( 'Failed to update taxonomy field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
+					$field['name'],
+					$target_post_id
+				)
 			);
 		}
 
