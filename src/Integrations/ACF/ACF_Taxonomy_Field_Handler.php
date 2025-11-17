@@ -91,14 +91,6 @@ class ACF_Taxonomy_Field_Handler {
 			$target_language->toString()
 		);
 
-		// If no terms could be translated, delete field in target.
-		if ( empty( $target_term_ids ) ) {
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
-			return true;
-		}
-
 		// Preserve single/multiple value structure based on field settings.
 		// Check ACF field 'multiple' setting - if 0, return single value.
 		$field_multiple = $field['multiple'] ?? 0;
