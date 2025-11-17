@@ -10,6 +10,8 @@
 
 namespace Multilingual_Bridge\Helpers;
 
+use Multilingual_Bridge\Helpers\WPML_Language_Helper;
+
 /**
  * Class Post_Data_Helper
  *

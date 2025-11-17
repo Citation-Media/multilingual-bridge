@@ -47,6 +47,30 @@ class Post_Data_Tracker {
 	);
 
 	/**
+	 * Get sync flag meta key
+	 *
+	 * Returns the meta key used for storing pending updates.
+	 * Used by both Post_Data_Tracker and Post_Meta_Tracker.
+	 *
+	 * @return string Meta key for sync flags
+	 */
+	public static function get_sync_flag_meta_key(): string {
+		return self::SYNC_FLAG_META_KEY;
+	}
+
+	/**
+	 * Get last sync meta key
+	 *
+	 * Returns the meta key used for storing last sync timestamp.
+	 * Used by both Post_Data_Tracker and Post_Meta_Tracker.
+	 *
+	 * @return string Meta key for last sync timestamp
+	 */
+	public static function get_last_sync_meta_key(): string {
+		return self::LAST_SYNC_META_KEY;
+	}
+
+	/**
 	 * Register hooks
 	 */
 	public function register_hooks(): void {
@@ -73,6 +97,11 @@ class Post_Data_Tracker {
 		}
 
 		foreach ( self::TRACKED_POST_FIELDS as $post_field => $flag_name ) {
+			// Defensive check: Ensure both objects have the property before accessing.
+			if ( ! property_exists( $post_before, $post_field ) || ! property_exists( $post_after, $post_field ) ) {
+				continue;
+			}
+
 			$old_value = $post_before->$post_field;
 			$new_value = $post_after->$post_field;
 
@@ -99,11 +128,12 @@ class Post_Data_Tracker {
 	 * Get pending updates for a post
 	 *
 	 * Returns pending updates stored on the given post (should be translation post).
+	 * Used by both Post_Data_Tracker and Post_Meta_Tracker.
 	 *
 	 * @param int $post_id Post ID (translation post).
 	 * @return array<string, mixed> Array of pending updates
 	 */
-	public function get_pending_updates( int $post_id ): array {
+	public static function get_pending_updates( int $post_id ): array {
 		$pending = get_post_meta( $post_id, self::SYNC_FLAG_META_KEY, true );
 
 		if ( ! is_array( $pending ) ) {
@@ -122,7 +152,7 @@ class Post_Data_Tracker {
 	 * @return string[] Array of content field names that need sync (e.g., ['title', 'content'])
 	 */
 	public function get_pending_content_updates( int $post_id ): array {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( ! isset( $pending['content'] ) || ! is_array( $pending['content'] ) ) {
 			return array();
@@ -140,7 +170,7 @@ class Post_Data_Tracker {
 	 * @return bool True if post has content fields pending sync
 	 */
 	public function has_pending_content_updates( int $post_id ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'] ) || ! is_array( $pending['content'] ) ) {
 			return false;
@@ -167,7 +197,7 @@ class Post_Data_Tracker {
 	 * @return bool True on success
 	 */
 	public function clear_pending_content_updates( int $post_id, ?string $field_name = null ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'] ) ) {
 			return false;
@@ -210,7 +240,7 @@ class Post_Data_Tracker {
 			return false;
 		}
 
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'][ $field_name ] ) ) {
 			return false;

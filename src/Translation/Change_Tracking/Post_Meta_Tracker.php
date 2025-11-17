@@ -23,20 +23,6 @@ use Multilingual_Bridge\Helpers\Post_Data_Helper;
 class Post_Meta_Tracker {
 
 	/**
-	 * Meta key for storing fields that need translation sync
-	 *
-	 * @var string
-	 */
-	private const SYNC_FLAG_META_KEY = '_mlb_updates_pending';
-
-	/**
-	 * Meta key for storing last sync timestamp
-	 *
-	 * @var string
-	 */
-	private const LAST_SYNC_META_KEY = '_mlb_last_sync';
-
-	/**
 	 * Register hooks
 	 */
 	public function register_hooks(): void {
@@ -56,7 +42,7 @@ class Post_Meta_Tracker {
 	 * @param int       $object_id  Post ID.
 	 * @param string    $meta_key   Meta key being updated.
 	 * @param mixed     $meta_value New meta value.
-	 * @param mixed     $prev_value Previous meta value (for targeted updates) - unused but required by filter.
+	 * @param mixed     $prev_value Previous value parameter used for conditional updates (not the actual current value in the database).
 	 * @return null|bool Null to continue with update, bool to short-circuit
 	 */
 	public function track_meta_update( mixed $check, int $object_id, string $meta_key, mixed $meta_value, mixed $prev_value ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
@@ -65,7 +51,7 @@ class Post_Meta_Tracker {
 		}
 
 		if ( Post_Data_Helper::has_meta_value_changed( $prev_value, $object_id, $meta_key, $meta_value ) ) {
-			$this->flag_meta_field_for_sync( $object_id, $meta_key );
+			$this->flag_meta_field_for_sync( $object_id, $meta_key, $meta_value );
 		}
 
 		return $check;
@@ -88,7 +74,7 @@ class Post_Meta_Tracker {
 			return $check;
 		}
 
-		$this->flag_meta_field_for_sync( $object_id, $meta_key );
+		$this->flag_meta_field_for_sync( $object_id, $meta_key, $meta_value );
 
 		return $check;
 	}
@@ -110,7 +96,7 @@ class Post_Meta_Tracker {
 			return $check;
 		}
 
-		$this->flag_meta_field_for_sync( $object_id, $meta_key );
+		$this->flag_meta_field_for_sync( $object_id, $meta_key, null );
 
 		return $check;
 	}
@@ -122,10 +108,11 @@ class Post_Meta_Tracker {
 	 * Only flags translatable fields (ACF fields marked for translation or custom fields).
 	 * Flags the field as pending on each translation post.
 	 *
-	 * @param int    $post_id  Post ID where change occurred.
-	 * @param string $meta_key Meta key that changed.
+	 * @param int    $post_id    Post ID where change occurred.
+	 * @param string $meta_key   Meta key that changed.
+	 * @param mixed  $meta_value Optional. Meta value to check. If null, fetches from database.
 	 */
-	private function flag_meta_field_for_sync( int $post_id, string $meta_key ): void {
+	private function flag_meta_field_for_sync( int $post_id, string $meta_key, mixed $meta_value = null ): void {
 		if ( ! get_post( $post_id ) ) {
 			return;
 		}
@@ -134,11 +121,12 @@ class Post_Meta_Tracker {
 			return;
 		}
 
-		if ( self::SYNC_FLAG_META_KEY === $meta_key || self::LAST_SYNC_META_KEY === $meta_key ) {
-			return;
+		// Fetch meta value if not provided to avoid duplicate get_post_meta calls.
+		if ( null === $meta_value ) {
+			$meta_value = get_post_meta( $post_id, $meta_key, true );
 		}
 
-		if ( Translation_Handler::is_acf_field_key_reference( $meta_key, get_post_meta( $post_id, $meta_key, true ) ) ) {
+		if ( Translation_Handler::is_acf_field_key_reference( $meta_key, $meta_value ) ) {
 			return;
 		}
 
@@ -164,24 +152,6 @@ class Post_Meta_Tracker {
 	}
 
 	/**
-	 * Get pending updates for a post
-	 *
-	 * Returns pending updates stored on the given post (should be translation post).
-	 *
-	 * @param int $post_id Post ID (translation post).
-	 * @return array<string, mixed> Array of pending updates
-	 */
-	public function get_pending_updates( int $post_id ): array {
-		$pending = get_post_meta( $post_id, self::SYNC_FLAG_META_KEY, true );
-
-		if ( ! is_array( $pending ) ) {
-			return array();
-		}
-
-		return $pending;
-	}
-
-	/**
 	 * Get pending meta updates
 	 *
 	 * Returns array of meta keys that need sync for a specific translation post.
@@ -190,7 +160,7 @@ class Post_Meta_Tracker {
 	 * @return string[] Array of meta keys that need sync (e.g., ['field_123', 'custom_field'])
 	 */
 	public function get_pending_meta_updates( int $post_id ): array {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( ! isset( $pending['meta'] ) || ! is_array( $pending['meta'] ) ) {
 			return array();
@@ -208,7 +178,7 @@ class Post_Meta_Tracker {
 	 * @return bool True if post has meta fields pending sync
 	 */
 	public function has_pending_meta_updates( int $post_id ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'] ) || ! is_array( $pending['meta'] ) ) {
 			return false;
@@ -227,7 +197,7 @@ class Post_Meta_Tracker {
 	 * @return bool True on success
 	 */
 	public function clear_pending_meta_updates( int $post_id, ?string $meta_key = null ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'] ) ) {
 			return false;
@@ -248,12 +218,12 @@ class Post_Meta_Tracker {
 
 		// If no pending updates remain, delete the meta and set last sync timestamp.
 		if ( empty( $pending ) ) {
-			delete_post_meta( $post_id, self::SYNC_FLAG_META_KEY );
-			update_post_meta( $post_id, self::LAST_SYNC_META_KEY, time() );
+			delete_post_meta( $post_id, Post_Data_Tracker::get_sync_flag_meta_key() );
+			update_post_meta( $post_id, Post_Data_Tracker::get_last_sync_meta_key(), time() );
 			return true;
 		}
 
-		return update_post_meta( $post_id, self::SYNC_FLAG_META_KEY, $pending );
+		return update_post_meta( $post_id, Post_Data_Tracker::get_sync_flag_meta_key(), $pending );
 	}
 
 	/**
@@ -266,7 +236,7 @@ class Post_Meta_Tracker {
 	 * @return bool True if field has pending updates
 	 */
 	public function has_pending_meta_field_update( int $post_id, string $meta_key ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'][ $meta_key ] ) ) {
 			return false;

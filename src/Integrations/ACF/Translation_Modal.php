@@ -14,6 +14,7 @@
 namespace Multilingual_Bridge\Integrations\ACF;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
+use Multilingual_Bridge\Helpers\Translation_Post_Types;
 
 /**
  * Class Translation_Modal
@@ -39,7 +40,7 @@ class Translation_Modal {
 	 * Uses Translation_Handler to determine which field types are translatable.
 	 * Adds data attributes that JavaScript uses to inject translation UI.
 	 *
-	 * Only works with Classic Editor. Block Editor (Gutenberg) is not supported.
+	 * Only works with Classic Editor and enabled post types.
 	 *
 	 * @param array<string, mixed> $wrapper The field wrapper attributes.
 	 * @param array<string, mixed> $field   The field array.
@@ -55,6 +56,11 @@ class Translation_Modal {
 
 		// Only add translation UI to non-original posts.
 		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
+			return $wrapper;
+		}
+
+		// Only show for enabled post types.
+		if ( ! Translation_Post_Types::is_enabled( $post->post_type ) ) {
 			return $wrapper;
 		}
 
@@ -106,8 +112,8 @@ class Translation_Modal {
 	/**
 	 * Add React modal container to ACF admin footer
 	 *
-	 * Only renders on translation posts (not original language)
-	 * and only when Classic Editor is active.
+	 * Only renders on translation posts (not original language),
+	 * enabled post types, and when Classic Editor is active.
 	 */
 	public function add_react_container(): void {
 		global $post;
@@ -118,6 +124,11 @@ class Translation_Modal {
 		}
 
 		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
+			return;
+		}
+
+		// Only show for enabled post types.
+		if ( ! Translation_Post_Types::is_enabled( $post->post_type ) ) {
 			return;
 		}
 

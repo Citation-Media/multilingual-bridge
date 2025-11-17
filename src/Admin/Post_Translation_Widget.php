@@ -12,6 +12,7 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
+use Multilingual_Bridge\Helpers\Translation_Post_Types;
 use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
 use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
@@ -37,7 +38,7 @@ class Post_Translation_Widget {
 	/**
 	 * Add meta box to post edit screen
 	 *
-	 * Only shows on source language posts.
+	 * Only shows on source language posts and enabled post types.
 	 *
 	 * @param string $post_type Current post type.
 	 */
@@ -49,21 +50,8 @@ class Post_Translation_Widget {
 			return;
 		}
 
-		/**
-		 * Filter post types to disable post translation
-		 *
-		 * By default, post translation is enabled for all post types.
-		 * Add post types to this array to disable the widget for those types.
-		 *
-		 * @param string[] $disabled_post_types Post types to disable post translation widget
-		 */
-		$disabled_post_types = apply_filters(
-			'multilingual_bridge_disable_post_translation_post_types',
-			array()
-		);
-
-		// Show for all post types unless explicitly disabled.
-		if ( in_array( $post_type, $disabled_post_types, true ) ) {
+		// Only show for enabled post types.
+		if ( ! Translation_Post_Types::is_enabled( $post_type ) ) {
 			return;
 		}
 
@@ -97,9 +85,6 @@ class Post_Translation_Widget {
 		);
 
 		// Get pending updates for this post (post change tracking feature).
-		$content_tracker = new Post_Data_Tracker();
-		$meta_tracker    = new Post_Meta_Tracker();
-
 		// Build pending updates data for each translation language.
 		$translations_pending = array();
 		foreach ( $translations as $lang_code => $translation_value ) {
@@ -111,9 +96,9 @@ class Post_Translation_Widget {
 			// Get translation post ID.
 			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
 
-			// Check if this translation post has pending updates.
-			$has_content_pending  = $content_tracker->has_pending_content_updates( $translation_post_id );
-			$has_meta_pending     = $meta_tracker->has_pending_meta_updates( $translation_post_id );
+			// Check if this translation post has pending updates (using static methods to avoid object instantiation).
+			$has_content_pending  = ( new Post_Data_Tracker() )->has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = ( new Post_Meta_Tracker() )->has_pending_meta_updates( $translation_post_id );
 			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
 
 			$translations_pending[ $lang_code ] = array(
