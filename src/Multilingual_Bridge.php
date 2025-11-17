@@ -15,7 +15,7 @@ namespace Multilingual_Bridge;
 
 use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Admin\Post_Translation_Widget;
-use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
+use Multilingual_Bridge\Integrations\ACF\Translation_Modal;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\Translation_API;
 use Multilingual_Bridge\Translation\Translation_Manager;
@@ -142,7 +142,7 @@ class Multilingual_Bridge {
 		$language_debug->register_hooks();
 
 		// Register ACF Translation functionality
-		$acf_translation = new ACF_Translation_Modal();
+		$acf_translation = new Translation_Modal();
 		$acf_translation->register_hooks();
 
 		// Register Post Translation Widget

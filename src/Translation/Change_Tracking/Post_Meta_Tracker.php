@@ -11,7 +11,7 @@
 
 namespace Multilingual_Bridge\Translation\Change_Tracking;
 
-use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Handler;
+use Multilingual_Bridge\Integrations\ACF\Translation_Handler;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\Post_Data_Helper;
 
@@ -138,11 +138,11 @@ class Post_Meta_Tracker {
 			return;
 		}
 
-		if ( ACF_Translation_Handler::is_acf_field_key_reference( $meta_key, get_post_meta( $post_id, $meta_key, true ) ) ) {
+		if ( Translation_Handler::is_acf_field_key_reference( $meta_key, get_post_meta( $post_id, $meta_key, true ) ) ) {
 			return;
 		}
 
-		$wpml_preference = ACF_Translation_Handler::get_wpml_translation_preference( $meta_key, $post_id );
+		$wpml_preference = Translation_Handler::get_wpml_translation_preference( $meta_key, $post_id );
 		$is_translatable = ( 'translate' === $wpml_preference );
 
 		/**
