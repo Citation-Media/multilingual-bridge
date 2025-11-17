@@ -42,21 +42,29 @@ class ACF_Translation_Handler {
 	private ACF_Taxonomy_Field_Handler $taxonomy_handler;
 
 	/**
+	 * ACF Relationship Field Handler instance
+	 *
+	 * @var ACF_Relationship_Field_Handler
+	 */
+	private ACF_Relationship_Field_Handler $relationship_handler;
+
+	/**
 	 * Default translatable field types
 	 *
 	 * These are the ACF field types that can be translated.
-	 * Other field types (image, file, relationship, etc.) should be copied as-is.
+	 * Other field types (image, file, etc.) should be copied as-is.
 	 *
 	 * @var string[]
 	 */
-	private const DEFAULT_TRANSLATABLE_TYPES = array( 'text', 'textarea', 'wysiwyg', 'taxonomy' );
+	private const DEFAULT_TRANSLATABLE_TYPES = array( 'text', 'textarea', 'wysiwyg', 'taxonomy', 'relationship', 'post_object', 'page_link' );
 
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->translation_manager = Translation_Manager::instance();
-		$this->taxonomy_handler    = new ACF_Taxonomy_Field_Handler();
+		$this->translation_manager  = Translation_Manager::instance();
+		$this->taxonomy_handler     = new ACF_Taxonomy_Field_Handler();
+		$this->relationship_handler = new ACF_Relationship_Field_Handler();
 	}
 
 	/**
@@ -225,6 +233,18 @@ class ACF_Translation_Handler {
 		// Handle taxonomy fields separately (they require term ID translation, not text translation).
 		if ( 'taxonomy' === $field['type'] ) {
 			return $this->taxonomy_handler->translate_taxonomy_field(
+				$field,
+				$meta_value,
+				$source_post_id,
+				$target_post_id,
+				$target_language,
+				$source_language
+			);
+		}
+
+		// Handle relationship fields separately (they require post ID translation, not text translation).
+		if ( ACF_Relationship_Field_Handler::can_handle_field( $field ) ) {
+			return $this->relationship_handler->translate_relationship_field(
 				$field,
 				$meta_value,
 				$source_post_id,
