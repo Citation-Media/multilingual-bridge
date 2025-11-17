@@ -12,6 +12,7 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
+use Multilingual_Bridge\Helpers\Translation_Post_Types;
 use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
 use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
@@ -37,7 +38,7 @@ class Post_Translation_Widget {
 	/**
 	 * Add meta box to post edit screen
 	 *
-	 * Only shows on source language posts.
+	 * Only shows on source language posts and enabled post types.
 	 *
 	 * @param string $post_type Current post type.
 	 */
@@ -49,21 +50,8 @@ class Post_Translation_Widget {
 			return;
 		}
 
-		/**
-		 * Filter post types to disable post translation
-		 *
-		 * By default, post translation is enabled for all post types.
-		 * Add post types to this array to disable the widget for those types.
-		 *
-		 * @param string[] $disabled_post_types Post types to disable post translation widget
-		 */
-		$disabled_post_types = apply_filters(
-			'multilingual_bridge_disable_post_translation_post_types',
-			array()
-		);
-
-		// Show for all post types unless explicitly disabled.
-		if ( in_array( $post_type, $disabled_post_types, true ) ) {
+		// Only show for enabled post types.
+		if ( ! Translation_Post_Types::is_enabled( $post_type ) ) {
 			return;
 		}
 
