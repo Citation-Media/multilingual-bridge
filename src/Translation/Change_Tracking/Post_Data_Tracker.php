@@ -123,11 +123,12 @@ class Post_Data_Tracker {
 	 * Get pending updates for a post
 	 *
 	 * Returns pending updates stored on the given post (should be translation post).
+	 * Used by both Post_Data_Tracker and Post_Meta_Tracker.
 	 *
 	 * @param int $post_id Post ID (translation post).
 	 * @return array<string, mixed> Array of pending updates
 	 */
-	public function get_pending_updates( int $post_id ): array {
+	public static function get_pending_updates( int $post_id ): array {
 		$pending = get_post_meta( $post_id, self::SYNC_FLAG_META_KEY, true );
 
 		if ( ! is_array( $pending ) ) {
@@ -146,7 +147,7 @@ class Post_Data_Tracker {
 	 * @return string[] Array of content field names that need sync (e.g., ['title', 'content'])
 	 */
 	public function get_pending_content_updates( int $post_id ): array {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( ! isset( $pending['content'] ) || ! is_array( $pending['content'] ) ) {
 			return array();
@@ -164,7 +165,7 @@ class Post_Data_Tracker {
 	 * @return bool True if post has content fields pending sync
 	 */
 	public function has_pending_content_updates( int $post_id ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'] ) || ! is_array( $pending['content'] ) ) {
 			return false;
@@ -191,7 +192,7 @@ class Post_Data_Tracker {
 	 * @return bool True on success
 	 */
 	public function clear_pending_content_updates( int $post_id, ?string $field_name = null ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'] ) ) {
 			return false;
@@ -234,7 +235,7 @@ class Post_Data_Tracker {
 			return false;
 		}
 
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'][ $field_name ] ) ) {
 			return false;

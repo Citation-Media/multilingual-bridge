@@ -150,24 +150,6 @@ class Post_Meta_Tracker {
 	}
 
 	/**
-	 * Get pending updates for a post
-	 *
-	 * Returns pending updates stored on the given post (should be translation post).
-	 *
-	 * @param int $post_id Post ID (translation post).
-	 * @return array<string, mixed> Array of pending updates
-	 */
-	public function get_pending_updates( int $post_id ): array {
-		$pending = get_post_meta( $post_id, Post_Data_Tracker::get_sync_flag_meta_key(), true );
-
-		if ( ! is_array( $pending ) ) {
-			return array();
-		}
-
-		return $pending;
-	}
-
-	/**
 	 * Get pending meta updates
 	 *
 	 * Returns array of meta keys that need sync for a specific translation post.
@@ -176,7 +158,7 @@ class Post_Meta_Tracker {
 	 * @return string[] Array of meta keys that need sync (e.g., ['field_123', 'custom_field'])
 	 */
 	public function get_pending_meta_updates( int $post_id ): array {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( ! isset( $pending['meta'] ) || ! is_array( $pending['meta'] ) ) {
 			return array();
@@ -194,7 +176,7 @@ class Post_Meta_Tracker {
 	 * @return bool True if post has meta fields pending sync
 	 */
 	public function has_pending_meta_updates( int $post_id ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'] ) || ! is_array( $pending['meta'] ) ) {
 			return false;
@@ -213,7 +195,7 @@ class Post_Meta_Tracker {
 	 * @return bool True on success
 	 */
 	public function clear_pending_meta_updates( int $post_id, ?string $meta_key = null ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'] ) ) {
 			return false;
@@ -252,7 +234,7 @@ class Post_Meta_Tracker {
 	 * @return bool True if field has pending updates
 	 */
 	public function has_pending_meta_field_update( int $post_id, string $meta_key ): bool {
-		$pending = $this->get_pending_updates( $post_id );
+		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'][ $meta_key ] ) ) {
 			return false;
