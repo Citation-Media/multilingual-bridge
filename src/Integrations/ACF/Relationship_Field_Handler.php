@@ -22,11 +22,11 @@ use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
- * Class ACF_Relationship_Field_Handler
+ * Class Relationship_Field_Handler
  *
  * Translates ACF relationship fields by mapping posts to target language equivalents
  */
-class ACF_Relationship_Field_Handler {
+class Relationship_Field_Handler {
 
 	/**
 	 * Supported relationship field types

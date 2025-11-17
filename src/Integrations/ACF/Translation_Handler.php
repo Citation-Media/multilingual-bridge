@@ -21,11 +21,11 @@ use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
- * Class ACF_Translation_Handler
+ * Class Translation_Handler
  *
  * Handles ACF field translation operations
  */
-class ACF_Translation_Handler {
+class Translation_Handler {
 
 	/**
 	 * Translation Manager instance
@@ -220,7 +220,7 @@ class ACF_Translation_Handler {
 
 		// Handle taxonomy fields separately (they require term ID translation, not text translation).
 		if ( 'taxonomy' === $field['type'] ) {
-			$taxonomy_handler = new ACF_Taxonomy_Field_Handler();
+			$taxonomy_handler = new Taxonomy_Field_Handler();
 			return $taxonomy_handler->translate_taxonomy_field(
 				$field,
 				$meta_value,
@@ -232,8 +232,8 @@ class ACF_Translation_Handler {
 		}
 
 		// Handle relationship fields separately (they require post ID translation, not text translation).
-		if ( ACF_Relationship_Field_Handler::can_handle_field( $field ) ) {
-			$relationship_handler = new ACF_Relationship_Field_Handler();
+		if ( Relationship_Field_Handler::can_handle_field( $field ) ) {
+			$relationship_handler = new Relationship_Field_Handler();
 			return $relationship_handler->translate_relationship_field(
 				$field,
 				$meta_value,

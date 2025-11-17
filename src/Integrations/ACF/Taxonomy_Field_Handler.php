@@ -21,11 +21,11 @@ use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
- * Class ACF_Taxonomy_Field_Handler
+ * Class Taxonomy_Field_Handler
  *
  * Translates ACF taxonomy fields by mapping terms to target language equivalents
  */
-class ACF_Taxonomy_Field_Handler {
+class Taxonomy_Field_Handler {
 
 	/**
 	 * Translate ACF taxonomy field value
