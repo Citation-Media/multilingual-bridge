@@ -93,9 +93,19 @@ class Taxonomy_Field_Handler {
 			return true;
 		}
 
-		// Convert value to array for consistent processing.
-		$is_single_value = ! is_array( $meta_value );
-		$source_term_ids = is_array( $meta_value ) ? $meta_value : array( $meta_value );
+		// Determine if field returns single or multiple values.
+		$is_multiple = $this->is_multiple_value_field( $field, $meta_value );
+
+		// Convert value to array of term IDs for consistent processing.
+		$source_term_ids = $this->normalize_to_term_ids( $meta_value );
+
+		if ( empty( $source_term_ids ) ) {
+			// No valid term IDs found - delete field.
+			if ( function_exists( 'delete_field' ) ) {
+				delete_field( $field['name'], $target_post_id );
+			}
+			return true;
+		}
 
 		// Translate term IDs to target language.
 		$target_term_ids = $this->translate_term_ids(
@@ -112,10 +122,20 @@ class Taxonomy_Field_Handler {
 			return true;
 		}
 
-		// Preserve single/multiple value structure based on field settings.
-		// Check ACF field 'multiple' setting - if 0, return single value.
-		$field_multiple = $field['multiple'] ?? 0;
-		$value_to_save  = ( 0 === $field_multiple && $is_single_value ) ? $target_term_ids[0] : $target_term_ids;
+		// Preserve single/multiple value structure.
+		$value_to_save = $is_multiple ? $target_term_ids : $target_term_ids[0];
+
+		// Validate update_field function exists.
+		if ( ! function_exists( 'update_field' ) ) {
+			return new WP_Error(
+				'acf_function_missing',
+				sprintf(
+				/* translators: %d: Target post ID */
+					__( 'ACF update_field function not available (post ID: %d)', 'multilingual-bridge' ),
+					$target_post_id
+				)
+			);
+		}
 
 		// Update field using ACF's update_field function.
 		$result = update_field( $field['key'], $value_to_save, $target_post_id );
@@ -124,7 +144,7 @@ class Taxonomy_Field_Handler {
 			return new WP_Error(
 				'update_field_failed',
 				sprintf(
-					/* translators: 1: Field name, 2: Target post ID */
+				/* translators: 1: Field name, 2: Target post ID */
 					__( 'Failed to update taxonomy field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
 					$field['name'],
 					$target_post_id
@@ -197,6 +217,73 @@ class Taxonomy_Field_Handler {
 
 		// Everything else is not empty (including 0, '0', false).
 		return false;
+	}
+
+	/**
+	 * Normalize various input formats to array of term IDs
+	 *
+	 * Handles:
+	 * - Single term ID (int)
+	 * - Array of term IDs
+	 * - WP_Term object
+	 * - Array of WP_Term objects
+	 * - Mixed array of IDs and objects
+	 *
+	 * @param mixed $value The field value to normalize.
+	 * @return array<int, int> Array of term IDs
+	 */
+	private function normalize_to_term_ids( $value ): array {
+		// Handle null or empty.
+		if ( $this->is_empty_value( $value ) ) {
+			return array();
+		}
+
+		// Single WP_Term object.
+		if ( $value instanceof \WP_Term ) {
+			return array( $value->term_id );
+		}
+
+		// Single term ID.
+		if ( is_numeric( $value ) ) {
+			$term_id = (int) $value;
+			return $term_id > 0 ? array( $term_id ) : array();
+		}
+
+		// Array of values.
+		if ( is_array( $value ) ) {
+			$term_ids = array();
+			foreach ( $value as $item ) {
+				if ( $item instanceof \WP_Term ) {
+					$term_ids[] = $item->term_id;
+				} elseif ( is_numeric( $item ) ) {
+					$item_id = (int) $item;
+					if ( $item_id > 0 ) {
+						$term_ids[] = $item_id;
+					}
+				}
+			}
+			return $term_ids;
+		}
+
+		// Unknown type.
+		return array();
+	}
+
+	/**
+	 * Determine if field returns multiple values
+	 *
+	 * @param array<string, mixed> $field      ACF field object.
+	 * @param mixed                $meta_value Current field value.
+	 * @return bool True if field returns multiple values
+	 */
+	private function is_multiple_value_field( array $field, $meta_value ): bool {
+		// Check the 'multiple' setting.
+		if ( isset( $field['multiple'] ) && 1 === $field['multiple'] ) {
+			return true;
+		}
+
+		// Fallback: check if current value is an array.
+		return is_array( $meta_value );
 	}
 
 	/**
