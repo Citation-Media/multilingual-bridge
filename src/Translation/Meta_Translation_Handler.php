@@ -163,6 +163,16 @@ class Meta_Translation_Handler {
 				continue;
 			}
 
+			// For ACF fields, use get_field() to retrieve properly formatted value.
+			// This is critical for relationship fields which store serialized arrays
+			// but need arrays of post IDs for translation.
+			if ( Translation_Handler::is_translatable_field( $meta_key, $source_post_id ) ) {
+				$acf_value = get_field( $meta_key, $source_post_id );
+				if ( null !== $acf_value ) {
+					$meta_value = $acf_value;
+				}
+			}
+
 			// Try each registered handler until one successfully processes the field.
 			$handled = false;
 
