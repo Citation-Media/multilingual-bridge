@@ -72,6 +72,38 @@ class Post_Data_Helper {
 	}
 
 	/**
+	 * Check if a value is truly empty (for ACF field syncing)
+	 *
+	 * Determines if a value should be considered empty for ACF field operations.
+	 * Used to distinguish between truly empty values and valid zero/false values.
+	 *
+	 * Values considered empty: null, '' (empty string), [] (empty array)
+	 * Values NOT considered empty: 0, '0', false (potentially valid IDs or flags)
+	 *
+	 * @param mixed $value The value to check.
+	 * @return bool True if value is empty and should be synced as deleted
+	 */
+	public static function is_empty_value( mixed $value ): bool {
+		// Null is empty.
+		if ( null === $value ) {
+			return true;
+		}
+
+		// Empty string is empty.
+		if ( '' === $value ) {
+			return true;
+		}
+
+		// Empty array is empty.
+		if ( array() === $value ) {
+			return true;
+		}
+
+		// Everything else is not empty (including 0, '0', false).
+		return false;
+	}
+
+	/**
 	 * Flag a field for sync across all translation posts
 	 *
 	 * Unified function for flagging both content and meta fields for sync.

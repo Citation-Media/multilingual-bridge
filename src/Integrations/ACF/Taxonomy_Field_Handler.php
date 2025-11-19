@@ -16,6 +16,7 @@
 
 namespace Multilingual_Bridge\Integrations\ACF;
 
+use Multilingual_Bridge\Helpers\Post_Data_Helper;
 use Multilingual_Bridge\Helpers\WPML_Term_Helper;
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
@@ -81,7 +82,7 @@ class Taxonomy_Field_Handler {
 		}
 
 		// Handle empty values.
-		if ( $this->is_empty_value( $meta_value ) ) {
+		if ( Post_Data_Helper::is_empty_value( $meta_value ) ) {
 			// Delete the field from translation to sync empty state.
 			if ( function_exists( 'delete_field' ) ) {
 				delete_field( $field['name'], $target_post_id );
@@ -187,35 +188,6 @@ class Taxonomy_Field_Handler {
 	}
 
 	/**
-	 * Check if a value is truly empty (for ACF field syncing)
-	 *
-	 * We want to sync: null, '', [] (empty array)
-	 * We don't want to sync: 0, '0', false (potentially valid term IDs)
-	 *
-	 * @param mixed $value The value to check.
-	 * @return bool True if value is empty and should be synced as deleted
-	 */
-	private function is_empty_value( $value ): bool {
-		// Null is empty.
-		if ( null === $value ) {
-			return true;
-		}
-
-		// Empty string is empty.
-		if ( '' === $value ) {
-			return true;
-		}
-
-		// Empty array is empty.
-		if ( array() === $value ) {
-			return true;
-		}
-
-		// Everything else is not empty (including 0, '0', false).
-		return false;
-	}
-
-	/**
 	 * Normalize various input formats to array of term IDs
 	 *
 	 * Handles:
@@ -230,7 +202,7 @@ class Taxonomy_Field_Handler {
 	 */
 	private function normalize_to_term_ids( $value ): array {
 		// Handle null or empty.
-		if ( $this->is_empty_value( $value ) ) {
+		if ( Post_Data_Helper::is_empty_value( $value ) ) {
 			return array();
 		}
 
