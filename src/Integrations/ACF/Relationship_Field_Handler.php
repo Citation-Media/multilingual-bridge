@@ -49,15 +49,13 @@ class Relationship_Field_Handler {
 	 *
 	 * @param array<string, mixed> $field           ACF field object.
 	 * @param mixed                $meta_value      Meta value (post ID, post IDs array, or WP_Post object).
-	 * @param int                  $source_post_id  Source post ID (unused - kept for interface consistency).
 	 * @param int                  $target_post_id  Target post ID.
 	 * @param LanguageTag          $target_language Target language tag.
-	 * @param LanguageTag          $source_language Source language tag (unused - kept for interface consistency).
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
 	public function translate_relationship_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ) {
 		// Validate field is a relationship type.
-		if ( ! isset( $field['type'] ) || ! $this->is_relationship_field_type( $field['type'] ) ) {
+		if ( ! self::can_handle_field( $field ) ) {
 			return new WP_Error(
 				'invalid_field_type',
 				sprintf(
@@ -137,7 +135,7 @@ class Relationship_Field_Handler {
 		}
 
 		// Handle bidirectional relationships if enabled.
-		$this->sync_bidirectional_relationships( $field, $target_post_ids, $target_post_id, $target_language );
+		$this->sync_bidirectional_relationships( $field, $target_post_ids, $target_post_id );
 
 		return true;
 	}
@@ -276,17 +274,9 @@ class Relationship_Field_Handler {
 	}
 
 	/**
-	 * Check if field type is a relationship type
-	 *
-	 * @param string $field_type ACF field type.
-	 * @return bool True if field type is a relationship type
-	 */
-	private function is_relationship_field_type( string $field_type ): bool {
-		return in_array( $field_type, self::RELATIONSHIP_FIELD_TYPES, true );
-	}
-
-	/**
 	 * Check if field can be handled by this handler
+	 *
+	 * Validates that the field is a supported relationship field type.
 	 *
 	 * @param array<string, mixed> $field ACF field object.
 	 * @return bool True if this handler can process the field
@@ -334,12 +324,9 @@ class Relationship_Field_Handler {
 	 * @param array<string, mixed> $field            ACF field object.
 	 * @param array<int, int>      $related_post_ids Post IDs that were added to relationship.
 	 * @param int                  $source_post_id   Post ID that owns the relationship.
-	 * @param LanguageTag          $target_language  Target language tag.
 	 * @return void
 	 */
-	private function sync_bidirectional_relationships( array $field, array $related_post_ids, int $source_post_id, LanguageTag $target_language ): void {
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-		unset( $target_language );
+	private function sync_bidirectional_relationships( array $field, array $related_post_ids, int $source_post_id ): void {
 
 		// Check if bidirectional is enabled.
 		if ( ! $this->is_bidirectional_enabled( $field ) ) {
