@@ -183,10 +183,6 @@ class Translation_Handler {
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
 	public function translate_field( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, LanguageTag $target_language, LanguageTag $source_language ) {
-		// Check if ACF is active.
-		if ( ! function_exists( 'get_field_object' ) ) {
-			return new WP_Error( 'acf_not_available', __( 'ACF is not available', 'multilingual-bridge' ) );
-		}
 
 		// Get ACF field object.
 		$field = get_field_object( $meta_key, $source_post_id );
@@ -224,10 +220,8 @@ class Translation_Handler {
 			return $taxonomy_handler->translate_taxonomy_field(
 				$field,
 				$meta_value,
-				$source_post_id,
 				$target_post_id,
 				$target_language,
-				$source_language
 			);
 		}
 
@@ -237,10 +231,8 @@ class Translation_Handler {
 			return $relationship_handler->translate_relationship_field(
 				$field,
 				$meta_value,
-				$source_post_id,
 				$target_post_id,
-				$target_language,
-				$source_language
+				$target_language
 			);
 		}
 

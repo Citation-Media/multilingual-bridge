@@ -37,15 +37,11 @@ class Taxonomy_Field_Handler {
 	 *
 	 * @param array<string, mixed> $field           ACF field object.
 	 * @param mixed                $meta_value      Meta value (term ID, term IDs array, or term object).
-	 * @param int                  $source_post_id  Source post ID (unused - kept for interface consistency).
 	 * @param int                  $target_post_id  Target post ID.
 	 * @param LanguageTag          $target_language Target language tag.
-	 * @param LanguageTag          $source_language Source language tag (unused - kept for interface consistency).
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
-	public function translate_taxonomy_field( array $field, $meta_value, int $source_post_id, int $target_post_id, LanguageTag $target_language, LanguageTag $source_language ) {
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-		unset( $source_post_id, $source_language );
+	public function translate_taxonomy_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ) {
 		// Validate field is a taxonomy type.
 		if ( ! isset( $field['type'] ) || 'taxonomy' !== $field['type'] ) {
 			return new WP_Error(

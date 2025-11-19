@@ -55,10 +55,7 @@ class Relationship_Field_Handler {
 	 * @param LanguageTag          $source_language Source language tag (unused - kept for interface consistency).
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
-	public function translate_relationship_field( array $field, $meta_value, int $source_post_id, int $target_post_id, LanguageTag $target_language, LanguageTag $source_language ) {
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-		unset( $source_post_id, $source_language );
-
+	public function translate_relationship_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ) {
 		// Validate field is a relationship type.
 		if ( ! isset( $field['type'] ) || ! $this->is_relationship_field_type( $field['type'] ) ) {
 			return new WP_Error(
