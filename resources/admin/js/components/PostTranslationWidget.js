@@ -22,11 +22,11 @@ import { usePostTranslation } from '../hooks/usePostTranslation';
  *
  * Renders a language link without checkbox, showing translation status.
  *
- * @param {Object}  props             - Component props
- * @param {string}  props.langName    - Language display name
+ * @param {Object}  props               - Component props
+ * @param {string}  props.langName      - Language display name
  * @param {number}  props.translationId - Translation post ID
- * @param {string}  props.editPostUrl - URL template for editing posts
- * @param {boolean} props.isCurrent   - Whether this is the current language
+ * @param {string}  props.editPostUrl   - URL template for editing posts
+ * @param {boolean} props.isCurrent     - Whether this is the current language
  * @return {JSX.Element} Language navigation item
  */
 const LanguageNavigationItem = ({
@@ -40,7 +40,9 @@ const LanguageNavigationItem = ({
 
 	return createElement(
 		'div',
-		{ className: `mlb-language-nav-item${isCurrent ? ' mlb-current-language' : ''}` },
+		{
+			className: `mlb-language-nav-item${isCurrent ? ' mlb-current-language' : ''}`,
+		},
 		createElement('span', { className: 'mlb-language-flag' }, langName),
 		hasTranslation &&
 			!isCurrent &&
@@ -267,6 +269,59 @@ export const PostTranslationWidget = ({
 	availableLanguages = {},
 	sourceLanguage,
 }) => {
+	// Call all hooks unconditionally at the top
+	const hookData = usePostTranslation(
+		postId,
+		targetLanguages,
+		translations,
+		translationsPending
+	);
+
+	// Local validation error state
+	const [validationError, setValidationError] = useState(null);
+
+	// Track newly translated languages to highlight them
+	const [newlyTranslated, setNewlyTranslated] = useState({});
+
+	// Extract hook data for non-navigation mode
+	const {
+		selectedLanguages,
+		toggleLanguage,
+		isTranslating,
+		progressPercent,
+		progressText,
+		result,
+		errorMessage,
+		translate,
+		updatedTranslations,
+		pendingUpdates,
+	} = hookData;
+
+	// Watch for translation results to update newly translated state
+	useEffect(() => {
+		if (result && !isTranslating) {
+			const newTranslations = {};
+			selectedLanguages.forEach((langCode) => {
+				const langResult = result.languages?.[langCode];
+				if (langResult && langResult.success) {
+					newTranslations[langCode] = true;
+				}
+			});
+
+			// Update newly translated state
+			if (Object.keys(newTranslations).length > 0) {
+				setNewlyTranslated(newTranslations);
+
+				// Clear the highlight after 3 seconds
+				const timer = setTimeout(() => {
+					setNewlyTranslated({});
+				}, 3000);
+
+				return () => clearTimeout(timer);
+			}
+		}
+	}, [result, isTranslating, selectedLanguages]);
+
 	// Navigation mode: just show language links
 	if (isNavigation) {
 		return createElement(
@@ -310,29 +365,6 @@ export const PostTranslationWidget = ({
 	}
 
 	// Full translation mode (existing functionality)
-	const {
-		selectedLanguages,
-		toggleLanguage,
-		isTranslating,
-		progressPercent,
-		progressText,
-		result,
-		errorMessage,
-		translate,
-		updatedTranslations,
-		pendingUpdates,
-	} = usePostTranslation(
-		postId,
-		targetLanguages,
-		translations,
-		translationsPending
-	);
-
-	// Local validation error state
-	const [validationError, setValidationError] = useState(null);
-
-	// Track newly translated languages to highlight them
-	const [newlyTranslated, setNewlyTranslated] = useState({});
 
 	// Get language names for display - with safety check
 	const langNames = Object.fromEntries(
@@ -363,31 +395,6 @@ export const PostTranslationWidget = ({
 		// Execute translation (async handled in hook)
 		translate();
 	};
-
-	// Watch for translation results to update newly translated state
-	useEffect(() => {
-		if (result && !isTranslating) {
-			const newTranslations = {};
-			selectedLanguages.forEach((langCode) => {
-				const langResult = result.languages?.[langCode];
-				if (langResult && langResult.success) {
-					newTranslations[langCode] = true;
-				}
-			});
-
-			// Update newly translated state
-			if (Object.keys(newTranslations).length > 0) {
-				setNewlyTranslated(newTranslations);
-
-				// Clear the highlight after 3 seconds
-				const timer = setTimeout(() => {
-					setNewlyTranslated({});
-				}, 3000);
-
-				return () => clearTimeout(timer);
-			}
-		}
-	}, [result, isTranslating, selectedLanguages]);
 
 	return createElement(
 		'div',
