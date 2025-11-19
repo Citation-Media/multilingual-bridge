@@ -334,6 +334,76 @@
 }
 
 // =============================================================================
+// Navigation Widget (for translated posts)
+// =============================================================================
+
+#multilingual-bridge-post-widget-nav {
+	padding: 0;
+}
+
+.multilingual-bridge-post-widget-navigation {
+	padding: 0;
+}
+
+.mlb-widget-languages-nav {
+	margin-bottom: 0;
+
+	> p {
+		margin: 0 0 8px;
+	}
+}
+
+.mlb-language-nav-list {
+	margin: 0;
+}
+
+.mlb-language-nav-item {
+	display: flex;
+	align-items: center;
+	padding: 10px 12px;
+	border-bottom: 1px solid #f0f0f1;
+	transition: background-color 0.15s ease;
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	&:hover:not(.mlb-current-language) {
+		background-color: #f6f7f7;
+	}
+
+	.mlb-language-flag {
+		flex: 1;
+		font-weight: 500;
+		color: #2c3338;
+	}
+
+	&.mlb-current-language {
+		background-color: #f0f6fc;
+		border-left: 3px solid #2271b1;
+		padding-left: 9px;
+
+		.mlb-language-flag {
+			font-weight: 600;
+			color: #2271b1;
+		}
+	}
+}
+
+.mlb-current-indicator {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+	color: #2271b1;
+
+	.dashicons {
+		width: 18px;
+		height: 18px;
+		font-size: 18px;
+	}
+}
+
+// =============================================================================
 // Responsive Adjustments
 // =============================================================================
 

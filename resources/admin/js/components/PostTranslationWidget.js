@@ -18,6 +18,58 @@ import { Button, CheckboxControl, Notice } from '@wordpress/components';
 import { usePostTranslation } from '../hooks/usePostTranslation';
 
 /**
+ * Language Navigation Item Component (for translated posts)
+ *
+ * Renders a language link without checkbox, showing translation status.
+ *
+ * @param {Object}  props             - Component props
+ * @param {string}  props.langName    - Language display name
+ * @param {number}  props.translationId - Translation post ID
+ * @param {string}  props.editPostUrl - URL template for editing posts
+ * @param {boolean} props.isCurrent   - Whether this is the current language
+ * @return {JSX.Element} Language navigation item
+ */
+const LanguageNavigationItem = ({
+	langName,
+	translationId,
+	editPostUrl,
+	isCurrent,
+}) => {
+	const editUrl = editPostUrl.replace('POST_ID', translationId);
+	const hasTranslation = translationId > 0;
+
+	return createElement(
+		'div',
+		{ className: `mlb-language-nav-item${isCurrent ? ' mlb-current-language' : ''}` },
+		createElement('span', { className: 'mlb-language-flag' }, langName),
+		hasTranslation &&
+			!isCurrent &&
+			createElement(
+				'a',
+				{
+					href: editUrl,
+					className: 'mlb-translation-edit-link',
+					title: __('Edit translation', 'multilingual-bridge'),
+				},
+				createElement('span', {
+					className: 'dashicons dashicons-edit',
+				})
+			),
+		isCurrent &&
+			createElement(
+				'span',
+				{
+					className: 'mlb-current-indicator',
+					title: __('Current language', 'multilingual-bridge'),
+				},
+				createElement('span', {
+					className: 'dashicons dashicons-yes-alt',
+				})
+			)
+	);
+};
+
+/**
  * Language Checkbox Item Component
  *
  * Renders a single language checkbox with translation status indicator.
@@ -194,12 +246,15 @@ const ProgressBar = ({ percent, text }) => {
 /**
  * Main Post Translation Widget Component
  *
- * @param {Object} props                     - Component props
- * @param {number} props.postId              - Source post ID
- * @param {Object} props.targetLanguages     - Available target languages
- * @param {Object} props.translations        - Existing translations
- * @param {Object} props.translationsPending - Pending updates for each translation
- * @param {string} props.editPostUrl         - URL template for editing posts
+ * @param {Object}  props                     - Component props
+ * @param {number}  props.postId              - Source post ID
+ * @param {Object}  props.targetLanguages     - Available target languages
+ * @param {Object}  props.translations        - Existing translations
+ * @param {Object}  props.translationsPending - Pending updates for each translation
+ * @param {string}  props.editPostUrl         - URL template for editing posts
+ * @param {boolean} props.isNavigation        - Whether this is navigation-only mode (translated post)
+ * @param {Object}  props.availableLanguages  - All available languages (for navigation mode)
+ * @param {string}  props.sourceLanguage      - Source/current language code
  * @return {JSX.Element} Widget component
  */
 export const PostTranslationWidget = ({
@@ -208,7 +263,53 @@ export const PostTranslationWidget = ({
 	translations = {},
 	translationsPending = {},
 	editPostUrl,
+	isNavigation = false,
+	availableLanguages = {},
+	sourceLanguage,
 }) => {
+	// Navigation mode: just show language links
+	if (isNavigation) {
+		return createElement(
+			'div',
+			{
+				id: 'multilingual-bridge-post-widget-nav',
+				className: 'multilingual-bridge-post-widget-navigation',
+			},
+			createElement(
+				'div',
+				{ className: 'mlb-widget-languages-nav' },
+				createElement(
+					'p',
+					null,
+					createElement(
+						'strong',
+						null,
+						__('Available Languages:', 'multilingual-bridge')
+					)
+				),
+				createElement(
+					'div',
+					{ className: 'mlb-language-nav-list' },
+					...Object.entries(availableLanguages || {}).map(
+						([langCode, language]) => {
+							const translationId = translations[langCode] || 0;
+							const isCurrent = langCode === sourceLanguage;
+
+							return createElement(LanguageNavigationItem, {
+								key: langCode,
+								langName: language?.name || langCode,
+								translationId,
+								editPostUrl,
+								isCurrent,
+							});
+						}
+					)
+				)
+			)
+		);
+	}
+
+	// Full translation mode (existing functionality)
 	const {
 		selectedLanguages,
 		toggleLanguage,

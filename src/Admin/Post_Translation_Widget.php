@@ -38,15 +38,14 @@ class Post_Translation_Widget {
 	/**
 	 * Add meta box to post edit screen
 	 *
-	 * Only shows on source language posts and enabled post types.
+	 * Shows full widget on source posts and navigation-only widget on translated posts.
 	 *
 	 * @param string $post_type Current post type.
 	 */
 	public function add_meta_box( string $post_type ): void {
 		global $post;
 
-		// Only show on original/source language posts.
-		if ( ! $post || ! WPML_Post_Helper::is_original_post( $post->ID ) ) {
+		if ( ! $post ) {
 			return;
 		}
 
@@ -55,14 +54,27 @@ class Post_Translation_Widget {
 			return;
 		}
 
-		add_meta_box(
-			'multilingual-bridge-post-translation',
-			__( 'Post Translation', 'multilingual-bridge' ),
-			array( $this, 'render_meta_box' ),
-			$post_type,
-			'side',
-			'high'
-		);
+		// Show full widget on original/source language posts.
+		if ( WPML_Post_Helper::is_original_post( $post->ID ) ) {
+			add_meta_box(
+				'multilingual-bridge-post-translation',
+				__( 'Post Translation', 'multilingual-bridge' ),
+				array( $this, 'render_meta_box' ),
+				$post_type,
+				'side',
+				'high'
+			);
+		} elseif ( WPML_Post_Helper::is_translated_post( $post->ID ) ) {
+			// Show navigation-only widget on translated posts.
+			add_meta_box(
+				'multilingual-bridge-post-translation-nav',
+				__( 'Post Languages', 'multilingual-bridge' ),
+				array( $this, 'render_navigation_meta_box' ),
+				$post_type,
+				'side',
+				'high'
+			);
+		}
 	}
 
 	/**
@@ -143,6 +155,46 @@ class Post_Translation_Widget {
 		<!-- React app will render here -->
 	</div>
 
+		<?php
+	}
+
+	/**
+	 * Render the navigation meta box for translated posts
+	 *
+	 * Shows language links without translation controls.
+	 *
+	 * @param \WP_Post $post Current post object.
+	 */
+	public function render_navigation_meta_box( \WP_Post $post ): void {
+		$current_language    = WPML_Post_Helper::get_language( $post->ID );
+		$available_languages = WPML_Language_Helper::get_available_languages();
+		$translations        = WPML_Post_Helper::get_language_versions( $post->ID );
+
+		?>
+		<div class="mlb-widget-header">
+			<p>
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: %s: language name */
+						__( 'Current Language: %s', 'multilingual-bridge' ),
+						$available_languages[ $current_language ]['name'] ?? $current_language
+					)
+				);
+				?>
+			</p>
+		</div>
+
+		<div
+			id="multilingual-bridge-post-widget-nav"
+			data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
+			data-current-language="<?php echo esc_attr( $current_language ); ?>"
+			data-available-languages="<?php echo esc_attr( wp_json_encode( $available_languages ) ); ?>"
+			data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
+			data-is-navigation="true"
+		>
+			<!-- React app will render here -->
+		</div>
 		<?php
 	}
 
