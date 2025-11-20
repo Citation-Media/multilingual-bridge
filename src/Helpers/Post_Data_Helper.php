@@ -104,6 +104,31 @@ class Post_Data_Helper {
 	}
 
 	/**
+	 * Determine if ACF field returns multiple values
+	 *
+	 * Checks ACF field configuration and current value to determine
+	 * if the field should return single or multiple values.
+	 *
+	 * @param array<string, mixed> $field      ACF field object.
+	 * @param mixed                $meta_value Current field value.
+	 * @return bool True if field returns multiple values
+	 */
+	public static function is_multiple_value_field( array $field, mixed $meta_value ): bool {
+		// Relationship fields always return arrays.
+		if ( isset( $field['type'] ) && 'relationship' === $field['type'] ) {
+			return true;
+		}
+
+		// Check the 'multiple' setting for other field types.
+		if ( isset( $field['multiple'] ) && 1 === $field['multiple'] ) {
+			return true;
+		}
+
+		// Fallback: check if current value is an array.
+		return is_array( $meta_value );
+	}
+
+	/**
 	 * Flag a field for sync across all translation posts
 	 *
 	 * Unified function for flagging both content and meta fields for sync.
