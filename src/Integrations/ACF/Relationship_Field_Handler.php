@@ -20,7 +20,8 @@ namespace Multilingual_Bridge\Integrations\ACF;
 use Multilingual_Bridge\Helpers\Post_Data_Helper;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
-use WP_Error;
+use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Class Relationship_Field_Handler
@@ -52,13 +53,14 @@ class Relationship_Field_Handler {
 	 * @param mixed                $meta_value      Meta value (post ID, post IDs array, or WP_Post object).
 	 * @param int                  $target_post_id  Target post ID.
 	 * @param LanguageTag          $target_language Target language tag.
-	 * @return bool|WP_Error True on success, WP_Error on failure
+	 * @return bool True on success
+	 * @throws InvalidArgumentException If field is not a valid relationship type.
+	 * @throws RuntimeException If field update fails.
 	 */
-	public function translate_relationship_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ) {
+	public function translate_relationship_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ): bool {
 		// Validate field is a relationship type.
 		if ( ! self::can_handle_field( $field ) ) {
-			return new WP_Error(
-				'invalid_field_type',
+			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: 1: Field type, 2: Target post ID */
 					__( 'Field is not a relationship type (got: %1$s, post ID: %2$d)', 'multilingual-bridge' ),
@@ -71,61 +73,42 @@ class Relationship_Field_Handler {
 		// Handle empty values.
 		if ( Post_Data_Helper::is_empty_value( $meta_value ) ) {
 			// Delete the field from translation to sync empty state.
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
+			delete_field( $field['name'], $target_post_id );
 			return true;
 		}
 
 		// Determine if field returns single or multiple values.
-		$is_multiple = $this->is_multiple_value_field( $field, $meta_value );
+		$is_multiple = Post_Data_Helper::is_multiple_value_field( $field, $meta_value );
 
 		// Convert value to array for consistent processing.
 		$source_post_ids = $this->normalize_to_post_ids( $meta_value );
 
 		if ( empty( $source_post_ids ) ) {
 			// No valid post IDs found - delete field.
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
+			delete_field( $field['name'], $target_post_id );
 			return true;
 		}
 
 		// Translate post IDs to target language.
 		$target_post_ids = $this->translate_post_ids(
 			$source_post_ids,
-			$target_language->toString()
+			$target_language
 		);
 
 		// If no posts could be translated, delete field in target.
 		if ( empty( $target_post_ids ) ) {
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
+			delete_field( $field['name'], $target_post_id );
 			return true;
 		}
 
 		// Preserve single/multiple value structure.
 		$value_to_save = $is_multiple ? $target_post_ids : $target_post_ids[0];
 
-		// Validate update_field function exists.
-		if ( ! function_exists( 'update_field' ) ) {
-			return new WP_Error(
-				'acf_function_missing',
-				sprintf(
-					/* translators: %d: Target post ID */
-					__( 'ACF update_field function not available (post ID: %d)', 'multilingual-bridge' ),
-					$target_post_id
-				)
-			);
-		}
-
 		// Update field using ACF's update_field function.
 		$result = update_field( $field['key'], $value_to_save, $target_post_id );
 
 		if ( ! $result ) {
-			return new WP_Error(
-				'update_field_failed',
+			throw new RuntimeException(
 				sprintf(
 					/* translators: 1: Field name, 2: Target post ID */
 					__( 'Failed to update relationship field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
@@ -145,10 +128,10 @@ class Relationship_Field_Handler {
 	 * Translate post IDs from source language to target language
 	 *
 	 * @param array<int, int> $source_post_ids Array of source post IDs.
-	 * @param string          $target_language Target language code.
+	 * @param LanguageTag     $target_language Target language code.
 	 * @return array<int, int> Array of translated post IDs
 	 */
-	private function translate_post_ids( array $source_post_ids, string $target_language ): array {
+	private function translate_post_ids( array $source_post_ids, LanguageTag $target_language ): array {
 		$target_post_ids = array();
 
 		foreach ( $source_post_ids as $source_post_id ) {
@@ -160,11 +143,11 @@ class Relationship_Field_Handler {
 			// Get translation in target language.
 			$target_post_id = WPML_Post_Helper::get_translation_for_lang(
 				$source_post_id,
-				$target_language
+				strtolower( $target_language->toString() ) // Get language code as string and lowercase for eg. zh-Hans to zh-hans
 			);
 
 			// Only include if translation exists.
-			if ( null !== $target_post_id && $target_post_id > 0 ) {
+			if ( empty( $target_post_id ) ) {
 				$target_post_ids[] = $target_post_id;
 			}
 		}
@@ -220,29 +203,6 @@ class Relationship_Field_Handler {
 
 		// Unknown type.
 		return array();
-	}
-
-	/**
-	 * Determine if field returns multiple values
-	 *
-	 * @param array<string, mixed> $field      ACF field object.
-	 * @param mixed                $meta_value Current field value.
-	 * @return bool True if field returns multiple values
-	 */
-	private function is_multiple_value_field( array $field, $meta_value ): bool {
-		// Relationship fields always return arrays.
-		if ( 'relationship' === $field['type'] ) {
-			return true;
-		}
-
-		// Post object and page_link can be single or multiple.
-		// Check the 'multiple' setting.
-		if ( isset( $field['multiple'] ) && 1 === $field['multiple'] ) {
-			return true;
-		}
-
-		// Fallback: check if current value is an array.
-		return is_array( $meta_value );
 	}
 
 	/**
@@ -311,9 +271,7 @@ class Relationship_Field_Handler {
 		}
 
 		// Temporarily disable ACF's bidirectional filter to prevent infinite loops.
-		if ( function_exists( 'acf_disable_filter' ) ) {
-			acf_disable_filter( 'bidirectional' );
-		}
+		acf_disable_filter( 'bidirectional' );
 
 		// Update reverse relationships on each related post.
 		foreach ( $related_post_ids as $related_post_id ) {
@@ -325,9 +283,7 @@ class Relationship_Field_Handler {
 		}
 
 		// Re-enable ACF's bidirectional filter.
-		if ( function_exists( 'acf_enable_filter' ) ) {
-			acf_enable_filter( 'bidirectional' );
-		}
+		acf_enable_filter( 'bidirectional' );
 	}
 
 	/**
@@ -342,10 +298,6 @@ class Relationship_Field_Handler {
 	 * @return void
 	 */
 	private function add_reverse_relationship( int $related_post_id, int $source_post_id, string $target_field_key ): void {
-		if ( ! function_exists( 'get_field' ) || ! function_exists( 'update_field' ) ) {
-			return;
-		}
-
 		// Get current relationships on the related post.
 		$current_relationships = get_field( $target_field_key, $related_post_id );
 

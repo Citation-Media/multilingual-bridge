@@ -19,7 +19,8 @@ namespace Multilingual_Bridge\Integrations\ACF;
 use Multilingual_Bridge\Helpers\Post_Data_Helper;
 use Multilingual_Bridge\Helpers\WPML_Term_Helper;
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
-use WP_Error;
+use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Class Taxonomy_Field_Handler
@@ -40,13 +41,14 @@ class Taxonomy_Field_Handler {
 	 * @param mixed                $meta_value      Meta value (term ID, term IDs array, or term object).
 	 * @param int                  $target_post_id  Target post ID.
 	 * @param LanguageTag          $target_language Target language tag.
-	 * @return bool|WP_Error True on success, WP_Error on failure
+	 * @return bool True on success
+	 * @throws InvalidArgumentException If field is not a valid taxonomy type or taxonomy is invalid.
+	 * @throws RuntimeException If field update fails.
 	 */
-	public function translate_taxonomy_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ) {
+	public function translate_taxonomy_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ): bool {
 		// Validate field is a taxonomy type.
 		if ( ! isset( $field['type'] ) || 'taxonomy' !== $field['type'] ) {
-			return new WP_Error(
-				'invalid_field_type',
+			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %d: Target post ID */
 					__( 'Field is not a taxonomy type (post ID: %d)', 'multilingual-bridge' ),
@@ -58,8 +60,7 @@ class Taxonomy_Field_Handler {
 		// Get taxonomy from field settings.
 		$taxonomy = $field['taxonomy'] ?? '';
 		if ( empty( $taxonomy ) ) {
-			return new WP_Error(
-				'missing_taxonomy',
+			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %d: Target post ID */
 					__( 'Taxonomy not specified in field settings (post ID: %d)', 'multilingual-bridge' ),
@@ -70,8 +71,7 @@ class Taxonomy_Field_Handler {
 
 		// Validate taxonomy exists.
 		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return new WP_Error(
-				'invalid_taxonomy',
+			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: 1: Taxonomy name, 2: Target post ID */
 					__( 'Taxonomy "%1$s" does not exist (post ID: %2$d)', 'multilingual-bridge' ),
@@ -84,23 +84,19 @@ class Taxonomy_Field_Handler {
 		// Handle empty values.
 		if ( Post_Data_Helper::is_empty_value( $meta_value ) ) {
 			// Delete the field from translation to sync empty state.
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
+			delete_field( $field['name'], $target_post_id );
 			return true;
 		}
 
 		// Determine if field returns single or multiple values.
-		$is_multiple = $this->is_multiple_value_field( $field, $meta_value );
+		$is_multiple = Post_Data_Helper::is_multiple_value_field( $field, $meta_value );
 
 		// Convert value to array of term IDs for consistent processing.
 		$source_term_ids = $this->normalize_to_term_ids( $meta_value );
 
 		if ( empty( $source_term_ids ) ) {
 			// No valid term IDs found - delete field.
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
+			delete_field( $field['name'], $target_post_id );
 			return true;
 		}
 
@@ -113,33 +109,18 @@ class Taxonomy_Field_Handler {
 
 		// If no terms could be translated, delete field in target.
 		if ( empty( $target_term_ids ) ) {
-			if ( function_exists( 'delete_field' ) ) {
-				delete_field( $field['name'], $target_post_id );
-			}
+			delete_field( $field['name'], $target_post_id );
 			return true;
 		}
 
 		// Preserve single/multiple value structure.
 		$value_to_save = $is_multiple ? $target_term_ids : $target_term_ids[0];
 
-		// Validate update_field function exists.
-		if ( ! function_exists( 'update_field' ) ) {
-			return new WP_Error(
-				'acf_function_missing',
-				sprintf(
-				/* translators: %d: Target post ID */
-					__( 'ACF update_field function not available (post ID: %d)', 'multilingual-bridge' ),
-					$target_post_id
-				)
-			);
-		}
-
 		// Update field using ACF's update_field function.
 		$result = update_field( $field['key'], $value_to_save, $target_post_id );
 
 		if ( ! $result ) {
-			return new WP_Error(
-				'update_field_failed',
+			throw new RuntimeException(
 				sprintf(
 				/* translators: 1: Field name, 2: Target post ID */
 					__( 'Failed to update taxonomy field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
@@ -235,23 +216,6 @@ class Taxonomy_Field_Handler {
 
 		// Unknown type.
 		return array();
-	}
-
-	/**
-	 * Determine if field returns multiple values
-	 *
-	 * @param array<string, mixed> $field      ACF field object.
-	 * @param mixed                $meta_value Current field value.
-	 * @return bool True if field returns multiple values
-	 */
-	private function is_multiple_value_field( array $field, $meta_value ): bool {
-		// Check the 'multiple' setting.
-		if ( isset( $field['multiple'] ) && 1 === $field['multiple'] ) {
-			return true;
-		}
-
-		// Fallback: check if current value is an array.
-		return is_array( $meta_value );
 	}
 
 	/**
