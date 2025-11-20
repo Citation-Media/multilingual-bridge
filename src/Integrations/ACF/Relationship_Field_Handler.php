@@ -55,7 +55,6 @@ class Relationship_Field_Handler {
 	 * @param LanguageTag          $target_language Target language tag.
 	 * @return bool True on success
 	 * @throws InvalidArgumentException If field is not a valid relationship type.
-	 * @throws RuntimeException If field update fails.
 	 */
 	public function translate_relationship_field( array $field, $meta_value, int $target_post_id, LanguageTag $target_language ): bool {
 		// Validate field is a relationship type.
@@ -105,18 +104,7 @@ class Relationship_Field_Handler {
 		$value_to_save = $is_multiple ? $target_post_ids : $target_post_ids[0];
 
 		// Update field using ACF's update_field function.
-		$result = update_field( $field['key'], $value_to_save, $target_post_id );
-
-		if ( ! $result ) {
-			throw new RuntimeException(
-				sprintf(
-					/* translators: 1: Field name, 2: Target post ID */
-					__( 'Failed to update relationship field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
-					$field['name'],
-					$target_post_id
-				)
-			);
-		}
+		update_field( $field['name'], $value_to_save, $target_post_id );
 
 		// Handle bidirectional relationships if enabled.
 		$this->sync_bidirectional_relationships( $field, $target_post_ids, $target_post_id );
@@ -147,7 +135,7 @@ class Relationship_Field_Handler {
 			);
 
 			// Only include if translation exists.
-			if ( empty( $target_post_id ) ) {
+			if ( ! empty( $target_post_id ) ) {
 				$target_post_ids[] = $target_post_id;
 			}
 		}
