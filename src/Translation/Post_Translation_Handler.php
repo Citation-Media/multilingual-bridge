@@ -28,8 +28,6 @@ use InvalidArgumentException;
  * Class Post_Translation_Handler
  *
  * Manages post translation operations
- *
- * phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not directly output to HTML
  */
 class Post_Translation_Handler {
 
@@ -80,21 +78,21 @@ class Post_Translation_Handler {
 	 * @throws InvalidArgumentException If post not found, not source post, or invalid language code.
 	 * @throws RuntimeException If translation, post creation, or post update fails.
 	 *
-	 * phpcs:disable Squiz.Commenting.FunctionCommentThrowTag.WrongNumber
+	 * phpcs:disable Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- Method can throw both exception types
 	 */
 	public function translate_post( int $post_id, LanguageTag $target_language ): array {
 		// Verify post exists.
 		$source_post = get_post( $post_id );
 		if ( ! $source_post ) {
 			throw new InvalidArgumentException(
-				__( 'Source post not found', 'multilingual-bridge' )
+				esc_html__( 'Source post not found', 'multilingual-bridge' )
 			);
 		}
 
 		// Verify post is original/source language.
 		if ( ! WPML_Post_Helper::is_original_post( $post_id ) ) {
 			throw new InvalidArgumentException(
-				__( 'Post is not a source language post', 'multilingual-bridge' )
+				esc_html__( 'Post is not a source language post', 'multilingual-bridge' )
 			);
 		}
 
@@ -134,8 +132,8 @@ class Post_Translation_Handler {
 			throw new InvalidArgumentException(
 				sprintf(
 				/* translators: %s: language code */
-					__( 'Invalid source language code: %s', 'multilingual-bridge' ),
-					$source_lang
+					esc_html__( 'Invalid source language code: %s', 'multilingual-bridge' ),
+					esc_html( $source_lang )
 				)
 			);
 		}
@@ -164,9 +162,9 @@ class Post_Translation_Handler {
 			foreach ( $meta_results['errors'] as $field_key => $error_message ) {
 				$meta_errors[] = sprintf(
 					/* translators: 1: field key, 2: error message */
-					__( 'Field "%1$s": %2$s', 'multilingual-bridge' ),
-					$field_key,
-					$error_message
+					esc_html__( 'Field "%1$s": %2$s', 'multilingual-bridge' ),
+					esc_html( $field_key ),
+					esc_html( $error_message )
 				);
 			}
 		}
@@ -185,8 +183,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to update post: %s', 'multilingual-bridge' ),
-					$update_result->get_error_message()
+					esc_html__( 'Failed to update post: %s', 'multilingual-bridge' ),
+					esc_html( $update_result->get_error_message() )
 				)
 			);
 		}
@@ -196,8 +194,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: combined error messages */
-					__( 'Meta translation errors: %s', 'multilingual-bridge' ),
-					implode( '; ', $meta_errors )
+					esc_html__( 'Meta translation errors: %s', 'multilingual-bridge' ),
+					esc_html( implode( '; ', $meta_errors ) )
 				)
 			);
 		}
@@ -240,8 +238,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to translate post title: %s', 'multilingual-bridge' ),
-					$translated_title->get_error_message()
+					esc_html__( 'Failed to translate post title: %s', 'multilingual-bridge' ),
+					esc_html( $translated_title->get_error_message() )
 				)
 			);
 		}
@@ -257,8 +255,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to translate post content: %s', 'multilingual-bridge' ),
-					$translated_content->get_error_message()
+					esc_html__( 'Failed to translate post content: %s', 'multilingual-bridge' ),
+					esc_html( $translated_content->get_error_message() )
 				)
 			);
 		}
@@ -274,8 +272,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to translate post excerpt: %s', 'multilingual-bridge' ),
-					$translated_excerpt->get_error_message()
+					esc_html__( 'Failed to translate post excerpt: %s', 'multilingual-bridge' ),
+					esc_html( $translated_excerpt->get_error_message() )
 				)
 			);
 		}
@@ -343,8 +341,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to create translation post: %s', 'multilingual-bridge' ),
-					$target_post_id->get_error_message()
+					esc_html__( 'Failed to create translation post: %s', 'multilingual-bridge' ),
+					esc_html( $target_post_id->get_error_message() )
 				)
 			);
 		}
@@ -358,8 +356,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to set language for translation: %s', 'multilingual-bridge' ),
-					$wpml_result->get_error_message()
+					esc_html__( 'Failed to set language for translation: %s', 'multilingual-bridge' ),
+					esc_html( $wpml_result->get_error_message() )
 				)
 			);
 		}
@@ -373,8 +371,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to relate posts as translations: %s', 'multilingual-bridge' ),
-					$relation_result->get_error_message()
+					esc_html__( 'Failed to relate posts as translations: %s', 'multilingual-bridge' ),
+					esc_html( $relation_result->get_error_message() )
 				)
 			);
 		}
@@ -406,8 +404,8 @@ class Post_Translation_Handler {
 			throw new RuntimeException(
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to update translation post: %s', 'multilingual-bridge' ),
-					$result->get_error_message()
+					esc_html__( 'Failed to update translation post: %s', 'multilingual-bridge' ),
+					esc_html( $result->get_error_message() )
 				)
 			);
 		}

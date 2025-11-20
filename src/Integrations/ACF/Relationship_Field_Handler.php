@@ -62,9 +62,9 @@ class Relationship_Field_Handler {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: 1: Field type, 2: Target post ID */
-					__( 'Field is not a relationship type (got: %1$s, post ID: %2$d)', 'multilingual-bridge' ),
-					$field['type'] ?? 'unknown',
-					$target_post_id
+					esc_html__( 'Field is not a relationship type (got: %1$s, post ID: %2$d)', 'multilingual-bridge' ),
+					esc_html( $field['type'] ?? 'unknown' ),
+					(int) $target_post_id
 				)
 			);
 		}

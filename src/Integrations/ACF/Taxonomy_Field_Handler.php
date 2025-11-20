@@ -51,8 +51,8 @@ class Taxonomy_Field_Handler {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %d: Target post ID */
-					__( 'Field is not a taxonomy type (post ID: %d)', 'multilingual-bridge' ),
-					$target_post_id
+					esc_html__( 'Field is not a taxonomy type (post ID: %d)', 'multilingual-bridge' ),
+					(int) $target_post_id
 				)
 			);
 		}
@@ -63,8 +63,8 @@ class Taxonomy_Field_Handler {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %d: Target post ID */
-					__( 'Taxonomy not specified in field settings (post ID: %d)', 'multilingual-bridge' ),
-					$target_post_id
+					esc_html__( 'Taxonomy not specified in field settings (post ID: %d)', 'multilingual-bridge' ),
+					(int) $target_post_id
 				)
 			);
 		}
@@ -74,9 +74,9 @@ class Taxonomy_Field_Handler {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: 1: Taxonomy name, 2: Target post ID */
-					__( 'Taxonomy "%1$s" does not exist (post ID: %2$d)', 'multilingual-bridge' ),
-					$taxonomy,
-					$target_post_id
+					esc_html__( 'Taxonomy "%1$s" does not exist (post ID: %2$d)', 'multilingual-bridge' ),
+					esc_html( $taxonomy ),
+					(int) $target_post_id
 				)
 			);
 		}
@@ -123,9 +123,9 @@ class Taxonomy_Field_Handler {
 			throw new RuntimeException(
 				sprintf(
 				/* translators: 1: Field name, 2: Target post ID */
-					__( 'Failed to update taxonomy field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
-					$field['name'],
-					$target_post_id
+					esc_html__( 'Failed to update taxonomy field "%1$s" (post ID: %2$d)', 'multilingual-bridge' ),
+					esc_html( $field['name'] ),
+					(int) $target_post_id
 				)
 			);
 		}
