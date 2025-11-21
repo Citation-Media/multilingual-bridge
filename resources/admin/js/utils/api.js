@@ -119,7 +119,7 @@ function escapeCSSSelector(selector) {
  *
  * Handles different field types:
  * - text/textarea: Reads input.value
- * - wysiwyg: Reads from TinyMCE iframe content
+ * - wysiwyg: Reads from TinyMCE editor or textarea
  *
  * @param {string} fieldKey  - ACF field key/name (with or without acf[] wrapper)
  * @param {string} fieldType - Optional ACF field type (text, textarea, wysiwyg, etc.)
@@ -133,18 +133,30 @@ export function getCurrentFieldValue(fieldKey, fieldType = 'text') {
 
 	// Handle WYSIWYG fields (TinyMCE editor)
 	if (fieldType === 'wysiwyg') {
-		// TinyMCE creates an iframe with ID format: acf[field_name]_ifr
-		const iframeId = `${acfFieldName}_ifr`;
-		const iframe = document.getElementById(iframeId);
+		// Find the textarea element first
+		const escapedFieldKey = escapeCSSSelector(acfFieldName);
+		const textarea = document.querySelector(
+			`textarea[name="${escapedFieldKey}"]`
+		);
 
-		if (iframe && iframe.contentWindow) {
-			const doc = iframe.contentWindow.document;
-			if (doc.body) {
-				return doc.body.innerHTML || '';
+		if (textarea) {
+			// Try to get TinyMCE editor by the textarea's ID (visual mode)
+			// eslint-disable-next-line no-undef
+			if (typeof tinymce !== 'undefined' && textarea.id) {
+				// eslint-disable-next-line no-undef
+				const editor = tinymce.get(textarea.id);
+
+				if (editor) {
+					// Visual mode is active - get content from TinyMCE
+					return editor.getContent() || '';
+				}
 			}
+
+			// Text mode is active - read from textarea directly
+			return textarea.value || '';
 		}
 
-		// Fall through to textarea if iframe not found (visual editor disabled)
+		return '';
 	}
 
 	// Handle text, textarea, and other standard input fields
