@@ -14,14 +14,13 @@
 namespace Multilingual_Bridge\Integrations\ACF;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
-use Multilingual_Bridge\Helpers\Translation_Post_Types;
 
 /**
- * Class Translation_Modal
+ * Class ACF_Translation_Modal
  *
  * Provides inline translation modal for ACF fields
  */
-class Translation_Modal {
+class ACF_Translation_Modal {
 
 	/**
 	 * Initialize hooks
@@ -37,10 +36,10 @@ class Translation_Modal {
 	/**
 	 * Add field wrapper attributes for translatable fields
 	 *
-	 * Uses Translation_Handler to determine which field types are translatable.
+	 * Uses ACF_Translation_Handler to determine which field types are translatable.
 	 * Adds data attributes that JavaScript uses to inject translation UI.
 	 *
-	 * Only works with Classic Editor and enabled post types.
+	 * Only works with Classic Editor. Block Editor (Gutenberg) is not supported.
 	 *
 	 * @param array<string, mixed> $wrapper The field wrapper attributes.
 	 * @param array<string, mixed> $field   The field array.
@@ -59,13 +58,8 @@ class Translation_Modal {
 			return $wrapper;
 		}
 
-		// Only show for enabled post types.
-		if ( ! Translation_Post_Types::is_enabled( $post->post_type ) ) {
-			return $wrapper;
-		}
-
 		// Check if this field is translatable (both type and WPML preference).
-		if ( ! Translation_Handler::is_translatable_field( $field['key'], $post->ID ) ) {
+		if ( ! ACF_Translation_Handler::is_translatable_field( $field['key'], $post->ID ) ) {
 			return $wrapper;
 		}
 
@@ -112,8 +106,8 @@ class Translation_Modal {
 	/**
 	 * Add React modal container to ACF admin footer
 	 *
-	 * Only renders on translation posts (not original language),
-	 * enabled post types, and when Classic Editor is active.
+	 * Only renders on translation posts (not original language)
+	 * and only when Classic Editor is active.
 	 */
 	public function add_react_container(): void {
 		global $post;
@@ -124,11 +118,6 @@ class Translation_Modal {
 		}
 
 		if ( ! $post || WPML_Post_Helper::is_original_post( $post->ID ) ) {
-			return;
-		}
-
-		// Only show for enabled post types.
-		if ( ! Translation_Post_Types::is_enabled( $post->post_type ) ) {
 			return;
 		}
 

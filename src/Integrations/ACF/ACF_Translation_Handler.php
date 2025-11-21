@@ -16,17 +16,16 @@
 
 namespace Multilingual_Bridge\Integrations\ACF;
 
-use Multilingual_Bridge\Helpers\Post_Data_Helper;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use WP_Error;
 
 /**
- * Class Translation_Handler
+ * Class ACF_Translation_Handler
  *
  * Handles ACF field translation operations
  */
-class Translation_Handler {
+class ACF_Translation_Handler {
 
 	/**
 	 * Translation Manager instance
@@ -39,11 +38,11 @@ class Translation_Handler {
 	 * Default translatable field types
 	 *
 	 * These are the ACF field types that can be translated.
-	 * Other field types (image, file, etc.) should be copied as-is.
+	 * Other field types (image, file, relationship, etc.) should be copied as-is.
 	 *
 	 * @var string[]
 	 */
-	private const DEFAULT_TRANSLATABLE_TYPES = array( 'text', 'textarea', 'wysiwyg', 'taxonomy', 'relationship', 'post_object', 'page_link' );
+	private const DEFAULT_TRANSLATABLE_TYPES = array( 'text', 'textarea', 'wysiwyg' );
 
 	/**
 	 * Constructor
@@ -184,16 +183,20 @@ class Translation_Handler {
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
 	public function translate_field( string $meta_key, $meta_value, int $source_post_id, int $target_post_id, LanguageTag $target_language, LanguageTag $source_language ) {
+		// Check if ACF is active.
+		if ( ! function_exists( 'get_field_object' ) ) {
+			return new WP_Error( 'acf_not_available', 'ACF is not available' );
+		}
 
 		// Get ACF field object.
 		$field = get_field_object( $meta_key, $source_post_id );
 
 		if ( ! $field ) {
-			return new WP_Error( 'not_acf_field', __( 'Not an ACF field', 'multilingual-bridge' ) );
+			return new WP_Error( 'not_acf_field', 'Not an ACF field' );
 		}
 
 		// Handle empty values by syncing them to translations (delete field).
-		if ( Post_Data_Helper::is_empty_value( $meta_value ) ) {
+		if ( $this->is_empty_value( $meta_value ) ) {
 			// Delete the field from translation to sync empty state.
 			if ( function_exists( 'delete_field' ) ) {
 				delete_field( $field['name'], $target_post_id );
@@ -207,44 +210,18 @@ class Translation_Handler {
 			// Field type is not registered for translation - skip it.
 			return new WP_Error(
 				'field_type_not_translatable',
-				sprintf(
-					/* translators: %s: Field type */
-					__( 'Field type "%s" is not registered for translation', 'multilingual-bridge' ),
-					$field['type']
-				)
+				sprintf( 'Field type "%s" is not registered for translation', $field['type'] )
 			);
 		}
 
-		// Handle taxonomy fields separately (they require term ID translation, not text translation).
-		if ( 'taxonomy' === $field['type'] ) {
-			$taxonomy_handler = new Taxonomy_Field_Handler();
-			return $taxonomy_handler->translate_taxonomy_field(
-				$field,
-				$meta_value,
-				$target_post_id,
-				$target_language,
-			);
-		}
-
-		// Handle relationship fields separately (they require post ID translation, not text translation).
-		if ( Relationship_Field_Handler::can_handle_field( $field ) ) {
-			$relationship_handler = new Relationship_Field_Handler();
-			return $relationship_handler->translate_relationship_field(
-				$field,
-				$meta_value,
-				$target_post_id,
-				$target_language
-			);
-		}
-
-		// Only translate string values (for text-based fields).
+		// Only translate string values.
 		if ( ! is_string( $meta_value ) ) {
 			// Non-string value for translatable field type - copy as-is.
 			// This handles cases like arrays or serialized data.
 			return false;
 		}
 
-		// Translate the value (for text-based fields like text, textarea, wysiwyg).
+		// Translate the value.
 		$translated_value = $this->translation_manager->translate(
 			$target_language,
 			$meta_value,
@@ -257,6 +234,35 @@ class Translation_Handler {
 
 		// Update target post meta using ACF's update_field function.
 		return update_field( $field['key'], $translated_value, $target_post_id );
+	}
+
+	/**
+	 * Check if a value is truly empty (for ACF field syncing)
+	 *
+	 * We want to sync: null, '', [] (empty array)
+	 * We don't want to sync: 0, '0', false (valid values)
+	 *
+	 * @param mixed $value The value to check.
+	 * @return bool True if value is empty and should be synced as deleted
+	 */
+	private function is_empty_value( $value ): bool {
+		// Null is empty.
+		if ( null === $value ) {
+			return true;
+		}
+
+		// Empty string is empty.
+		if ( '' === $value ) {
+			return true;
+		}
+
+		// Empty array is empty.
+		if ( array() === $value ) {
+			return true;
+		}
+
+		// Everything else is not empty (including 0, '0', false).
+		return false;
 	}
 
 	/**
