@@ -269,12 +269,14 @@ export const PostTranslationWidget = ({
 	availableLanguages = {},
 	sourceLanguage,
 }) => {
-	// Call all hooks unconditionally at the top
+	// Call hook unconditionally per React's Rules of Hooks
+	// Pass isNavigation flag to skip expensive state initialization when not needed
 	const hookData = usePostTranslation(
 		postId,
 		targetLanguages,
 		translations,
-		translationsPending
+		translationsPending,
+		isNavigation
 	);
 
 	// Local validation error state
