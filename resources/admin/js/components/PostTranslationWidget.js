@@ -295,16 +295,22 @@ export const PostTranslationWidget = ({
 		result,
 		errorMessage,
 		translate,
+		clearResult,
 		updatedTranslations,
 		pendingUpdates,
 	} = hookData;
 
 	// Watch for translation results to update newly translated state
+	// Only depends on result and isTranslating - NOT on selectedLanguages
+	// This prevents re-triggering when user changes checkbox selections
 	useEffect(() => {
 		if (result && !isTranslating) {
 			const newTranslations = {};
-			selectedLanguages.forEach((langCode) => {
-				const langResult = result.languages?.[langCode];
+			
+			// Check all languages in the result (not selectedLanguages)
+			// This ensures we only process the languages that were actually translated
+			Object.keys(result.languages || {}).forEach((langCode) => {
+				const langResult = result.languages[langCode];
 				if (langResult && langResult.success) {
 					newTranslations[langCode] = true;
 				}
@@ -314,15 +320,16 @@ export const PostTranslationWidget = ({
 			if (Object.keys(newTranslations).length > 0) {
 				setNewlyTranslated(newTranslations);
 
-				// Clear the highlight after 3 seconds
+				// Clear the highlight and result after 3 seconds
 				const timer = setTimeout(() => {
 					setNewlyTranslated({});
+					clearResult(); // Clear result to prevent re-showing notification
 				}, 3000);
 
 				return () => clearTimeout(timer);
 			}
 		}
-	}, [result, isTranslating, selectedLanguages]);
+	}, [result, isTranslating, clearResult]);
 
 	// Navigation mode: just show language links
 	if (isNavigation) {

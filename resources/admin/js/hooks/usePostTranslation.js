@@ -68,6 +68,7 @@ export const usePostTranslation = (
 			errorMessage: '',
 			translate: () => {},
 			reset: () => {},
+			clearResult: () => {},
 			updatedTranslations: emptyObject,
 			pendingUpdates: emptyObject,
 		};
@@ -197,6 +198,15 @@ export const usePostTranslation = (
 	};
 
 	/**
+	 * Clear only the result state
+	 *
+	 * Used to dismiss the success notification without resetting other state.
+	 */
+	const clearResult = () => {
+		setResult(null);
+	};
+
+	/**
 	 * Reset state
 	 */
 	const reset = () => {
@@ -218,6 +228,7 @@ export const usePostTranslation = (
 		errorMessage,
 		translate,
 		reset,
+		clearResult,
 		updatedTranslations,
 		pendingUpdates,
 	};
