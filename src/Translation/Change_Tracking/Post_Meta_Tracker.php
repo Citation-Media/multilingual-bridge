@@ -26,6 +26,7 @@ class Post_Meta_Tracker {
 	 * Register hooks
 	 */
 	public function register_hooks(): void {
+
 		add_filter( 'update_post_metadata', array( $this, 'track_meta_update' ), 10, 5 );
 		add_filter( 'add_post_metadata', array( $this, 'track_meta_add' ), 10, 5 );
 		add_filter( 'delete_post_metadata', array( $this, 'track_meta_delete' ), 10, 5 );
@@ -50,7 +51,14 @@ class Post_Meta_Tracker {
 			return $check;
 		}
 
-		if ( Post_Data_Helper::has_meta_value_changed( $prev_value, $object_id, $meta_key, $meta_value ) ) {
+
+		// Only track changes in original/source language posts.
+		// Translation posts should not trigger sync flags for other translations.
+		if ( ! WPML_Post_Helper::is_original_post( $object_id ) ) {
+			return $check;
+		}
+
+		if ( Post_Data_Helper::has_meta_value_changed( $object_id, $meta_key, $meta_value ) ) {
 			$this->flag_meta_field_for_sync( $object_id, $meta_key, $meta_value );
 		}
 
@@ -74,6 +82,12 @@ class Post_Meta_Tracker {
 			return $check;
 		}
 
+		// Only track changes in original/source language posts.
+		// Translation posts should not trigger sync flags for other translations.
+		if ( ! WPML_Post_Helper::is_original_post( $object_id ) ) {
+			return $check;
+		}
+
 		$this->flag_meta_field_for_sync( $object_id, $meta_key, $meta_value );
 
 		return $check;
@@ -93,6 +107,12 @@ class Post_Meta_Tracker {
 	 */
 	public function track_meta_delete( mixed $check, int $object_id, string $meta_key, mixed $meta_value, bool $delete_all ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
 		if ( $this->should_skip_meta( $meta_key ) ) {
+			return $check;
+		}
+
+		// Only track changes in original/source language posts.
+		// Translation posts should not trigger sync flags for other translations.
+		if ( ! WPML_Post_Helper::is_original_post( $object_id ) ) {
 			return $check;
 		}
 
