@@ -16,10 +16,13 @@ namespace Multilingual_Bridge;
 use Multilingual_Bridge\Admin\Language_Debug;
 use Multilingual_Bridge\Admin\Post_Translation_Widget;
 use Multilingual_Bridge\Integrations\ACF\ACF_Translation_Modal;
+use Multilingual_Bridge\Integrations\WPML\Disable_WPML_Translation;
 use Multilingual_Bridge\REST\WPML_REST_Fields;
 use Multilingual_Bridge\REST\Translation_API;
 use Multilingual_Bridge\Translation\Translation_Manager;
 use Multilingual_Bridge\Translation\Providers\DeepL_Provider;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
 /**
  * The core plugin class.
@@ -82,7 +85,7 @@ class Multilingual_Bridge {
 	/**
 	 * Initialize the translation system
 	 *
-	 * Registers translation providers.
+	 * Registers translation providers and sync tracking.
 	 * This is the central initialization point for the translation architecture.
 	 *
 	 * @since    1.4.0
@@ -98,6 +101,13 @@ class Multilingual_Bridge {
 		// Register default DeepL provider.
 		$deepl_provider = new DeepL_Provider();
 		$translation_manager->register_provider( $deepl_provider );
+
+		// Register Post Content and Meta Trackers to monitor field changes and flag for sync.
+		$post_content_tracker = new Post_Data_Tracker();
+		$post_content_tracker->register_hooks();
+
+		$post_meta_tracker = new Post_Meta_Tracker();
+		$post_meta_tracker->register_hooks();
 
 		/**
 		 * Fires after translation system is initialized
@@ -139,6 +149,10 @@ class Multilingual_Bridge {
 		// Register Post Translation Widget
 		$post_translation_widget = new Post_Translation_Widget();
 		$post_translation_widget->register_hooks();
+
+		// Register WPML Translation Disabler
+		$wpml_translation_disabler = new Disable_WPML_Translation();
+		$wpml_translation_disabler->register_hooks();
 
 		// Central plugin init: WPML/ACF hidden meta sync workaround
 		add_action(
