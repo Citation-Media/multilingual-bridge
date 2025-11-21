@@ -27,7 +27,7 @@ class Post_Meta_Tracker {
 	 */
 	public function register_hooks(): void {
 
-		add_filter( 'update_post_metadata', array( $this, 'track_meta_update' ), 10, 5 );
+		add_filter( 'update_post_metadata', array( $this, 'track_meta_update' ), 10, 4 );
 		add_filter( 'add_post_metadata', array( $this, 'track_meta_add' ), 10, 5 );
 		add_filter( 'delete_post_metadata', array( $this, 'track_meta_delete' ), 10, 5 );
 		add_filter( 'acf/field_wrapper_attributes', array( $this, 'add_pending_update_class' ), 10, 2 );
@@ -42,15 +42,13 @@ class Post_Meta_Tracker {
 	 * @param null|bool $check      Whether to allow updating metadata. Return non-null to short-circuit.
 	 * @param int       $object_id  Post ID.
 	 * @param string    $meta_key   Meta key being updated.
-	 * @param mixed     $meta_value New meta value.
 	 * @param mixed     $prev_value Previous value parameter used for conditional updates (not the actual current value in the database).
 	 * @return null|bool Null to continue with update, bool to short-circuit
 	 */
-	public function track_meta_update( mixed $check, int $object_id, string $meta_key, mixed $meta_value, mixed $prev_value ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
+	public function track_meta_update( mixed $check, int $object_id, string $meta_key, mixed $meta_value ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
 		if ( $this->should_skip_meta( $meta_key ) ) {
 			return $check;
 		}
-
 
 		// Only track changes in original/source language posts.
 		// Translation posts should not trigger sync flags for other translations.
