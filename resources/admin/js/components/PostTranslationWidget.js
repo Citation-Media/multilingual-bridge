@@ -215,7 +215,7 @@ const TranslationErrors = ({ result, languages, langNames }) => {
 				)
 			)
 		),
-		...errors
+		errors
 	);
 };
 
@@ -347,7 +347,7 @@ export const PostTranslationWidget = ({
 				createElement(
 					'div',
 					{ className: 'mlb-language-nav-list' },
-					...Object.entries(availableLanguages || {}).map(
+					Object.entries(availableLanguages || {}).map(
 						([langCode, language]) => {
 							const translationId = translations[langCode] || 0;
 							const isCurrent = langCode === sourceLanguage;
@@ -454,7 +454,7 @@ export const PostTranslationWidget = ({
 						createElement(
 							'div',
 							{ className: 'mlb-language-list' },
-							...Object.entries(targetLanguages || {}).map(
+							Object.entries(targetLanguages || {}).map(
 								([langCode, language]) => {
 									const hasTranslation =
 										updatedTranslations[langCode] !==
