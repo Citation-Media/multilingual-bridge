@@ -331,7 +331,7 @@ export const PostTranslationWidget = ({
 	useEffect(() => {
 		if (result && !isTranslating) {
 			const newTranslations = {};
-			
+
 			// Check all languages in the result (not selectedLanguages)
 			// This ensures we only process the languages that were actually translated
 			Object.keys(result.languages || {}).forEach((langCode) => {

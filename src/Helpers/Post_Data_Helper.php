@@ -46,18 +46,21 @@ class Post_Data_Helper {
 			if ( is_array( $old_value ) !== is_array( $new_value ) ) {
 				return true;
 			}
-			// Both are arrays - compare recursively
+			// Both are arrays - compare recursively.
+			// phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- Intentional loose comparison for array values
 			return $old_value != $new_value;
 		}
 
 		// Handle objects - serialize for comparison
 		if ( is_object( $old_value ) || is_object( $new_value ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Necessary for object comparison
 			return serialize( $old_value ) !== serialize( $new_value );
 		}
 
 		// For scalar values (string, int, float, bool), use loose comparison
 		// This handles "122" == 122, "1" == 1, etc.
 		// But still catches real changes like "122" != "123"
+	// phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- Intentional loose comparison for type coercion
 		return $old_value != $new_value;
 	}
 
