@@ -379,7 +379,7 @@ export const PostTranslationWidget = ({
 	/**
 	 * Handle translate button click
 	 */
-	const handleTranslate = () => {
+	const handleTranslate = async () => {
 		if (selectedLanguages.length === 0) {
 			setValidationError(
 				__(
@@ -390,11 +390,42 @@ export const PostTranslationWidget = ({
 			return;
 		}
 
-		// Clear any previous validation errors and highlights
 		setValidationError(null);
 		setNewlyTranslated({});
 
-		// Execute translation (async handled in hook)
+		// Check if beforeunload would trigger (meaning there are unsaved changes)
+		let hasUnsavedChanges = false;
+		const beforeUnloadHandler = (e) => {
+			if (e.returnValue) {
+				hasUnsavedChanges = true;
+			}
+		};
+
+		window.addEventListener('beforeunload', beforeUnloadHandler);
+		const event = new Event('beforeunload', { cancelable: true });
+		window.dispatchEvent(event);
+		window.removeEventListener('beforeunload', beforeUnloadHandler);
+
+		if (hasUnsavedChanges) {
+			const shouldSave = window.confirm(
+				__(
+					'Your post has unsaved changes. The post will be saved before translation. Click OK to continue.',
+					'multilingual-bridge'
+				)
+			);
+
+			if (!shouldSave) {
+				return;
+			}
+
+			// Click the Update/Publish button to save
+			if (window.jQuery) {
+				const $ = window.jQuery;
+				$('#publish').click();
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+			}
+		}
+
 		translate();
 	};
 
@@ -440,7 +471,7 @@ export const PostTranslationWidget = ({
 							createElement(
 								Notice,
 								{
-									status: 'success',
+                                    status: 'success',
 									isDismissible: false,
 									className: 'mlb-widget-success',
 								},
