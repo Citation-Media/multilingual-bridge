@@ -190,12 +190,12 @@ class Post_Meta_Tracker {
 	/**
 	 * Check if post has pending meta updates
 	 *
-	 * Checks for pending updates in meta fields.
+	 * Checks if any meta field needs sync.
 	 *
 	 * @param int $post_id Post ID (translation post).
-	 * @return bool True if post has meta fields pending sync
+	 * @return bool True if any meta field has pending updates
 	 */
-	public function has_pending_meta_updates( int $post_id ): bool {
+	public static function has_pending_meta_updates( int $post_id ): bool {
 		$pending = Post_Data_Tracker::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['meta'] ) || ! is_array( $pending['meta'] ) ) {

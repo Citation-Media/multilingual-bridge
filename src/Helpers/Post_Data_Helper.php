@@ -46,9 +46,9 @@ class Post_Data_Helper {
 			if ( is_array( $old_value ) !== is_array( $new_value ) ) {
 				return true;
 			}
-			// Both are arrays - compare recursively.
-			// phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- Intentional loose comparison for array values
-			return $old_value != $new_value;
+			// Both are arrays - use serialize for deep equality check (structure and values)
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Necessary for deep array comparison
+			return serialize( $old_value ) !== serialize( $new_value );
 		}
 
 		// Handle objects - serialize for comparison

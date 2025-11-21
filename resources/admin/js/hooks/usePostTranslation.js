@@ -56,24 +56,6 @@ export const usePostTranslation = (
 	// Track pending updates
 	const [pendingUpdates, setPendingUpdates] = useState(translationsPending);
 
-	// Early return for navigation mode - skip all function definitions
-	if (isNavigation) {
-		return {
-			selectedLanguages: emptyArray,
-			toggleLanguage: () => {},
-			isTranslating: false,
-			progressPercent: 0,
-			progressText: '',
-			result: null,
-			errorMessage: '',
-			translate: () => {},
-			reset: () => {},
-			clearResult: () => {},
-			updatedTranslations: emptyObject,
-			pendingUpdates: emptyObject,
-		};
-	}
-
 	/**
 	 * Toggle language selection
 	 *
@@ -217,6 +199,25 @@ export const usePostTranslation = (
 		setResult(null);
 		setErrorMessage('');
 	};
+
+	// Return navigation-specific stub values if in navigation mode
+	// This ensures hooks are always called in the same order
+	if (isNavigation) {
+		return {
+			selectedLanguages: emptyArray,
+			toggleLanguage: () => {},
+			isTranslating: false,
+			progressPercent: 0,
+			progressText: '',
+			result: null,
+			errorMessage: '',
+			translate: () => {},
+			reset: () => {},
+			clearResult: () => {},
+			updatedTranslations: emptyObject,
+			pendingUpdates: emptyObject,
+		};
+	}
 
 	return {
 		selectedLanguages,

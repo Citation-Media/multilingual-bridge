@@ -108,9 +108,9 @@ class Post_Translation_Widget {
 			// Get translation post ID.
 			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
 
-			// Check if this translation post has pending updates (using static methods to avoid object instantiation).
-			$has_content_pending  = ( new Post_Data_Tracker() )->has_pending_content_updates( $translation_post_id );
-			$has_meta_pending     = ( new Post_Meta_Tracker() )->has_pending_meta_updates( $translation_post_id );
+			// Check if this translation post has pending updates (using static methods).
+			$has_content_pending  = Post_Data_Tracker::has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = Post_Meta_Tracker::has_pending_meta_updates( $translation_post_id );
 			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
 
 			$translations_pending[ $lang_code ] = array(
@@ -177,9 +177,9 @@ class Post_Translation_Widget {
 			// Get translation post ID.
 			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
 
-			// Check if this translation post has pending updates (using static methods to avoid object instantiation).
-			$has_content_pending  = ( new Post_Data_Tracker() )->has_pending_content_updates( $translation_post_id );
-			$has_meta_pending     = ( new Post_Meta_Tracker() )->has_pending_meta_updates( $translation_post_id );
+			// Check if this translation post has pending updates (using static methods).
+			$has_content_pending  = Post_Data_Tracker::has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = Post_Meta_Tracker::has_pending_meta_updates( $translation_post_id );
 			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
 
 			$translations_pending[ $lang_code ] = array(

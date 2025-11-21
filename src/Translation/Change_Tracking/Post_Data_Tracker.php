@@ -1,6 +1,6 @@
 <?php
 /**
- * Post Content Tracker
+ * Post Data Tracker
  *
  * Tracks post content field changes (title, content, excerpt) and flags when translations need to be synced.
  * Monitors post updates to detect when translatable core fields are modified in the source language post,
@@ -14,7 +14,7 @@ namespace Multilingual_Bridge\Translation\Change_Tracking;
 use Multilingual_Bridge\Helpers\Post_Data_Helper;
 
 /**
- * Class Post_Content_Tracker
+ * Class Post_Data_Tracker
  *
  * Handles translation sync tracking for post content fields (title, content, excerpt)
  */
@@ -164,12 +164,12 @@ class Post_Data_Tracker {
 	/**
 	 * Check if post has pending content updates
 	 *
-	 * Checks for pending updates in title, content, or excerpt fields.
+	 * Checks if any content field (title, content, excerpt) needs sync.
 	 *
 	 * @param int $post_id Post ID (translation post).
-	 * @return bool True if post has content fields pending sync
+	 * @return bool True if any content field has pending updates
 	 */
-	public function has_pending_content_updates( int $post_id ): bool {
+	public static function has_pending_content_updates( int $post_id ): bool {
 		$pending = self::get_pending_updates( $post_id );
 
 		if ( empty( $pending ) || ! isset( $pending['content'] ) || ! is_array( $pending['content'] ) ) {

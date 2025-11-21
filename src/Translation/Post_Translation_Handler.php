@@ -75,10 +75,10 @@ class Post_Translation_Handler {
 	 * @param int         $post_id         Source post ID.
 	 * @param LanguageTag $target_language Target language tag.
 	 * @return array<string, mixed> Translation result
-	 * @throws InvalidArgumentException If post not found, not source post, or invalid language code.
-	 * @throws RuntimeException If translation, post creation, or post update fails.
 	 *
 	 * phpcs:disable Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- Method can throw both exception types
+	 * @throws InvalidArgumentException If post not found, not source post, or invalid language code.
+	 * @throws RuntimeException If translation, post creation, or post update fails.
 	 */
 	public function translate_post( int $post_id, LanguageTag $target_language ): array {
 		// Verify post exists.
