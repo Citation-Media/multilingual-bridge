@@ -369,9 +369,6 @@ class Translation_API extends WP_REST_Controller {
 
 		// Process each target language.
 		foreach ( $target_language_codes as $lang_code ) {
-			// Store original WPML format language code for response.
-			$wpml_lang_code = strtolower( $lang_code );
-
 			// Normalize language code to BCP 47 format (e.g., zh-hans -> zh-Hans).
 			$lang_code = $this->normalize_language_code( $lang_code );
 
@@ -388,64 +385,45 @@ class Translation_API extends WP_REST_Controller {
 						$e->getMessage()
 					),
 					array(
-						'language' => $wpml_lang_code,
+						'language' => $lang_code,
 						'status'   => 400,
 					)
 				);
 				continue;
 			}
 
-			// Translate post to this language, catching any exceptions.
-			try {
-				$result = $this->post_handler->translate_post( $post_id, $language_tag );
-			} catch ( \InvalidArgumentException $e ) {
-				// Handle validation errors (post not found, not source post, invalid language).
-				$error_message = $e->getMessage();
+			// Translate post to this language.
+			$result = $this->post_handler->translate_post( $post_id, $language_tag );
 
-				// Determine error code and status based on message.
-				$error_code = 'validation_error';
-				$status     = 400;
+			// Handle errors from handler.
+			if ( is_wp_error( $result ) ) {
+				$error_code = $result->get_error_code();
 
-				if ( strpos( $error_message, 'not found' ) !== false ) {
-					$error_code = 'post_not_found';
-					$status     = 404;
-				} elseif ( strpos( $error_message, 'not a source' ) !== false ) {
-					$error_code = 'not_source_post';
+				// For critical errors (post_not_found, not_source_post), return immediately.
+				if ( 'post_not_found' === $error_code || 'not_source_post' === $error_code ) {
+					return $result;
 				}
 
-				$errors->add(
-					$error_code,
-					$error_message,
-					array(
-						'language' => $wpml_lang_code,
-						'status'   => $status,
-					)
-				);
-
-				// For critical errors (post_not_found, not_source_post), stop processing and return immediately.
-				if ( in_array( $error_code, array( 'post_not_found', 'not_source_post' ), true ) ) {
-					return $errors;
+				// For other errors, accumulate all errors and continue processing other languages.
+				foreach ( $result->get_error_codes() as $code ) {
+					foreach ( $result->get_error_messages( $code ) as $message ) {
+						$errors->add(
+							$code,
+							$message,
+							array(
+								'language' => $lang_code,
+								'status'   => 400,
+							)
+						);
+					}
 				}
-
-				continue;
-			} catch ( \RuntimeException $e ) {
-				// Handle runtime errors (translation failures, post creation/update failures).
-				$errors->add(
-					'translation_error',
-					$e->getMessage(),
-					array(
-						'language' => $wpml_lang_code,
-						'status'   => 500,
-					)
-				);
 				continue;
 			}
 
 			// Track successful translation.
-			// Use WPML format language code (lowercase) for frontend compatibility.
 			if ( isset( $result['success'] ) && $result['success'] ) {
-				$successful_langs[]                     = $wpml_lang_code;
-				$translated_post_ids[ $wpml_lang_code ] = $result['translated_post_id'] ?? null;
+				$successful_langs[]                = $lang_code;
+				$translated_post_ids[ $lang_code ] = $result['translated_post_id'] ?? null;
 			}
 		}
 
