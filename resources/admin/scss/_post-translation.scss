@@ -116,6 +116,11 @@
 	color: #dba617;
 }
 
+// Translation with pending sync updates - just show warning icon
+.mlb-translation-pending .dashicons {
+	color: #f0b849;
+}
+
 // Highlight newly created/updated translations
 .mlb-new-translation {
 	animation: mlb-success-pulse 0.6s ease-in-out;
@@ -310,13 +315,6 @@
 	color: #d63638;
 }
 
-// More specific ID-based dashicon styles must come after class-based ones
-#mlb-generate-translation .dashicons {
-	width: 20px;
-	height: 20px;
-	font-size: 20px;
-}
-
 // =============================================================================
 // Widget Footer
 // =============================================================================
@@ -348,4 +346,88 @@
 	#mlb-generate-translation {
 		padding: 12px 16px;
 	}
+}
+
+// =============================================================================
+// ACF Field Pending Update Indicator
+// =============================================================================
+
+// Highlight ACF fields with pending updates from source language
+.acf-field.mlb-pending-update {
+	position: relative;
+
+	// Yellow left border indicator
+	&::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: -12px;
+		bottom: 0;
+		width: 4px;
+		background-color: #f0b849;
+	}
+
+	// Style the label
+	> .acf-label label {
+		font-weight: 600;
+	}
+}
+
+// Pending update badge wrapping entire label with warning icon
+// (using WordPress Tooltip component)
+.mlb-pending-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	background-color: #f0b849;
+	border-radius: 10px;
+	cursor: help;
+	transition: all 0.2s ease;
+	font-weight: 600;
+	color: #000;
+
+	// Dashicon warning on left
+	.dashicons {
+		width: 16px;
+		height: 16px;
+		font-size: 16px;
+		color: #000;
+		line-height: 1;
+		flex-shrink: 0;
+	}
+
+	// Hover effect
+	&:hover {
+		background-color: #dba617;
+	}
+}
+
+// Pulse animation for newly flagged fields
+@keyframes mlb-badge-pulse {
+
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(240, 184, 73, 0.7);
+	}
+
+	50% {
+		box-shadow: 0 0 0 6px rgba(240, 184, 73, 0);
+	}
+}
+
+// Apply pulse animation when field is first flagged
+.mlb-pending-badge.mlb-new-flag {
+	animation: mlb-badge-pulse 1s ease-out;
+}
+
+// =============================================================================
+// ID-based Specificity Overrides (must come last)
+// =============================================================================
+
+// More specific dashicon styles for button
+#mlb-generate-translation .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
 }

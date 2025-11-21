@@ -30,6 +30,7 @@ import { usePostTranslation } from '../hooks/usePostTranslation';
  * @param {Function} props.onChange         - Checkbox change handler
  * @param {string}   props.editPostUrl      - URL template for editing posts
  * @param {boolean}  props.isNewTranslation - Whether this is a newly created translation
+ * @param {boolean}  props.hasPending       - Whether translation has pending updates
  * @return {JSX.Element} Language checkbox item
  */
 const LanguageCheckboxItem = ({
@@ -40,8 +41,28 @@ const LanguageCheckboxItem = ({
 	onChange,
 	editPostUrl,
 	isNewTranslation,
+	hasPending,
 }) => {
 	const editUrl = editPostUrl.replace('POST_ID', translationId);
+
+	// Determine status classes and icon
+	let statusClass = 'mlb-translation-status';
+	let iconClass = 'dashicons';
+	let titleText = '';
+
+	if (hasPending) {
+		statusClass += ' mlb-translation-pending';
+		iconClass += ' dashicons-warning';
+		titleText = __('Untranslated changes pending', 'multilingual-bridge');
+	} else if (hasTranslation) {
+		statusClass += ` mlb-has-translation${isNewTranslation ? ' mlb-new-translation' : ''}`;
+		iconClass += ' dashicons-yes-alt';
+		titleText = __('Translation exists', 'multilingual-bridge');
+	} else {
+		statusClass += ' mlb-no-translation';
+		iconClass += ' dashicons-marker';
+		titleText = __('No translation', 'multilingual-bridge');
+	}
 
 	return createElement(
 		'label',
@@ -70,17 +91,11 @@ const LanguageCheckboxItem = ({
 		createElement(
 			'span',
 			{
-				className: hasTranslation
-					? `mlb-translation-status mlb-has-translation${isNewTranslation ? ' mlb-new-translation' : ''}`
-					: 'mlb-translation-status mlb-no-translation',
-				title: hasTranslation
-					? __('Translation exists', 'multilingual-bridge')
-					: __('No translation', 'multilingual-bridge'),
+				className: statusClass,
+				title: titleText,
 			},
 			createElement('span', {
-				className: hasTranslation
-					? 'dashicons dashicons-yes-alt'
-					: 'dashicons dashicons-marker',
+				className: iconClass,
 			})
 		)
 	);
@@ -179,17 +194,19 @@ const ProgressBar = ({ percent, text }) => {
 /**
  * Main Post Translation Widget Component
  *
- * @param {Object} props                 - Component props
- * @param {number} props.postId          - Source post ID
- * @param {Object} props.targetLanguages - Available target languages
- * @param {Object} props.translations    - Existing translations
- * @param {string} props.editPostUrl     - URL template for editing posts
+ * @param {Object} props                     - Component props
+ * @param {number} props.postId              - Source post ID
+ * @param {Object} props.targetLanguages     - Available target languages
+ * @param {Object} props.translations        - Existing translations
+ * @param {Object} props.translationsPending - Pending updates for each translation
+ * @param {string} props.editPostUrl         - URL template for editing posts
  * @return {JSX.Element} Widget component
  */
 export const PostTranslationWidget = ({
 	postId,
-	targetLanguages,
-	translations,
+	targetLanguages = {},
+	translations = {},
+	translationsPending = {},
 	editPostUrl,
 }) => {
 	const {
@@ -202,7 +219,13 @@ export const PostTranslationWidget = ({
 		errorMessage,
 		translate,
 		updatedTranslations,
-	} = usePostTranslation(postId, targetLanguages, translations);
+		pendingUpdates,
+	} = usePostTranslation(
+		postId,
+		targetLanguages,
+		translations,
+		translationsPending
+	);
 
 	// Local validation error state
 	const [validationError, setValidationError] = useState(null);
@@ -210,9 +233,12 @@ export const PostTranslationWidget = ({
 	// Track newly translated languages to highlight them
 	const [newlyTranslated, setNewlyTranslated] = useState({});
 
-	// Get language names for display
+	// Get language names for display - with safety check
 	const langNames = Object.fromEntries(
-		Object.entries(targetLanguages).map(([code, data]) => [code, data.name])
+		Object.entries(targetLanguages || {}).map(([code, data]) => [
+			code,
+			data?.name || code,
+		])
 	);
 
 	/**
@@ -264,7 +290,10 @@ export const PostTranslationWidget = ({
 
 	return createElement(
 		'div',
-		{ id: 'multilingual-bridge-post-widget' },
+		{
+			id: 'multilingual-bridge-post-widget',
+			className: 'multilingual-bridge-post-widget-container',
+		},
 
 		// Language list
 		createElement(
@@ -280,7 +309,7 @@ export const PostTranslationWidget = ({
 				)
 			),
 
-			Object.keys(targetLanguages).length === 0
+			Object.keys(targetLanguages || {}).length === 0
 				? createElement(
 						'p',
 						{ className: 'mlb-no-languages' },
@@ -315,7 +344,7 @@ export const PostTranslationWidget = ({
 						createElement(
 							'div',
 							{ className: 'mlb-language-list' },
-							...Object.entries(targetLanguages).map(
+							...Object.entries(targetLanguages || {}).map(
 								([langCode, language]) => {
 									const hasTranslation =
 										updatedTranslations[langCode] !==
@@ -325,11 +354,14 @@ export const PostTranslationWidget = ({
 										: 0;
 									const isNewTranslation =
 										newlyTranslated[langCode] === true;
+									const hasPending =
+										pendingUpdates?.[langCode]
+											?.hasPending || false;
 
 									return createElement(LanguageCheckboxItem, {
 										key: langCode,
 										langCode,
-										langName: language.name,
+										langName: language?.name || langCode,
 										hasTranslation,
 										translationId,
 										checked:
@@ -340,6 +372,7 @@ export const PostTranslationWidget = ({
 											toggleLanguage(langCode),
 										editPostUrl,
 										isNewTranslation,
+										hasPending,
 									});
 								}
 							)
@@ -430,7 +463,7 @@ export const PostTranslationWidget = ({
 				'p',
 				{ className: 'description' },
 				__(
-					'This will translate all translatable ACF fields to the selected languages.',
+					'This will translate all translatable fields and attributes into the selected languages.',
 					'multilingual-bridge'
 				)
 			)

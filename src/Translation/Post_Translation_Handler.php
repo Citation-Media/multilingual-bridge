@@ -17,8 +17,12 @@ namespace Multilingual_Bridge\Translation;
 
 use PrinsFrank\Standards\LanguageTag\LanguageTag;
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 use WP_Error;
 use WP_Post;
+use RuntimeException;
+use InvalidArgumentException;
 
 /**
  * Class Post_Translation_Handler
@@ -42,11 +46,27 @@ class Post_Translation_Handler {
 	private Meta_Translation_Handler $meta_handler;
 
 	/**
+	 * Post Content Tracker instance
+	 *
+	 * @var Post_Data_Tracker
+	 */
+	private Post_Data_Tracker $content_tracker;
+
+	/**
+	 * Post Meta Tracker instance
+	 *
+	 * @var Post_Meta_Tracker
+	 */
+	private Post_Meta_Tracker $meta_tracker;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->translation_manager = Translation_Manager::instance();
 		$this->meta_handler        = new Meta_Translation_Handler();
+		$this->content_tracker     = new Post_Data_Tracker();
+		$this->meta_tracker        = new Post_Meta_Tracker();
 	}
 
 	/**
@@ -54,25 +74,25 @@ class Post_Translation_Handler {
 	 *
 	 * @param int         $post_id         Source post ID.
 	 * @param LanguageTag $target_language Target language tag.
-	 * @return array<string, mixed>|WP_Error Translation result or error
+	 * @return array<string, mixed> Translation result
+	 * @throws InvalidArgumentException If post not found, not source post, or invalid language code.
+	 * @throws RuntimeException If translation, post creation, or post update fails.
+	 *
+	 * phpcs:disable Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- Method can throw both exception types
 	 */
-	public function translate_post( int $post_id, LanguageTag $target_language ): array|WP_Error {
+	public function translate_post( int $post_id, LanguageTag $target_language ): array {
 		// Verify post exists.
 		$source_post = get_post( $post_id );
 		if ( ! $source_post ) {
-			return new WP_Error(
-				'post_not_found',
-				__( 'Source post not found', 'multilingual-bridge' ),
-				array( 'status' => 404 )
+			throw new InvalidArgumentException(
+				esc_html__( 'Source post not found', 'multilingual-bridge' )
 			);
 		}
 
 		// Verify post is original/source language.
 		if ( ! WPML_Post_Helper::is_original_post( $post_id ) ) {
-			return new WP_Error(
-				'not_source_post',
-				__( 'Post is not a source language post', 'multilingual-bridge' ),
-				array( 'status' => 400 )
+			throw new InvalidArgumentException(
+				esc_html__( 'Post is not a source language post', 'multilingual-bridge' )
 			);
 		}
 
@@ -96,9 +116,11 @@ class Post_Translation_Handler {
 	 * @param WP_Post     $source_post    Source post object.
 	 * @param string      $source_lang    Source language code (WPML format).
 	 * @param LanguageTag $target_lang_tag Target language tag object.
-	 * @return array<string, mixed>|WP_Error Translation result or error
+	 * @return array<string, mixed> Translation result
+	 * @throws InvalidArgumentException If language code is invalid.
+	 * @throws RuntimeException If translation fails.
 	 */
-	private function translate_to_language( int $source_post_id, WP_Post $source_post, string $source_lang, LanguageTag $target_lang_tag ): array|WP_Error {
+	private function translate_to_language( int $source_post_id, WP_Post $source_post, string $source_lang, LanguageTag $target_lang_tag ): array {
 		$target_lang = strtolower( $target_lang_tag->toString() );
 
 		// Check if translation already exists.
@@ -107,14 +129,12 @@ class Post_Translation_Handler {
 			// Convert source language to LanguageTag.
 			$source_lang_tag = LanguageTag::tryFromString( $source_lang );
 		} catch ( \Exception $e ) {
-			return new WP_Error(
-				'invalid_source_language',
+			throw new InvalidArgumentException(
 				sprintf(
 				/* translators: %s: language code */
-					__( 'Invalid source language code: %s', 'multilingual-bridge' ),
-					$source_lang
-				),
-				array( 'status' => 400 )
+					esc_html__( 'Invalid source language code: %s', 'multilingual-bridge' ),
+					esc_html( $source_lang )
+				)
 			);
 		}
 
@@ -128,11 +148,6 @@ class Post_Translation_Handler {
 			$created_new    = true;
 		}
 
-		// Handle translation errors.
-		if ( is_wp_error( $target_post_id ) ) {
-			return $target_post_id;
-		}
-
 		// Translate post meta.
 		$meta_results = $this->meta_handler->translate_post_meta(
 			$source_post_id,
@@ -141,13 +156,16 @@ class Post_Translation_Handler {
 			$source_lang_tag
 		);
 
-		// Accumulate errors using WP_Error.
-		$errors = new WP_Error();
-
-		// Add meta translation errors if any.
+		// Collect meta translation errors.
+		$meta_errors = array();
 		if ( ! empty( $meta_results['errors'] ) ) {
-			foreach ( $meta_results['errors'] as $error_message ) {
-				$errors->add( 'meta_translation_error', $error_message );
+			foreach ( $meta_results['errors'] as $field_key => $error_message ) {
+				$meta_errors[] = sprintf(
+					/* translators: 1: field key, 2: error message */
+					esc_html__( 'Field "%1$s": %2$s', 'multilingual-bridge' ),
+					esc_html( $field_key ),
+					esc_html( $error_message )
+				);
 			}
 		}
 
@@ -162,16 +180,29 @@ class Post_Translation_Handler {
 		);
 
 		if ( is_wp_error( $update_result ) ) {
-			$errors->add(
-				'post_update_failed',
-				$update_result->get_error_message()
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to update post: %s', 'multilingual-bridge' ),
+					esc_html( $update_result->get_error_message() )
+				)
 			);
 		}
 
-		// If there are critical errors, return WP_Error.
-		if ( $errors->has_errors() ) {
-			return $errors;
+		// If there are meta translation errors, throw exception with all errors.
+		if ( ! empty( $meta_errors ) ) {
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: combined error messages */
+					esc_html__( 'Meta translation errors: %s', 'multilingual-bridge' ),
+					esc_html( implode( '; ', $meta_errors ) )
+				)
+			);
 		}
+
+		// Clear pending updates from the translation post after successful translation.
+		$this->content_tracker->clear_pending_content_updates( $target_post_id );
+		$this->meta_tracker->clear_pending_meta_updates( $target_post_id );
 
 		// Return success result.
 		return array(
@@ -192,9 +223,10 @@ class Post_Translation_Handler {
 	 * @param LanguageTag $target_lang    Target language tag.
 	 * @param LanguageTag $source_lang    Source language tag.
 	 * @param int|null    $target_post_id Target post ID (null for new posts).
-	 * @return array<string, mixed>|WP_Error Post data array or error
+	 * @return array<string, mixed> Post data array
+	 * @throws RuntimeException If translation fails.
 	 */
-	private function translate_and_build_post_data( WP_Post $source_post, LanguageTag $target_lang, LanguageTag $source_lang, ?int $target_post_id = null ): array|WP_Error {
+	private function translate_and_build_post_data( WP_Post $source_post, LanguageTag $target_lang, LanguageTag $source_lang, ?int $target_post_id = null ): array {
 		// Translate post title (always required).
 		$translated_title = $this->translation_manager->translate(
 			$target_lang,
@@ -203,7 +235,13 @@ class Post_Translation_Handler {
 		);
 
 		if ( is_wp_error( $translated_title ) ) {
-			return $translated_title;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to translate post title: %s', 'multilingual-bridge' ),
+					esc_html( $translated_title->get_error_message() )
+				)
+			);
 		}
 
 		// Translate post content.
@@ -214,7 +252,13 @@ class Post_Translation_Handler {
 		);
 
 		if ( is_wp_error( $translated_content ) ) {
-			return $translated_content;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to translate post content: %s', 'multilingual-bridge' ),
+					esc_html( $translated_content->get_error_message() )
+				)
+			);
 		}
 
 		// Translate post excerpt.
@@ -225,7 +269,13 @@ class Post_Translation_Handler {
 		);
 
 		if ( is_wp_error( $translated_excerpt ) ) {
-			return $translated_excerpt;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to translate post excerpt: %s', 'multilingual-bridge' ),
+					esc_html( $translated_excerpt->get_error_message() )
+				)
+			);
 		}
 
 		// Build post data with translated content.
@@ -277,21 +327,24 @@ class Post_Translation_Handler {
 	 * @param string      $target_lang     Target language code (WPML format).
 	 * @param LanguageTag $target_lang_tag Target language tag.
 	 * @param LanguageTag $source_lang_tag Source language tag.
-	 * @return int|WP_Error Target post ID or error
+	 * @return int Target post ID
+	 * @throws RuntimeException If post creation fails.
 	 */
-	private function create_translation_post( WP_Post $source_post, int $source_post_id, string $target_lang, LanguageTag $target_lang_tag, LanguageTag $source_lang_tag ): int|WP_Error {
+	private function create_translation_post( WP_Post $source_post, int $source_post_id, string $target_lang, LanguageTag $target_lang_tag, LanguageTag $source_lang_tag ): int {
 		// Translate and build post data.
 		$post_data = $this->translate_and_build_post_data( $source_post, $target_lang_tag, $source_lang_tag );
-
-		if ( is_wp_error( $post_data ) ) {
-			return $post_data;
-		}
 
 		// Insert post.
 		$target_post_id = wp_insert_post( $post_data, true );
 
 		if ( is_wp_error( $target_post_id ) ) {
-			return $target_post_id;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to create translation post: %s', 'multilingual-bridge' ),
+					esc_html( $target_post_id->get_error_message() )
+				)
+			);
 		}
 
 		// Set language for new post (using WPML format).
@@ -300,7 +353,13 @@ class Post_Translation_Handler {
 		if ( is_wp_error( $wpml_result ) ) {
 			// Clean up created post.
 			wp_delete_post( $target_post_id, true );
-			return $wpml_result;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to set language for translation: %s', 'multilingual-bridge' ),
+					esc_html( $wpml_result->get_error_message() )
+				)
+			);
 		}
 
 		// Now relate the posts as translations (using WPML format).
@@ -309,7 +368,13 @@ class Post_Translation_Handler {
 		if ( is_wp_error( $relation_result ) ) {
 			// Clean up created post.
 			wp_delete_post( $target_post_id, true );
-			return $relation_result;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to relate posts as translations: %s', 'multilingual-bridge' ),
+					esc_html( $relation_result->get_error_message() )
+				)
+			);
 		}
 
 		// Copy WPML custom fields.
@@ -325,21 +390,24 @@ class Post_Translation_Handler {
 	 * @param int         $target_post_id Existing translation post ID.
 	 * @param LanguageTag $source_lang    Source language tag.
 	 * @param LanguageTag $target_lang    Target language tag.
-	 * @return int|WP_Error Target post ID or error
+	 * @return int Target post ID
+	 * @throws RuntimeException If post update fails.
 	 */
-	private function update_translation_post( WP_Post $source_post, int $target_post_id, LanguageTag $source_lang, LanguageTag $target_lang ): int|WP_Error {
+	private function update_translation_post( WP_Post $source_post, int $target_post_id, LanguageTag $source_lang, LanguageTag $target_lang ): int {
 		// Translate and build post data.
 		$post_data = $this->translate_and_build_post_data( $source_post, $target_lang, $source_lang, $target_post_id );
-
-		if ( is_wp_error( $post_data ) ) {
-			return $post_data;
-		}
 
 		// Update post.
 		$result = wp_update_post( $post_data, true );
 
 		if ( is_wp_error( $result ) ) {
-			return $result;
+			throw new RuntimeException(
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Failed to update translation post: %s', 'multilingual-bridge' ),
+					esc_html( $result->get_error_message() )
+				)
+			);
 		}
 
 		/*

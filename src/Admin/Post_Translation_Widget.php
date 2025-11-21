@@ -12,6 +12,9 @@ namespace Multilingual_Bridge\Admin;
 
 use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\WPML_Language_Helper;
+use Multilingual_Bridge\Helpers\Translation_Post_Types;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Data_Tracker;
+use Multilingual_Bridge\Translation\Change_Tracking\Post_Meta_Tracker;
 
 /**
  * Class Post_Translation_Widget
@@ -35,7 +38,7 @@ class Post_Translation_Widget {
 	/**
 	 * Add meta box to post edit screen
 	 *
-	 * Only shows on source language posts.
+	 * Only shows on source language posts and enabled post types.
 	 *
 	 * @param string $post_type Current post type.
 	 */
@@ -47,21 +50,8 @@ class Post_Translation_Widget {
 			return;
 		}
 
-		/**
-		 * Filter post types to disable post translation
-		 *
-		 * By default, post translation is enabled for all post types.
-		 * Add post types to this array to disable the widget for those types.
-		 *
-		 * @param string[] $disabled_post_types Post types to disable post translation widget
-		 */
-		$disabled_post_types = apply_filters(
-			'multilingual_bridge_disable_post_translation_post_types',
-			array()
-		);
-
-		// Show for all post types unless explicitly disabled.
-		if ( in_array( $post_type, $disabled_post_types, true ) ) {
+		// Only show for enabled post types.
+		if ( ! Translation_Post_Types::is_enabled( $post_type ) ) {
 			return;
 		}
 
@@ -94,14 +84,37 @@ class Post_Translation_Widget {
 			ARRAY_FILTER_USE_KEY
 		);
 
+		// Get pending updates for this post (post change tracking feature).
+		// Build pending updates data for each translation language.
+		$translations_pending = array();
+		foreach ( $translations as $lang_code => $translation_value ) {
+			// Skip source language.
+			if ( $lang_code === $source_language ) {
+				continue;
+			}
+
+			// Get translation post ID.
+			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
+
+			// Check if this translation post has pending updates (using static methods to avoid object instantiation).
+			$has_content_pending  = ( new Post_Data_Tracker() )->has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = ( new Post_Meta_Tracker() )->has_pending_meta_updates( $translation_post_id );
+			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
+
+			$translations_pending[ $lang_code ] = array(
+				'hasPending' => $has_pending_for_lang,
+			);
+		}
+
 		wp_nonce_field( 'multilingual_bridge_post_translation', 'multilingual_bridge_post_translation_nonce' );
 
 		// Prepare data for React app.
 		$widget_data = array(
-			'postId'          => $post->ID,
-			'sourceLanguage'  => $source_language,
-			'targetLanguages' => $target_languages,
-			'translations'    => $translations,
+			'postId'              => $post->ID,
+			'sourceLanguage'      => $source_language,
+			'targetLanguages'     => $target_languages,
+			'translations'        => $translations,
+			'translationsPending' => $translations_pending,
 		);
 		?>
 
@@ -125,6 +138,7 @@ class Post_Translation_Widget {
 		data-source-language="<?php echo esc_attr( $source_language ); ?>"
 		data-target-languages="<?php echo esc_attr( wp_json_encode( $target_languages ) ); ?>"
 		data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
+		data-translations-pending="<?php echo esc_attr( wp_json_encode( $translations_pending ) ); ?>"
 	>
 		<!-- React app will render here -->
 	</div>
@@ -137,8 +151,7 @@ class Post_Translation_Widget {
 	 *
 	 * Note: The main admin script is already enqueued by Multilingual_Bridge::define_admin_hooks()
 	 * at priority 100. This method runs at priority 200 to ensure the script is enqueued before
-	 * we try to localize it. This method only adds localization data for the post translation
-	 * functionality.
+	 * we try to localize it. This method adds localization data for both source and translated posts.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -150,7 +163,7 @@ class Post_Translation_Widget {
 
 		global $post;
 
-		if ( ! $post || ! WPML_Post_Helper::is_original_post( $post->ID ) ) {
+		if ( ! $post ) {
 			return;
 		}
 
@@ -178,6 +191,7 @@ class Post_Translation_Widget {
 					'generatingPost'       => __( 'Creating translation post...', 'multilingual-bridge' ),
 					'translatingMeta'      => __( 'Translating post meta...', 'multilingual-bridge' ),
 					'savingTranslation'    => __( 'Saving translations...', 'multilingual-bridge' ),
+					'pendingUpdateTooltip' => __( 'This field has translation updates from the source language', 'multilingual-bridge' ),
 				),
 			)
 		);
