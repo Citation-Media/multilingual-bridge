@@ -14,14 +14,27 @@ import { __ } from '@wordpress/i18n';
 /**
  * Custom hook for post translation functionality
  *
- * @param {number} postId          - Source post ID
- * @param {Object} targetLanguages - Available target languages object
- * @param {Object} translations    - Existing translations object
+ * @param {number}  postId              - Source post ID
+ * @param {Object}  targetLanguages     - Available target languages object
+ * @param {Object}  translations        - Existing translations object
+ * @param {Object}  translationsPending - Pending updates for translations
+ * @param {boolean} isNavigation        - Whether this is navigation-only mode (skips translation state)
  * @return {Object} Translation state and methods
  */
-export const usePostTranslation = (postId, targetLanguages, translations) => {
+export const usePostTranslation = (
+	postId,
+	targetLanguages,
+	translations,
+	translationsPending = {},
+	isNavigation = false
+) => {
+	// In navigation mode, skip all translation state to avoid unnecessary overhead
+	// Only initialize minimal state needed for component consistency
+	const emptyArray = [];
+	const emptyObject = {};
+
 	// Selected language codes for translation
-	const [selectedLanguages, setSelectedLanguages] = useState([]);
+	const [selectedLanguages, setSelectedLanguages] = useState(emptyArray);
 
 	// Translation in progress
 	const [isTranslating, setIsTranslating] = useState(false);
@@ -39,6 +52,9 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 	// Track updated translations to update UI
 	const [updatedTranslations, setUpdatedTranslations] =
 		useState(translations);
+
+	// Track pending updates
+	const [pendingUpdates, setPendingUpdates] = useState(translationsPending);
 
 	/**
 	 * Toggle language selection
@@ -143,6 +159,14 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 			);
 			setUpdatedTranslations(newTranslations);
 
+			// Clear pending updates for successfully translated languages
+			const newPendingUpdates = { ...pendingUpdates };
+			response.translated_languages?.forEach((langCode) => {
+				// Always set hasPending to false for successfully translated languages
+				newPendingUpdates[langCode] = { hasPending: false };
+			});
+			setPendingUpdates(newPendingUpdates);
+
 			// Clear error
 			setErrorMessage('');
 		} catch (error) {
@@ -153,6 +177,15 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 			// Stop translation
 			setIsTranslating(false);
 		}
+	};
+
+	/**
+	 * Clear only the result state
+	 *
+	 * Used to dismiss the success notification without resetting other state.
+	 */
+	const clearResult = () => {
+		setResult(null);
 	};
 
 	/**
@@ -167,6 +200,25 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 		setErrorMessage('');
 	};
 
+	// Return navigation-specific stub values if in navigation mode
+	// This ensures hooks are always called in the same order
+	if (isNavigation) {
+		return {
+			selectedLanguages: emptyArray,
+			toggleLanguage: () => {},
+			isTranslating: false,
+			progressPercent: 0,
+			progressText: '',
+			result: null,
+			errorMessage: '',
+			translate: () => {},
+			reset: () => {},
+			clearResult: () => {},
+			updatedTranslations: emptyObject,
+			pendingUpdates: emptyObject,
+		};
+	}
+
 	return {
 		selectedLanguages,
 		toggleLanguage,
@@ -177,6 +229,8 @@ export const usePostTranslation = (postId, targetLanguages, translations) => {
 		errorMessage,
 		translate,
 		reset,
+		clearResult,
 		updatedTranslations,
+		pendingUpdates,
 	};
 };
