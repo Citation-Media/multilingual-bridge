@@ -14,20 +14,27 @@ import { __ } from '@wordpress/i18n';
 /**
  * Custom hook for post translation functionality
  *
- * @param {number} postId              - Source post ID
- * @param {Object} targetLanguages     - Available target languages object
- * @param {Object} translations        - Existing translations object
- * @param {Object} translationsPending - Pending updates for translations
+ * @param {number}  postId              - Source post ID
+ * @param {Object}  targetLanguages     - Available target languages object
+ * @param {Object}  translations        - Existing translations object
+ * @param {Object}  translationsPending - Pending updates for translations
+ * @param {boolean} isNavigation        - Whether this is navigation-only mode (skips translation state)
  * @return {Object} Translation state and methods
  */
 export const usePostTranslation = (
 	postId,
 	targetLanguages,
 	translations,
-	translationsPending = {}
+	translationsPending = {},
+	isNavigation = false
 ) => {
+	// In navigation mode, skip all translation state to avoid unnecessary overhead
+	// Only initialize minimal state needed for component consistency
+	const emptyArray = [];
+	const emptyObject = {};
+
 	// Selected language codes for translation
-	const [selectedLanguages, setSelectedLanguages] = useState([]);
+	const [selectedLanguages, setSelectedLanguages] = useState(emptyArray);
 
 	// Translation in progress
 	const [isTranslating, setIsTranslating] = useState(false);
@@ -48,6 +55,23 @@ export const usePostTranslation = (
 
 	// Track pending updates
 	const [pendingUpdates, setPendingUpdates] = useState(translationsPending);
+
+	// Early return for navigation mode - skip all function definitions
+	if (isNavigation) {
+		return {
+			selectedLanguages: emptyArray,
+			toggleLanguage: () => {},
+			isTranslating: false,
+			progressPercent: 0,
+			progressText: '',
+			result: null,
+			errorMessage: '',
+			translate: () => {},
+			reset: () => {},
+			updatedTranslations: emptyObject,
+			pendingUpdates: emptyObject,
+		};
+	}
 
 	/**
 	 * Toggle language selection

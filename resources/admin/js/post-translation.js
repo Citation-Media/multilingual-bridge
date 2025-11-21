@@ -88,12 +88,16 @@ function addPendingUpdateIndicators() {
  * Runs when DOM is ready. Mounts the React app into the widget container.
  */
 document.addEventListener('DOMContentLoaded', function () {
-	// Find widget container in DOM
+	// Get edit post URL from localized script
+	const editPostUrl =
+		window.multilingualBridgePost?.editPostUrl ||
+		'/wp-admin/post.php?post=POST_ID&action=edit';
+
+	// Find full widget container (source posts)
 	const widgetContainer = document.getElementById(
 		'multilingual-bridge-post-widget'
 	);
 
-	// Only initialize if widget exists on page (source posts only)
 	if (widgetContainer) {
 		// Get widget data from PHP (passed via data attributes)
 		const widgetData = widgetContainer.dataset;
@@ -107,11 +111,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			widgetData.translationsPending || '{}'
 		);
 
-		// Get edit post URL from localized script
-		const editPostUrl =
-			window.multilingualBridgePost?.editPostUrl ||
-			'/wp-admin/post.php?post=POST_ID&action=edit';
-
 		// Render React widget
 		const root = createRoot(widgetContainer);
 		root.render(
@@ -122,6 +121,39 @@ document.addEventListener('DOMContentLoaded', function () {
 				translations,
 				translationsPending,
 				editPostUrl,
+			})
+		);
+	}
+
+	// Find navigation widget container (translated posts)
+	const navContainer = document.getElementById(
+		'multilingual-bridge-post-widget-nav'
+	);
+
+	if (navContainer) {
+		// Get widget data from PHP
+		const navData = navContainer.dataset;
+
+		// Parse data attributes
+		const postId = parseInt(navData.postId, 10);
+		const currentLanguage = navData.currentLanguage;
+		const availableLanguages = JSON.parse(
+			navData.availableLanguages || '{}'
+		);
+		const translations = JSON.parse(navData.translations || '{}');
+
+		// Render navigation-only widget
+		const root = createRoot(navContainer);
+		root.render(
+			createElement(PostTranslationWidget, {
+				postId,
+				sourceLanguage: currentLanguage,
+				targetLanguages: {},
+				translations,
+				translationsPending: {},
+				editPostUrl,
+				isNavigation: true,
+				availableLanguages,
 			})
 		);
 	}
