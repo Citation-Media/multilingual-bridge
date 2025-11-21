@@ -141,6 +141,9 @@ document.addEventListener('DOMContentLoaded', function () {
 			navData.availableLanguages || '{}'
 		);
 		const translations = JSON.parse(navData.translations || '{}');
+		const translationsPending = JSON.parse(
+			navData.translationsPending || '{}'
+		);
 
 		// Render navigation-only widget
 		const root = createRoot(navContainer);
@@ -150,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				sourceLanguage: currentLanguage,
 				targetLanguages: {},
 				translations,
-				translationsPending: {},
+				translationsPending,
 				editPostUrl,
 				isNavigation: true,
 				availableLanguages,

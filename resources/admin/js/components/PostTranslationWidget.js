@@ -18,6 +18,59 @@ import { Button, CheckboxControl, Notice } from '@wordpress/components';
 import { usePostTranslation } from '../hooks/usePostTranslation';
 
 /**
+ * Translation Status Icon Component
+ *
+ * Shared component that renders status icon for translations.
+ *
+ * @param {Object}  props                  - Component props
+ * @param {boolean} props.hasPending       - Whether translation has pending updates
+ * @param {boolean} props.hasTranslation   - Whether translation exists
+ * @param {boolean} props.isCurrent        - Whether this is the current language
+ * @param {boolean} props.isNewTranslation - Whether this is a newly created translation
+ * @return {JSX.Element} Status icon
+ */
+const StatusIcon = ({
+	hasPending = false,
+	hasTranslation = false,
+	isCurrent = false,
+	isNewTranslation = false,
+}) => {
+	let statusClass = 'mlb-translation-status';
+	let iconClass = 'dashicons';
+	let titleText = '';
+
+	// Priority: pending > current > translated > no translation
+	if (hasPending) {
+		statusClass += ' mlb-translation-pending';
+		iconClass += ' dashicons-warning';
+		titleText = __('Untranslated changes pending', 'multilingual-bridge');
+	} else if (isCurrent) {
+		statusClass = 'mlb-current-indicator';
+		iconClass += ' dashicons-yes-alt';
+		titleText = __('Current language', 'multilingual-bridge');
+	} else if (hasTranslation) {
+		statusClass += ` mlb-has-translation${isNewTranslation ? ' mlb-new-translation' : ''}`;
+		iconClass += ' dashicons-yes-alt';
+		titleText = __('Translation exists', 'multilingual-bridge');
+	} else {
+		statusClass += ' mlb-no-translation';
+		iconClass += ' dashicons-marker';
+		titleText = __('No translation', 'multilingual-bridge');
+	}
+
+	return createElement(
+		'span',
+		{
+			className: statusClass,
+			title: titleText,
+		},
+		createElement('span', {
+			className: iconClass,
+		})
+	);
+};
+
+/**
  * Language Navigation Item Component (for translated posts)
  *
  * Renders a language link without checkbox, showing translation status.
@@ -27,6 +80,7 @@ import { usePostTranslation } from '../hooks/usePostTranslation';
  * @param {number}  props.translationId - Translation post ID
  * @param {string}  props.editPostUrl   - URL template for editing posts
  * @param {boolean} props.isCurrent     - Whether this is the current language
+ * @param {boolean} props.hasPending    - Whether translation has pending updates
  * @return {JSX.Element} Language navigation item
  */
 const LanguageNavigationItem = ({
@@ -34,6 +88,7 @@ const LanguageNavigationItem = ({
 	translationId,
 	editPostUrl,
 	isCurrent,
+	hasPending = false,
 }) => {
 	const editUrl = editPostUrl.replace('POST_ID', translationId);
 	const hasTranslation = translationId > 0;
@@ -57,17 +112,11 @@ const LanguageNavigationItem = ({
 					className: 'dashicons dashicons-edit',
 				})
 			),
-		isCurrent &&
-			createElement(
-				'span',
-				{
-					className: 'mlb-current-indicator',
-					title: __('Current language', 'multilingual-bridge'),
-				},
-				createElement('span', {
-					className: 'dashicons dashicons-yes-alt',
-				})
-			)
+		createElement(StatusIcon, {
+			hasPending,
+			hasTranslation,
+			isCurrent,
+		})
 	);
 };
 
@@ -99,25 +148,6 @@ const LanguageCheckboxItem = ({
 }) => {
 	const editUrl = editPostUrl.replace('POST_ID', translationId);
 
-	// Determine status classes and icon
-	let statusClass = 'mlb-translation-status';
-	let iconClass = 'dashicons';
-	let titleText = '';
-
-	if (hasPending) {
-		statusClass += ' mlb-translation-pending';
-		iconClass += ' dashicons-warning';
-		titleText = __('Untranslated changes pending', 'multilingual-bridge');
-	} else if (hasTranslation) {
-		statusClass += ` mlb-has-translation${isNewTranslation ? ' mlb-new-translation' : ''}`;
-		iconClass += ' dashicons-yes-alt';
-		titleText = __('Translation exists', 'multilingual-bridge');
-	} else {
-		statusClass += ' mlb-no-translation';
-		iconClass += ' dashicons-marker';
-		titleText = __('No translation', 'multilingual-bridge');
-	}
-
 	return createElement(
 		'label',
 		{ className: 'mlb-language-item' },
@@ -142,16 +172,11 @@ const LanguageCheckboxItem = ({
 					className: 'dashicons dashicons-edit',
 				})
 			),
-		createElement(
-			'span',
-			{
-				className: statusClass,
-				title: titleText,
-			},
-			createElement('span', {
-				className: iconClass,
-			})
-		)
+		createElement(StatusIcon, {
+			hasPending,
+			hasTranslation,
+			isNewTranslation,
+		})
 	);
 };
 
@@ -306,7 +331,7 @@ export const PostTranslationWidget = ({
 	useEffect(() => {
 		if (result && !isTranslating) {
 			const newTranslations = {};
-			
+
 			// Check all languages in the result (not selectedLanguages)
 			// This ensures we only process the languages that were actually translated
 			Object.keys(result.languages || {}).forEach((langCode) => {
@@ -358,6 +383,9 @@ export const PostTranslationWidget = ({
 						([langCode, language]) => {
 							const translationId = translations[langCode] || 0;
 							const isCurrent = langCode === sourceLanguage;
+							const hasPending =
+								translationsPending?.[langCode]?.hasPending ||
+								false;
 
 							return createElement(LanguageNavigationItem, {
 								key: langCode,
@@ -365,6 +393,7 @@ export const PostTranslationWidget = ({
 								translationId,
 								editPostUrl,
 								isCurrent,
+								hasPending,
 							});
 						}
 					)

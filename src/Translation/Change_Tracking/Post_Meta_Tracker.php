@@ -39,13 +39,13 @@ class Post_Meta_Tracker {
 	 * Fires before post meta is updated. Compares old and new values
 	 * to determine if the field has actually changed and needs sync.
 	 *
-	 * @param null|bool $check      Whether to allow updating metadata. Return non-null to short-circuit.
-	 * @param int       $object_id  Post ID.
-	 * @param string    $meta_key   Meta key being updated.
-	 * @param mixed     $prev_value Previous value parameter used for conditional updates (not the actual current value in the database).
+	 * @param null|bool $check       Whether to allow updating metadata. Return non-null to short-circuit.
+	 * @param int       $object_id   Post ID.
+	 * @param string    $meta_key    Meta key being updated.
+	 * @param mixed     $meta_value  New meta value being set.
 	 * @return null|bool Null to continue with update, bool to short-circuit
 	 */
-	public function track_meta_update( mixed $check, int $object_id, string $meta_key, mixed $meta_value ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress filter.
+	public function track_meta_update( mixed $check, int $object_id, string $meta_key, mixed $meta_value ): mixed {
 		if ( $this->should_skip_meta( $meta_key ) ) {
 			return $check;
 		}
