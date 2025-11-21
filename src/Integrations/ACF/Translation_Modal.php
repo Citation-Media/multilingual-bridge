@@ -17,11 +17,11 @@ use Multilingual_Bridge\Helpers\WPML_Post_Helper;
 use Multilingual_Bridge\Helpers\Translation_Post_Types;
 
 /**
- * Class ACF_Translation_Modal
+ * Class Translation_Modal
  *
  * Provides inline translation modal for ACF fields
  */
-class ACF_Translation_Modal {
+class Translation_Modal {
 
 	/**
 	 * Initialize hooks
@@ -37,7 +37,7 @@ class ACF_Translation_Modal {
 	/**
 	 * Add field wrapper attributes for translatable fields
 	 *
-	 * Uses ACF_Translation_Handler to determine which field types are translatable.
+	 * Uses Translation_Handler to determine which field types are translatable.
 	 * Adds data attributes that JavaScript uses to inject translation UI.
 	 *
 	 * Only works with Classic Editor and enabled post types.
@@ -65,7 +65,7 @@ class ACF_Translation_Modal {
 		}
 
 		// Check if this field is translatable (both type and WPML preference).
-		if ( ! ACF_Translation_Handler::is_translatable_field( $field['key'], $post->ID ) ) {
+		if ( ! Translation_Handler::is_translatable_field( $field['key'], $post->ID ) ) {
 			return $wrapper;
 		}
 

@@ -72,6 +72,63 @@ class Post_Data_Helper {
 	}
 
 	/**
+	 * Check if a value is truly empty (for ACF field syncing)
+	 *
+	 * Determines if a value should be considered empty for ACF field operations.
+	 * Used to distinguish between truly empty values and valid zero/false values.
+	 *
+	 * Values considered empty: null, '' (empty string), [] (empty array)
+	 * Values NOT considered empty: 0, '0', false (potentially valid IDs or flags)
+	 *
+	 * @param mixed $value The value to check.
+	 * @return bool True if value is empty and should be synced as deleted
+	 */
+	public static function is_empty_value( mixed $value ): bool {
+		// Null is empty.
+		if ( null === $value ) {
+			return true;
+		}
+
+		// Empty string is empty.
+		if ( '' === $value ) {
+			return true;
+		}
+
+		// Empty array is empty.
+		if ( array() === $value ) {
+			return true;
+		}
+
+		// Everything else is not empty (including 0, '0', false).
+		return false;
+	}
+
+	/**
+	 * Determine if ACF field returns multiple values
+	 *
+	 * Checks ACF field configuration and current value to determine
+	 * if the field should return single or multiple values.
+	 *
+	 * @param array<string, mixed> $field      ACF field object.
+	 * @param mixed                $meta_value Current field value.
+	 * @return bool True if field returns multiple values
+	 */
+	public static function is_multiple_value_field( array $field, mixed $meta_value ): bool {
+		// Relationship fields always return arrays.
+		if ( isset( $field['type'] ) && 'relationship' === $field['type'] ) {
+			return true;
+		}
+
+		// Check the 'multiple' setting for other field types.
+		if ( isset( $field['multiple'] ) && 1 === $field['multiple'] ) {
+			return true;
+		}
+
+		// Fallback: check if current value is an array.
+		return is_array( $meta_value );
+	}
+
+	/**
 	 * Flag a field for sync across all translation posts
 	 *
 	 * Unified function for flagging both content and meta fields for sync.
