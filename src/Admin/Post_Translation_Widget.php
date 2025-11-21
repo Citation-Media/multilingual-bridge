@@ -170,6 +170,23 @@ class Post_Translation_Widget {
 		$available_languages = WPML_Language_Helper::get_available_languages();
 		$translations        = WPML_Post_Helper::get_language_versions( $post->ID );
 
+		// Get pending updates for all translations INCLUDING current language.
+		// Build pending updates data for each translation language.
+		$translations_pending = array();
+		foreach ( $translations as $lang_code => $translation_value ) {
+			// Get translation post ID.
+			$translation_post_id = is_int( $translation_value ) ? $translation_value : $translation_value->ID;
+
+			// Check if this translation post has pending updates (using static methods to avoid object instantiation).
+			$has_content_pending  = ( new Post_Data_Tracker() )->has_pending_content_updates( $translation_post_id );
+			$has_meta_pending     = ( new Post_Meta_Tracker() )->has_pending_meta_updates( $translation_post_id );
+			$has_pending_for_lang = $has_content_pending || $has_meta_pending;
+
+			$translations_pending[ $lang_code ] = array(
+				'hasPending' => $has_pending_for_lang,
+			);
+		}
+
 		?>
 		<div class="mlb-widget-header">
 			<p>
@@ -191,6 +208,7 @@ class Post_Translation_Widget {
 			data-current-language="<?php echo esc_attr( $current_language ); ?>"
 			data-available-languages="<?php echo esc_attr( wp_json_encode( $available_languages ) ); ?>"
 			data-translations="<?php echo esc_attr( wp_json_encode( $translations ) ); ?>"
+			data-translations-pending="<?php echo esc_attr( wp_json_encode( $translations_pending ) ); ?>"
 			data-is-navigation="true"
 		>
 			<!-- React app will render here -->
