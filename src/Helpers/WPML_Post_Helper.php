@@ -21,6 +21,53 @@ use WP_Term;
 class WPML_Post_Helper {
 
 	/**
+	 * Get the post ID of the default language version
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return int|null Post ID of default language version, or null if not found
+	 */
+	public static function get_default_language_post_id( int|WP_Post $post ): ?int {
+		$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+		if ( ! $post_id ) {
+			return null;
+		}
+
+		$language_versions = self::get_language_versions( $post_id );
+
+		if ( empty( $language_versions ) ) {
+			return null;
+		}
+
+		$default_language = WPML_Language_Helper::get_default_language();
+
+		return isset( $language_versions[ $default_language ] ) ? $language_versions[ $default_language ] : null;
+	}
+
+	/**
+	 * Check if a post is an original post (in default language)
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return bool True if post is in default language, false otherwise
+	 */
+	public static function is_original_post( int|WP_Post $post ): bool {
+		$post_language    = self::get_language( $post );
+		$default_language = WPML_Language_Helper::get_default_language();
+
+		return ! empty( $post_language ) && $post_language === $default_language;
+	}
+
+	/**
+	 * Check if a post is a translated post (not in default language)
+	 *
+	 * @param int|WP_Post $post Post ID or WP_Post object.
+	 * @return bool True if post is translated, false if in default language
+	 */
+	public static function is_translated_post( int|WP_Post $post ): bool {
+		return ! self::is_original_post( $post );
+	}
+
+	/**
 	 * Get the language code of a post
 	 *
 	 * @param int|WP_Post $post Post ID or WP_Post object..

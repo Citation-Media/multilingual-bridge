@@ -5,9 +5,10 @@
  * @package
  */
 
-// Language Debug page functionality
+import './translation';
+import './post-translation';
+
 document.addEventListener('DOMContentLoaded', function () {
-	// Only run on Language Debug page
 	const debugForm = document.querySelector(
 		'form[action="admin-post.php"] input[value="language_debug"]'
 	);
@@ -21,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		? targetLanguageField.closest('p').previousElementSibling
 		: null;
 
-	// Function to toggle target language field visibility
 	function toggleTargetLanguage() {
 		if (!debugAction || !targetLanguageField || !targetLanguageLabel) {
 			return;
@@ -36,26 +36,22 @@ document.addEventListener('DOMContentLoaded', function () {
 			? 'block'
 			: 'none';
 
-		// Update required attribute
 		targetLanguageField.required = showTargetLanguage;
 	}
 
-	// Initial toggle
 	toggleTargetLanguage();
 
-	// Toggle on change
 	if (debugAction) {
 		debugAction.addEventListener('change', toggleTargetLanguage);
 	}
 
-	// Add confirmation for destructive actions
 	const form = debugForm.closest('form');
 	if (form) {
 		form.addEventListener('submit', function (e) {
 			const action = debugAction ? debugAction.value : '';
 
 			if (action === 'delete') {
-				// eslint-disable-next-line no-alert
+				// eslint-disable-next-line no-alert, no-undef
 				const confirmDelete = confirm(
 					'Are you sure you want to delete all posts in unconfigured languages? This action cannot be undone.'
 				);
@@ -63,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					e.preventDefault();
 				}
 			} else if (action === 'fix_language') {
-				// eslint-disable-next-line no-alert
+				// eslint-disable-next-line no-alert, no-undef
 				const confirmFix = confirm(
 					'Are you sure you want to change the language assignment for all posts in unconfigured languages?'
 				);
@@ -74,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 	}
 
-	// Multi-select helper text
 	const multiSelect = document.getElementById('debug_post_type');
 	if (multiSelect) {
 		multiSelect.addEventListener('change', function () {

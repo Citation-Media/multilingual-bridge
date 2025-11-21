@@ -1,0 +1,433 @@
+/**
+ * Post Translation Widget Styles
+ *
+ * Styling for the post translation sidebar widget on post edit screens
+ */
+
+// =============================================================================
+// Widget Container
+// =============================================================================
+
+#multilingual-bridge-post-widget {
+	padding: 0;
+}
+
+// =============================================================================
+// Widget Header
+// =============================================================================
+
+.mlb-widget-header {
+	padding: 10px 12px;
+	background-color: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	margin: 0 -12px 12px;
+
+	p {
+		margin: 0;
+		font-weight: 600;
+		color: #1d2327;
+	}
+}
+
+// =============================================================================
+// Language List
+// =============================================================================
+
+.mlb-widget-languages {
+	margin-bottom: 16px;
+
+	> p {
+		margin: 0 0 8px;
+	}
+}
+
+.mlb-widget-success {
+	margin: 0 0 12px !important;
+}
+
+.mlb-language-list {
+	margin: 0;
+}
+
+.mlb-language-item {
+	display: flex;
+	align-items: center;
+	padding: 8px 0;
+	border-bottom: 1px solid #f0f0f1;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	&:hover {
+		background-color: #f6f7f7;
+	}
+
+	input[type="checkbox"] {
+		margin: 0 8px 0 0;
+		cursor: pointer;
+	}
+}
+
+.mlb-language-flag {
+	flex: 1;
+	font-weight: 500;
+	color: #2c3338;
+}
+
+.mlb-translation-edit-link {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+	color: #2271b1;
+	text-decoration: none;
+	transition: color 0.15s ease;
+
+	&:hover {
+		color: #135e96;
+	}
+
+	.dashicons {
+		width: 18px;
+		height: 18px;
+		font-size: 18px;
+	}
+}
+
+.mlb-translation-status {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+
+	.dashicons {
+		width: 18px;
+		height: 18px;
+		font-size: 18px;
+	}
+}
+
+.mlb-has-translation .dashicons {
+	color: #00a32a;
+}
+
+.mlb-no-translation .dashicons {
+	color: #dba617;
+}
+
+// Translation with pending sync updates - just show warning icon
+.mlb-translation-pending .dashicons {
+	color: #f0b849;
+}
+
+// Highlight newly created/updated translations
+.mlb-new-translation {
+	animation: mlb-success-pulse 0.6s ease-in-out;
+
+	.dashicons {
+		animation: mlb-icon-scale 0.4s ease-in-out;
+	}
+}
+
+@keyframes mlb-success-pulse {
+
+	0%,
+	100% {
+		background-color: transparent;
+	}
+
+	50% {
+		background-color: #ecf7ed;
+	}
+}
+
+@keyframes mlb-icon-scale {
+
+	0%,
+	100% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.3);
+	}
+}
+
+.mlb-no-languages {
+	color: #646970;
+	font-style: italic;
+	margin: 16px 0;
+}
+
+// =============================================================================
+// Action Button
+// =============================================================================
+
+.mlb-widget-actions {
+	margin: 16px 0;
+}
+
+#mlb-generate-translation {
+	width: 100%;
+	height: auto;
+	padding: 10px 16px;
+	font-size: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+}
+
+// =============================================================================
+// Progress Bar
+// =============================================================================
+
+.mlb-widget-progress {
+	margin: 16px 0;
+}
+
+.mlb-progress-bar {
+	height: 24px;
+	background-color: #f0f0f1;
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 8px;
+}
+
+.mlb-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #2271b1 0%, #135e96 100%);
+	transition: width 0.3s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.mlb-progress-text {
+	margin: 0;
+	text-align: center;
+	color: #50575e;
+	font-size: 13px;
+}
+
+// =============================================================================
+// Results
+// =============================================================================
+
+.mlb-widget-results {
+	margin: 16px 0;
+}
+
+.mlb-results-list {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.mlb-result-overall,
+.mlb-result-language {
+	padding: 12px;
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+
+	.dashicons {
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+}
+
+.mlb-result-overall {
+	background-color: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+
+	.dashicons {
+		width: 20px;
+		height: 20px;
+		font-size: 20px;
+	}
+}
+
+.mlb-result-success {
+	background-color: #ecf7ed;
+	border-color: #68de7c;
+
+	.dashicons {
+		color: #00a32a;
+	}
+}
+
+.mlb-result-error {
+	background-color: #fcf0f1;
+	border-color: #f86368;
+
+	.dashicons {
+		color: #d63638;
+	}
+}
+
+.mlb-result-language {
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 13px;
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	strong {
+		font-weight: 600;
+		color: #1d2327;
+	}
+
+	.mlb-edit-link {
+		color: #2271b1;
+		text-decoration: none;
+		font-weight: 500;
+		transition: color 0.15s ease;
+
+		&:hover {
+			color: #135e96;
+			text-decoration: underline;
+		}
+	}
+
+	.dashicons {
+		width: 18px;
+		height: 18px;
+		font-size: 18px;
+	}
+}
+
+.mlb-lang-success .dashicons {
+	color: #00a32a;
+}
+
+.mlb-lang-error .dashicons {
+	color: #d63638;
+}
+
+// =============================================================================
+// Widget Footer
+// =============================================================================
+
+.mlb-widget-footer {
+	padding: 12px;
+	background-color: #f6f7f7;
+	border-top: 1px solid #dcdcde;
+	margin: 16px -12px -12px;
+
+	.description {
+		margin: 0;
+		font-size: 12px;
+		line-height: 1.5;
+		color: #646970;
+	}
+}
+
+// =============================================================================
+// Responsive Adjustments
+// =============================================================================
+
+@media screen and (max-width: 782px) {
+
+	.mlb-language-item {
+		padding: 10px 0;
+	}
+
+	#mlb-generate-translation {
+		padding: 12px 16px;
+	}
+}
+
+// =============================================================================
+// ACF Field Pending Update Indicator
+// =============================================================================
+
+// Highlight ACF fields with pending updates from source language
+.acf-field.mlb-pending-update {
+	position: relative;
+
+	// Yellow left border indicator
+	&::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: -12px;
+		bottom: 0;
+		width: 4px;
+		background-color: #f0b849;
+	}
+
+	// Style the label
+	> .acf-label label {
+		font-weight: 600;
+	}
+}
+
+// Pending update badge wrapping entire label with warning icon
+// (using WordPress Tooltip component)
+.mlb-pending-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	background-color: #f0b849;
+	border-radius: 10px;
+	cursor: help;
+	transition: all 0.2s ease;
+	font-weight: 600;
+	color: #000;
+
+	// Dashicon warning on left
+	.dashicons {
+		width: 16px;
+		height: 16px;
+		font-size: 16px;
+		color: #000;
+		line-height: 1;
+		flex-shrink: 0;
+	}
+
+	// Hover effect
+	&:hover {
+		background-color: #dba617;
+	}
+}
+
+// Pulse animation for newly flagged fields
+@keyframes mlb-badge-pulse {
+
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(240, 184, 73, 0.7);
+	}
+
+	50% {
+		box-shadow: 0 0 0 6px rgba(240, 184, 73, 0);
+	}
+}
+
+// Apply pulse animation when field is first flagged
+.mlb-pending-badge.mlb-new-flag {
+	animation: mlb-badge-pulse 1s ease-out;
+}
+
+// =============================================================================
+// ID-based Specificity Overrides (must come last)
+// =============================================================================
+
+// More specific dashicon styles for button
+#mlb-generate-translation .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+}

@@ -681,7 +681,7 @@ function bulk_update_post_terms($post_ids, $term_ids, $taxonomy) {
 ## Requirements
 
 - WPML plugin must be installed and activated
-- PHP 8.0 or higher (for union type support)
+- PHP 8.1 or higher (for union type and enum support)
 - WordPress 5.0 or higher
 
 ## Comparison with Native WPML Functions
